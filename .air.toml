@@ -1,0 +1,21 @@
+root: "."
+testdata_dir: "testdata"
+tmp_dir: "tmp"
+
+[build]
+  cmd: "make build"
+  bin: "./ticket-zetu-api"
+  delay: 0
+  exclude_dir: ["assets", "tmp", "vendor", "testdata"]
+  exclude_regex: ["_test.go"]
+  include_ext: ["go", "tpl", "tmpl", "html"]
+  log: "build-errors.log"
+
+[color]
+  build: "yellow"
+  main: "magenta"
+  runner: "green"
+  watcher: "cyan"
+
+[screen]
+  keep_scroll: true
