@@ -54,7 +54,7 @@ func main() {
 
 	// Register log management routes
 	logs.SetupRoutes(api, logService, logHandler)
-	roles.RolesRoutes(api, database.DB, logHandler)
+	roles.AuthorizationRoutes(api, database.DB, logHandler)
 
 	// Graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)

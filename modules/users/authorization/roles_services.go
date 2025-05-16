@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/gorm"
 	models "ticket-zetu-api/modules/users/models/authorization"
+	users "ticket-zetu-api/modules/users/models/members"
 )
 
 type RoleService interface {
@@ -86,7 +87,7 @@ func (s *roleService) UpdateRole(id string, updates map[string]interface{}) erro
 	// Update NumberOfUsers if status changes to inactive or archived
 	if status, ok := updates["status"]; ok && (status == string(models.RoleInactive) || status == string(models.RoleArchived)) {
 		var userCount int64
-		if err := s.db.Model(&models.User{}).Where("role_id = ? AND deleted_at IS NULL", id).Count(&userCount).Error; err != nil {
+		if err := s.db.Model(&users.User{}).Where("role_id = ? AND deleted_at IS NULL", id).Count(&userCount).Error; err != nil {
 			return err
 		}
 		if userCount > 0 {
@@ -112,7 +113,7 @@ func (s *roleService) DeleteRole(id string) error {
 
 	// Prevent deletion of roles with assigned users
 	var userCount int64
-	if err := s.db.Model(&models.User{}).Where("role_id = ? AND deleted_at IS NULL", id).Count(&userCount).Error; err != nil {
+	if err := s.db.Model(&users.User{}).Where("role_id = ? AND deleted_at IS NULL", id).Count(&userCount).Error; err != nil {
 		return err
 	}
 	if userCount > 0 {
@@ -125,7 +126,7 @@ func (s *roleService) DeleteRole(id string) error {
 
 func (s *roleService) HasPermission(userID, permissionName string) (bool, error) {
 	var count int64
-	err := s.db.Model(&models.User{}).
+	err := s.db.Model(&users.User{}).
 		Joins("JOIN roles ON users.role_id = roles.id").
 		Joins("JOIN role_permissions ON roles.id = role_permissions.role_id").
 		Joins("JOIN permissions ON role_permissions.permission_id = permissions.id").
@@ -140,7 +141,7 @@ func (s *roleService) HasPermission(userID, permissionName string) (bool, error)
 
 func (s *roleService) GetUserRoleLevel(userID string) (int, error) {
 	var role models.Role
-	err := s.db.Model(&models.User{}).
+	err := s.db.Model(&users.User{}).
 		Joins("JOIN roles ON users.role_id = roles.id").
 		Where("users.id = ? AND roles.status = ? AND users.deleted_at IS NULL AND roles.deleted_at IS NULL", userID, models.RoleActive).
 		Select("roles.level").First(&role).Error

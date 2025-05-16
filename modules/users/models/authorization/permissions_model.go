@@ -1,10 +1,9 @@
 package model
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"time"
 )
 
 type PermissionStatus string
@@ -18,7 +17,7 @@ type Permission struct {
 	ID             string           `gorm:"type:char(36);primaryKey" json:"id"`
 	PermissionName string           `gorm:"size:100;not null;uniqueIndex" json:"permission_name"`
 	Description    string           `gorm:"size:255" json:"description"`
-	Scope          string           `gorm:"size:255" json:"scope"` // e.g., "role:<=10" or "user:team_only"
+	Scope          string           `gorm:"size:255" json:"scope"`
 	Status         PermissionStatus `gorm:"size:20;not null;default:'active'" json:"status"`
 	CreatedBy      string           `gorm:"type:char(36)" json:"created_by"`
 	LastModifiedBy string           `gorm:"type:char(36)" json:"last_modified_by"`

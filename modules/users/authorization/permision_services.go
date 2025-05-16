@@ -2,6 +2,7 @@ package authorization
 
 import (
 	"errors"
+	users "ticket-zetu-api/modules/users/models/members"
 
 	"gorm.io/gorm"
 	models "ticket-zetu-api/modules/users/models/authorization"
@@ -161,7 +162,7 @@ func (s *permissionService) AssignPermissionToRole(roleID, permissionID, userID 
 
 func (s *permissionService) HasPermission(userID, permissionName string) (bool, error) {
 	var count int64
-	err := s.db.Model(&models.User{}).
+	err := s.db.Model(&users.User{}).
 		Joins("JOIN roles ON users.role_id = roles.id").
 		Joins("JOIN role_permissions ON roles.id = role_permissions.role_id").
 		Joins("JOIN permissions ON role_permissions.permission_id = permissions.id").
@@ -176,7 +177,7 @@ func (s *permissionService) HasPermission(userID, permissionName string) (bool, 
 
 func (s *permissionService) GetUserRoleLevel(userID string) (int, error) {
 	var role models.Role
-	err := s.db.Model(&models.User{}).
+	err := s.db.Model(&users.User{}).
 		Joins("JOIN roles ON users.role_id = roles.id").
 		Where("users.id = ? AND roles.status = ? AND users.deleted_at IS NULL AND roles.deleted_at IS NULL", userID, models.RoleActive).
 		Select("roles.level").First(&role).Error
