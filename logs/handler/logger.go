@@ -7,7 +7,7 @@ import (
 	"strings"
 	"ticket-zetu-api/logs/model"
 	"ticket-zetu-api/logs/service"
-	"ticket-zetu-api/utils/res"
+	response "ticket-zetu-api/utils/res"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -61,7 +61,10 @@ func (lh *LogHandler) createBaseLog(c *fiber.Ctx, level, message string, statusC
 	path := c.Path()
 	method := c.Method()
 	env := lh.Service.Env
-	ip := c.IP()
+
+	// Use the improved IP address resolution method
+	ip := lh.getClientIP(c)
+
 	userAgent := c.Get("User-Agent")
 	queryString := c.Context().URI().QueryArgs().String()
 
@@ -91,6 +94,35 @@ func (lh *LogHandler) createBaseLog(c *fiber.Ctx, level, message string, statusC
 		UserAgent:   &userAgent,
 		Context:     &context,
 	}
+}
+
+// getClientIP extracts the client IP address considering proxy headers
+func (lh *LogHandler) getClientIP(c *fiber.Ctx) string {
+	// Check X-Forwarded-For header first (most common proxy header)
+	if xff := c.Get("X-Forwarded-For"); xff != "" {
+		// The X-Forwarded-For header can contain multiple IPs
+		// The leftmost IP is usually the original client IP
+		ips := strings.Split(xff, ",")
+		if len(ips) > 0 {
+			return strings.TrimSpace(ips[0])
+		}
+	}
+
+	// Check other common proxy headers
+	if ip := c.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+
+	if ip := c.Get("CF-Connecting-IP"); ip != "" { // Cloudflare
+		return ip
+	}
+
+	if ip := c.Get("True-Client-IP"); ip != "" {
+		return ip
+	}
+
+	// Fallback to Fiber's IP method (which typically returns the direct connection IP)
+	return c.IP()
 }
 
 // getCallerInfo retrieves the file and line number of the caller

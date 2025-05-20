@@ -72,20 +72,23 @@ func (s *LogService) processLogs() {
 
 		case entry := <-s.logChan:
 			// Try to find existing log to increment occurrences
-			if existing, err := s.findExistingLog(entry); err == nil && existing != nil {
+			existing, err := s.findExistingLog(entry)
+			if err == nil && existing != nil {
+				// Successfully found an existing log, increment its occurrences
 				s.incrementOccurrence(existing, entry)
 			} else {
+				// No existing log found or error occurred, add to batch for insertion
 				batch = append(batch, entry)
 				if len(batch) >= s.bufferSize {
 					s.flushLogs(batch)
-					batch = nil
+					batch = make([]model.Log, 0, s.bufferSize) // Reset with capacity
 				}
 			}
 
 		case <-ticker.C:
 			if len(batch) > 0 {
 				s.flushLogs(batch)
-				batch = nil
+				batch = make([]model.Log, 0, s.bufferSize) // Reset with capacity
 			}
 		}
 	}
@@ -100,30 +103,44 @@ func (s *LogService) findExistingLog(entry model.Log) (*model.Log, error) {
 
 	var existing model.Log
 	oneHourAgo := time.Now().Add(-1 * time.Hour)
+
+	// Use a transaction for consistency
 	err := s.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Where(
-			"ip_address = ? AND route = ? AND message = ? AND created_at >= ?",
-			*entry.IPAddress, *entry.Route, entry.Message, oneHourAgo,
-		).Order("created_at DESC").First(&existing).Error
-		if err != nil {
-			return err
+		// Add level to the query for more specific matching
+		result := tx.Where(
+			"ip_address = ? AND route = ? AND message = ? AND level = ? AND created_at >= ?",
+			*entry.IPAddress, *entry.Route, entry.Message, entry.Level, oneHourAgo,
+		).Order("created_at DESC").First(&existing)
+
+		if result.Error != nil {
+			if result.Error == gorm.ErrRecordNotFound {
+				return gorm.ErrRecordNotFound
+			}
+			return fmt.Errorf("database error: %w", result.Error)
 		}
+
 		return nil
 	})
+
 	if err == gorm.ErrRecordNotFound {
-		log.Printf("No existing log found for IP: %s, Route: %s, Message: %s", *entry.IPAddress, *entry.Route, entry.Message)
+		log.Printf("No existing log found for IP: %s, Route: %s, Message: %s",
+			*entry.IPAddress, *entry.Route, entry.Message)
 		return nil, nil
 	}
+
 	if err != nil {
-		log.Printf("Error finding existing log for IP: %s, Route: %s, Message: %s, Error: %v", *entry.IPAddress, *entry.Route, entry.Message, err)
+		log.Printf("Error finding existing log: %v", err)
 		return nil, fmt.Errorf("failed to find existing log: %w", err)
 	}
-	log.Printf("Found existing log ID: %d for IP: %s, Route: %s, Message: %s", existing.ID, *entry.IPAddress, *entry.Route, entry.Message)
+
+	log.Printf("Found existing log ID: %d for IP: %s, Route: %s, Message: %s",
+		existing.ID, *entry.IPAddress, *entry.Route, entry.Message)
 	return &existing, nil
 }
 
 // incrementOccurrence updates the occurrence count for an existing log
 func (s *LogService) incrementOccurrence(existing *model.Log, newEntry model.Log) {
+	// Prepare update data
 	update := map[string]interface{}{
 		"occurrences": gorm.Expr("occurrences + 1"),
 		"updated_at":  time.Now(),
@@ -155,19 +172,29 @@ func (s *LogService) incrementOccurrence(existing *model.Log, newEntry model.Log
 		update["level"] = newEntry.Level
 	}
 
+	// Execute the update with a transaction
 	err := s.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Model(&model.Log{}).
+		result := tx.Model(&model.Log{}).
 			Where("id = ?", existing.ID).
-			Updates(update).Error
-		if err != nil {
-			return err
+			Updates(update)
+
+		if result.Error != nil {
+			return result.Error
 		}
+
+		// Check if the update was actually applied
+		if result.RowsAffected == 0 {
+			return fmt.Errorf("no rows affected when updating log ID: %d", existing.ID)
+		}
+
 		return nil
 	})
+
 	if err != nil {
 		log.Printf("Failed to increment occurrence for log ID: %d, Error: %v", existing.ID, err)
 	} else {
-		log.Printf("Incremented occurrences for log ID: %d, New count: %d", existing.ID, existing.Occurrences+1)
+		log.Printf("Incremented occurrences for log ID: %d, New count: %d",
+			existing.ID, existing.Occurrences+1)
 	}
 }
 

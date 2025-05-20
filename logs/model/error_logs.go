@@ -25,15 +25,6 @@ type Log struct {
 	UpdatedAt   *gorm.DeletedAt `json:"updated_at,omitempty"`
 }
 
-// BeforeCreate hook to generate a UUID for TrackerID if not set
-// func (l *Log) BeforeCreate(tx *gorm.DB) error {
-// 	if l.TrackerID == nil {
-// 		uuidStr := uuid.New().String()
-// 		l.TrackerID = &uuidStr
-// 	}
-// 	return nil
-// }
-
 // TableName sets the table name for the Log model
 func (Log) TableName() string {
 	return "logs"
