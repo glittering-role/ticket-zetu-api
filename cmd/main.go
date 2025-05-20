@@ -12,19 +12,12 @@ import (
 	"ticket-zetu-api/logs/handler"
 	logs "ticket-zetu-api/logs/routes/v1"
 	"ticket-zetu-api/logs/service"
+	auth "ticket-zetu-api/modules/users/routes/v1"
 	roles "ticket-zetu-api/modules/users/routes/v1"
+	users "ticket-zetu-api/modules/users/routes/v1"
 
 	"github.com/gofiber/fiber/v2"
 )
-
-// @title           Ticket Zetu API
-// @version         1.0
-// @description     This is a log management API for Ticket Zetu.
-// @host            localhost:8080
-// @BasePath        /api/v1
-
-// @contact.name   API Support
-// @contact.email  support@ticketzetu.com
 
 func main() {
 	// Load configuration
@@ -55,6 +48,8 @@ func main() {
 	// Register log management routes
 	logs.SetupRoutes(api, logService, logHandler)
 	roles.AuthorizationRoutes(api, database.DB, logHandler)
+	auth.SetupAuthRoutes(api, database.DB, logHandler)
+	users.UserRoutes(api, database.DB, logHandler)
 
 	// Graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)

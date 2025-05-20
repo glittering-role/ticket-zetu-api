@@ -8,6 +8,10 @@ import (
 	Role "ticket-zetu-api/modules/users/models/authorization"
 	RolePermission "ticket-zetu-api/modules/users/models/authorization"
 	User "ticket-zetu-api/modules/users/models/members"
+	UserLocation "ticket-zetu-api/modules/users/models/members"
+	UserPreferences "ticket-zetu-api/modules/users/models/members"
+	UserSecurityAttributes "ticket-zetu-api/modules/users/models/members"
+	UserSession "ticket-zetu-api/modules/users/models/members"
 )
 
 func Migrate(db *gorm.DB) error {
@@ -20,6 +24,11 @@ func Migrate(db *gorm.DB) error {
 		&Permission.Permission{},
 		&RolePermission.RolePermission{},
 		&User.User{},
+		&UserSecurityAttributes.UserSecurityAttributes{},
+		&UserSession.UserSession{},
+		&UserPreferences.UserPreferences{},
+		&UserLocation.UserLocation{},
+		&UserSecurityAttributes.UserSecurityAttributes{},
 	}
 
 	// Enable detailed logging for migrations

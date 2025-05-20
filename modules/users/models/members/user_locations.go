@@ -20,9 +20,6 @@ type UserLocation struct {
 	UpdatedAt  time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
 	LastActive *time.Time `gorm:"type:timestamp" json:"last_active,omitempty"`
 	Timezone   string     `gorm:"type:varchar(50);default:'UTC'" json:"timezone"`
-
-	// Relationships
-	User User `gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
 }
 
 func (l *UserLocation) BeforeCreate(tx *gorm.DB) (err error) {
@@ -60,11 +57,10 @@ func (l *UserLocation) IsActive() bool {
 	if l.LastActive == nil {
 		return false
 	}
-	return time.Since(*l.LastActive) < 24*time.Hour // Active within last 24 hours
+	return time.Since(*l.LastActive) < 24*time.Hour
 }
 
 func (l *UserLocation) SetTimezone() {
-	// Basic implementation - would integrate with timezone API in production
 	switch l.Country {
 	case "US":
 		l.Timezone = "America/New_York"

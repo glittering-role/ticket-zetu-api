@@ -26,6 +26,8 @@ type Permission struct {
 	DeletedAt      gorm.DeletedAt   `gorm:"index" json:"deleted_at,omitempty"`
 	Version        int              `gorm:"default:1" json:"version"`
 	Roles          []Role           `gorm:"many2many:role_permissions;foreignKey:ID;joinForeignKey:PermissionID;References:ID;joinReferences:RoleID" json:"roles"`
+
+	RolePermissions []RolePermission `gorm:"foreignKey:PermissionID" json:"role_permissions"`
 }
 
 func (p *Permission) BeforeCreate(tx *gorm.DB) (err error) {

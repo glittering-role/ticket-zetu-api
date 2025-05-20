@@ -2,7 +2,6 @@ package authorization
 
 import (
 	"errors"
-	users "ticket-zetu-api/modules/users/models/members"
 
 	"gorm.io/gorm"
 	models "ticket-zetu-api/modules/users/models/authorization"
@@ -12,9 +11,11 @@ type PermissionService interface {
 	CreatePermission(permission *models.Permission) error
 	GetPermissions(filters map[string]interface{}, limit, offset int) ([]models.Permission, error)
 	GetPermissionByID(id string) (*models.Permission, error)
+	GetPermissionWithRoles(id string) (*models.Permission, []models.Role, error) // New method
 	UpdatePermission(id string, updates map[string]interface{}) error
 	DeletePermission(id string) error
 	AssignPermissionToRole(roleID, permissionID, userID string) error
+	RemovePermissionFromRole(roleID, permissionID, userID string) error
 	HasPermission(userID, permissionName string) (bool, error)
 	GetUserRoleLevel(userID string) (int, error)
 }
@@ -45,7 +46,7 @@ func (s *permissionService) CreatePermission(permission *models.Permission) erro
 
 func (s *permissionService) GetPermissions(filters map[string]interface{}, limit, offset int) ([]models.Permission, error) {
 	var permissions []models.Permission
-	query := s.db.Model(&models.Permission{}).Preload("Roles").Where("deleted_at IS NULL")
+	query := s.db.Model(&models.Permission{}).Where("deleted_at IS NULL")
 
 	for key, value := range filters {
 		query = query.Where(key, value)
@@ -57,11 +58,29 @@ func (s *permissionService) GetPermissions(filters map[string]interface{}, limit
 
 func (s *permissionService) GetPermissionByID(id string) (*models.Permission, error) {
 	var permission models.Permission
-	err := s.db.Preload("Roles").Where("id = ? AND deleted_at IS NULL", id).First(&permission).Error
+	err := s.db.Where("id = ? AND deleted_at IS NULL", id).First(&permission).Error
 	if err != nil {
 		return nil, err
 	}
 	return &permission, nil
+}
+
+// New method to get permission with its roles
+func (s *permissionService) GetPermissionWithRoles(id string) (*models.Permission, []models.Role, error) {
+	var permission models.Permission
+	err := s.db.Where("id = ? AND deleted_at IS NULL", id).First(&permission).Error
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Get related roles through role_permissions table
+	var roles []models.Role
+	err = s.db.Table("roles").
+		Joins("JOIN role_permissions ON roles.id = role_permissions.role_id").
+		Where("role_permissions.permission_id = ? AND role_permissions.deleted_at IS NULL AND roles.deleted_at IS NULL", id).
+		Find(&roles).Error
+
+	return &permission, roles, err
 }
 
 func (s *permissionService) UpdatePermission(id string, updates map[string]interface{}) error {
@@ -71,7 +90,7 @@ func (s *permissionService) UpdatePermission(id string, updates map[string]inter
 		return err
 	}
 
-	// If updating permission_name, ensure it’s unique
+	// If updating permission_name, ensure it's unique
 	if name, ok := updates["permission_name"]; ok {
 		var existingPermission models.Permission
 		if err := s.db.Unscoped().Where("permission_name = ? AND id != ?", name, id).First(&existingPermission).Error; err == nil {
@@ -160,13 +179,34 @@ func (s *permissionService) AssignPermissionToRole(roleID, permissionID, userID 
 	return s.db.Create(&rolePermission).Error
 }
 
+func (s *permissionService) RemovePermissionFromRole(roleID, permissionID, userID string) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		// Check if the role-permission assignment exists
+		var rolePermission models.RolePermission
+		if err := tx.Where("role_id = ? AND permission_id = ? AND deleted_at IS NULL", roleID, permissionID).First(&rolePermission).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.New("role-permission assignment not found")
+			}
+			return err
+		}
+
+		// Update LastModifiedBy on the role
+		if err := tx.Model(&models.Role{}).Where("id = ?", roleID).Update("last_modified_by", userID).Error; err != nil {
+			return err
+		}
+
+		// Soft delete the role-permission assignment
+		return tx.Delete(&rolePermission).Error
+	})
+}
+
 func (s *permissionService) HasPermission(userID, permissionName string) (bool, error) {
 	var count int64
-	err := s.db.Model(&users.User{}).
-		Joins("JOIN roles ON users.role_id = roles.id").
-		Joins("JOIN role_permissions ON roles.id = role_permissions.role_id").
-		Joins("JOIN permissions ON role_permissions.permission_id = permissions.id").
-		Where("users.id = ? AND permissions.permission_name = ? AND roles.status = ? AND permissions.status = ? AND users.deleted_at IS NULL AND roles.deleted_at IS NULL AND permissions.deleted_at IS NULL",
+	err := s.db.Table("user_profiles"). // Use correct table name
+						Joins("JOIN roles ON user_profiles.role_id = roles.id").
+						Joins("JOIN role_permissions ON roles.id = role_permissions.role_id").
+						Joins("JOIN permissions ON role_permissions.permission_id = permissions.id").
+						Where("user_profiles.id = ? AND permissions.permission_name = ? AND roles.status = ? AND permissions.status = ? AND user_profiles.deleted_at IS NULL AND roles.deleted_at IS NULL AND permissions.deleted_at IS NULL AND role_permissions.deleted_at IS NULL",
 			userID, permissionName, models.RoleActive, models.PermissionActive).
 		Count(&count).Error
 	if err != nil {
@@ -177,10 +217,10 @@ func (s *permissionService) HasPermission(userID, permissionName string) (bool, 
 
 func (s *permissionService) GetUserRoleLevel(userID string) (int, error) {
 	var role models.Role
-	err := s.db.Model(&users.User{}).
-		Joins("JOIN roles ON users.role_id = roles.id").
-		Where("users.id = ? AND roles.status = ? AND users.deleted_at IS NULL AND roles.deleted_at IS NULL", userID, models.RoleActive).
-		Select("roles.level").First(&role).Error
+	err := s.db.Table("user_profiles"). // Use correct table name
+						Joins("JOIN roles ON user_profiles.role_id = roles.id").
+						Where("user_profiles.id = ? AND roles.status = ? AND user_profiles.deleted_at IS NULL AND roles.deleted_at IS NULL", userID, models.RoleActive).
+						Select("roles.level").First(&role).Error
 	if err != nil {
 		return 0, errors.New("user has no active role")
 	}

@@ -1,11 +1,10 @@
 package members
 
 import (
-	"strings"
-	"time"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"strings"
+	"time"
 )
 
 type UserPreferences struct {
@@ -14,17 +13,15 @@ type UserPreferences struct {
 	ShowEmail      bool           `gorm:"default:false" json:"show_email"`
 	ShowPhone      bool           `gorm:"default:false" json:"show_phone"`
 	ShowLocation   bool           `gorm:"default:false" json:"show_location"`
+	ShowGender     bool           `gorm:"default:false" json:"show_gender"`
 	ShowProfile    bool           `gorm:"default:true;index" json:"show_profile"`
 	AllowFollowing bool           `gorm:"default:true;index" json:"allow_following"`
-	Language       string         `gorm:"type:varchar(10);default:'en';index" json:"language"` // ISO 639-1
+	Language       string         `gorm:"type:varchar(10);default:'en';index" json:"language"`
 	Theme          string         `gorm:"type:varchar(20);default:'light'" json:"theme"`
 	Timezone       string         `gorm:"type:varchar(50);default:'UTC'" json:"timezone"`
 	CreatedAt      time.Time      `gorm:"autoCreateTime;index" json:"created_at"`
 	UpdatedAt      time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
-
-	// Relationships
-	User User `gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
 }
 
 func (p *UserPreferences) BeforeCreate(tx *gorm.DB) (err error) {
@@ -40,11 +37,11 @@ func (UserPreferences) TableName() string {
 
 // Helpers
 func (p *UserPreferences) IsPublicProfile() bool {
-	return p.ShowProfile && (p.ShowEmail || p.ShowPhone || p.ShowLocation)
+	return p.ShowProfile && (p.ShowEmail || p.ShowPhone || p.ShowLocation || p.ShowGender)
 }
 
 func (p *UserPreferences) VisibleFields() []string {
-	fields := make([]string, 0, 3) // Pre-allocate for 3 possible fields
+	fields := make([]string, 0, 4)
 	if p.ShowEmail {
 		fields = append(fields, "email")
 	}
@@ -54,11 +51,13 @@ func (p *UserPreferences) VisibleFields() []string {
 	if p.ShowLocation {
 		fields = append(fields, "location")
 	}
+	if p.ShowGender {
+		fields = append(fields, "gender")
+	}
 	return fields
 }
 
 func (p *UserPreferences) GetLocale() string {
-	// Converts language code to locale format (en -> en_US)
 	switch p.Language {
 	case "en":
 		return "en_US"
@@ -79,6 +78,8 @@ func (p *UserPreferences) ShouldShow(field string) bool {
 		return p.ShowPhone && p.ShowProfile
 	case "location":
 		return p.ShowLocation && p.ShowProfile
+	case "gender":
+		return p.ShowGender && p.ShowProfile
 	default:
 		return false
 	}

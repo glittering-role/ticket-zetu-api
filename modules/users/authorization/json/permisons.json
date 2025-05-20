@@ -1,0 +1,26 @@
+[
+  {
+    "permission_name": "create:permission",
+    "description": "Allows creating new permissions",
+    "scope": "system",
+    "status": "active"
+  },
+  {
+    "permission_name": "view:permission",
+    "description": "Allows viewing permissions",
+    "scope": "system",
+    "status": "active"
+  },
+  {
+    "permission_name": "view:role",
+    "description": "Allows viewing roles",
+    "scope": "system",
+    "status": "active"
+  },
+  {
+    "permission_name": "create:role",
+    "description": "Allows creating new roles",
+    "scope": "system",
+    "status": "active"
+  }
+]

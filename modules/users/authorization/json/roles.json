@@ -1,0 +1,23 @@
+[
+  {
+    "role_name": "admin",
+    "description": "Administrator with full access",
+    "level": 10,
+    "status": "active",
+    "is_system_role": true
+  },
+  {
+    "role_name": "user",
+    "description": "Standard user with basic access",
+    "level": 5,
+    "status": "active",
+    "is_system_role": false
+  },
+  {
+    "role_name": "guest",
+    "description": "Guest user with limited access",
+    "level": 1,
+    "status": "active",
+    "is_system_role": false
+  }
+]

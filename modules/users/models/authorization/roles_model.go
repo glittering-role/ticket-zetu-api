@@ -28,7 +28,9 @@ type Role struct {
 	UpdatedAt      time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	Version        int            `gorm:"default:1" json:"version"`
-	Permissions    []Permission   `gorm:"many2many:role_permissions;" json:"permissions"`
+
+	// Use has-many relationship instead
+	RolePermissions []RolePermission `gorm:"foreignKey:RoleID" json:"role_permissions"`
 }
 
 func (r *Role) BeforeCreate(tx *gorm.DB) (err error) {
