@@ -3,6 +3,7 @@ package database
 import (
 	"log"
 	Logs "ticket-zetu-api/logs/model"
+	Organizer "ticket-zetu-api/modules/organizers/models"
 	Category "ticket-zetu-api/modules/tickets/models/categories"
 	Subcategory "ticket-zetu-api/modules/tickets/models/categories"
 	Permission "ticket-zetu-api/modules/users/models/authorization"
@@ -36,6 +37,9 @@ func Migrate(db *gorm.DB) error {
 		//Category
 		&Category.Category{},
 		&Subcategory.Subcategory{},
+
+		//Organizer
+		&Organizer.Organizer{},
 	}
 
 	db = db.Debug()

@@ -2,6 +2,7 @@ package categories
 
 import (
 	"errors"
+	"ticket-zetu-api/modules/users/models/members"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,7 +16,7 @@ type Subcategory struct {
 	ImageURL          string         `gorm:"type:text" json:"image_url,omitempty"`
 	IsActive          bool           `gorm:"default:true" json:"is_active"`
 	LastUpdatedBy     string         `gorm:"type:char(36);index" json:"last_updated_by,omitempty"`
-	LastUpdatedByUser User           `gorm:"foreignKey:LastUpdatedBy;references:ID;constraint:OnDelete:SET NULL" json:"last_updated_by_user,omitempty"`
+	LastUpdatedByUser members.User   `gorm:"foreignKey:LastUpdatedBy;references:ID;constraint:OnDelete:SET NULL" json:"last_updated_by_user,omitempty"`
 	CategoryID        string         `gorm:"type:char(36);not null;index" json:"category_id"`
 	Category          Category       `gorm:"foreignKey:CategoryID;constraint:OnDelete:CASCADE" json:"category,omitempty"`
 	CreatedAt         time.Time      `gorm:"autoCreateTime" json:"created_at"`
@@ -41,5 +42,5 @@ func (s *Subcategory) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (Subcategory) TableName() string {
-	return "subcategories"
+	return "sub_categories"
 }

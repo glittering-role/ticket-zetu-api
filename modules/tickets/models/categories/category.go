@@ -1,9 +1,11 @@
 package categories
 
 import (
+	"ticket-zetu-api/modules/users/models/members"
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"time"
 )
 
 type Category struct {
@@ -13,7 +15,7 @@ type Category struct {
 	ImageURL          string         `gorm:"type:text" json:"image_url,omitempty"`
 	IsActive          bool           `gorm:"default:true" json:"is_active"`
 	LastUpdatedBy     string         `gorm:"type:char(36);index" json:"last_updated_by,omitempty"`
-	LastUpdatedByUser User           `gorm:"foreignKey:LastUpdatedBy;references:ID;constraint:OnDelete:SET NULL" json:"last_updated_by_user,omitempty"`
+	LastUpdatedByUser members.User   `gorm:"foreignKey:LastUpdatedBy;references:ID;constraint:OnDelete:SET NULL" json:"last_updated_by_user,omitempty"`
 	Subcategories     []Subcategory  `gorm:"foreignKey:CategoryID;constraint:OnDelete:CASCADE" json:"subcategories,omitempty"`
 	CreatedAt         time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt         time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
@@ -30,9 +32,4 @@ func (c *Category) BeforeCreate(tx *gorm.DB) (err error) {
 
 func (Category) TableName() string {
 	return "categories"
-}
-
-// User is a minimal struct to avoid circular imports
-type User struct {
-	ID string `gorm:"type:char(36);primaryKey"`
 }
