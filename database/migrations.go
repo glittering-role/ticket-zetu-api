@@ -1,9 +1,10 @@
 package database
 
 import (
-	"gorm.io/gorm"
 	"log"
 	Logs "ticket-zetu-api/logs/model"
+	Category "ticket-zetu-api/modules/tickets/models/categories"
+	Subcategory "ticket-zetu-api/modules/tickets/models/categories"
 	Permission "ticket-zetu-api/modules/users/models/authorization"
 	Role "ticket-zetu-api/modules/users/models/authorization"
 	RolePermission "ticket-zetu-api/modules/users/models/authorization"
@@ -12,6 +13,8 @@ import (
 	UserPreferences "ticket-zetu-api/modules/users/models/members"
 	UserSecurityAttributes "ticket-zetu-api/modules/users/models/members"
 	UserSession "ticket-zetu-api/modules/users/models/members"
+
+	"gorm.io/gorm"
 )
 
 func Migrate(db *gorm.DB) error {
@@ -29,9 +32,12 @@ func Migrate(db *gorm.DB) error {
 		&UserPreferences.UserPreferences{},
 		&UserLocation.UserLocation{},
 		&UserSecurityAttributes.UserSecurityAttributes{},
+
+		//Category
+		&Category.Category{},
+		&Subcategory.Subcategory{},
 	}
 
-	// Enable detailed logging for migrations
 	db = db.Debug()
 
 	log.Println("Running database migrations...")

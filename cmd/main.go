@@ -12,6 +12,7 @@ import (
 	"ticket-zetu-api/logs/handler"
 	logs "ticket-zetu-api/logs/routes/v1"
 	"ticket-zetu-api/logs/service"
+	categories "ticket-zetu-api/modules/tickets/routes/v1"
 	auth "ticket-zetu-api/modules/users/routes/v1"
 	roles "ticket-zetu-api/modules/users/routes/v1"
 	users "ticket-zetu-api/modules/users/routes/v1"
@@ -50,6 +51,7 @@ func main() {
 	roles.AuthorizationRoutes(api, database.DB, logHandler)
 	auth.SetupAuthRoutes(api, database.DB, logHandler)
 	users.UserRoutes(api, database.DB, logHandler)
+	categories.CategoryRoutes(api, database.DB, logHandler)
 
 	// Graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)
