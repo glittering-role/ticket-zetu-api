@@ -23,7 +23,6 @@ type User struct {
 	CreatedAt      time.Time       `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt      time.Time       `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt      gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"`
-	CreatedBy      string          `gorm:"type:char(36)" json:"created_by"`
 	LastModifiedBy string          `gorm:"type:char(36)" json:"last_modified_by"`
 	Preferences    UserPreferences `gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"preferences"`
 	Location       UserLocation    `gorm:"foreignKey:UserID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"location"`

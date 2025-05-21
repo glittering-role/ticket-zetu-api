@@ -80,7 +80,6 @@ func (c *AuthController) SignUp(ctx *fiber.Ctx) error {
 		Email:       req.Email,
 		Phone:       req.Phone,
 		DateOfBirth: dob,
-		CreatedBy:   "system",
 		RoleID:      role.ID,
 	}
 

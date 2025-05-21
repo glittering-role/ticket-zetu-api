@@ -15,41 +15,87 @@ import (
 	UserSecurityAttributes "ticket-zetu-api/modules/users/models/members"
 	UserSession "ticket-zetu-api/modules/users/models/members"
 
+	Event "ticket-zetu-api/modules/tickets/models/events"
+	EventImage "ticket-zetu-api/modules/tickets/models/events"
+	Venue "ticket-zetu-api/modules/tickets/models/events"
+
+	DiscountCode "ticket-zetu-api/modules/tickets/models/tickets"
+	PriceTier "ticket-zetu-api/modules/tickets/models/tickets"
+	Ticket "ticket-zetu-api/modules/tickets/models/tickets"
+	TicketType "ticket-zetu-api/modules/tickets/models/tickets"
+
 	"gorm.io/gorm"
 )
 
 func Migrate(db *gorm.DB) error {
-	// List all your models here
+	// List all your models here in logical groups
 	models := []interface{}{
+		// System Models
 		&Logs.Log{},
 
-		//Users Module
-		&Role.Role{},
+		// Authorization Models
 		&Permission.Permission{},
+		&Role.Role{},
 		&RolePermission.RolePermission{},
+
+		// User Models
 		&User.User{},
 		&UserSecurityAttributes.UserSecurityAttributes{},
 		&UserSession.UserSession{},
 		&UserPreferences.UserPreferences{},
 		&UserLocation.UserLocation{},
-		&UserSecurityAttributes.UserSecurityAttributes{},
 
-		//Category
+		// Category Models
 		&Category.Category{},
 		&Subcategory.Subcategory{},
 
-		//Organizer
+		// Organizer Models
 		&Organizer.Organizer{},
+
+		// Event Models
+		&Venue.Venue{},
+		&Event.Event{},
+		&EventImage.EventImage{},
+
+		// Ticket Models
+		&PriceTier.PriceTier{},
+		&TicketType.TicketType{},
+		&DiscountCode.DiscountCode{},
+		&Ticket.Ticket{},
 	}
 
 	db = db.Debug()
 
-	log.Println("Running database migrations...")
+	// Check if any migrations are needed
+	migrationsNeeded := false
 	for _, model := range models {
-		if err := db.AutoMigrate(model); err != nil {
-			return err
+		if !db.Migrator().HasTable(model) {
+			migrationsNeeded = true
+			break
 		}
 	}
-	log.Println("Migrations completed successfully")
+
+	if !migrationsNeeded {
+		log.Println("No migrations needed - all tables exist")
+		return nil
+	}
+
+	log.Println("Running database migrations...")
+	migrationCount := 0
+	for _, model := range models {
+		if !db.Migrator().HasTable(model) {
+			if err := db.AutoMigrate(model); err != nil {
+				return err
+			}
+			migrationCount++
+			log.Printf("Migrated table for %T\n", model)
+		}
+	}
+
+	if migrationCount == 0 {
+		log.Println("No new migrations were applied")
+	} else {
+		log.Printf("Migrations completed successfully. Applied %d migrations\n", migrationCount)
+	}
 	return nil
 }
