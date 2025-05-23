@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"ticket-zetu-api/logs/handler"
-	"ticket-zetu-api/modules/tickets/category"
+	"ticket-zetu-api/modules/events/category"
 	"ticket-zetu-api/modules/users/authorization"
 	"ticket-zetu-api/modules/users/middleware"
 )

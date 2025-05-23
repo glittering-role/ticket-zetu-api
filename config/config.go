@@ -6,36 +6,44 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"ticket-zetu-api/cloudinary"
 )
 
 // AppConfig holds the application configuration
 type AppConfig struct {
-	Port    string
-	Env     string
-	AppName string
-	DBName  string
-	DBUser  string
-	DBPass  string
-	DBHost  string
-	Dialect string
+	Port       string
+	Env        string
+	AppName    string
+	DBName     string
+	DBUser     string
+	DBPass     string
+	DBHost     string
+	Dialect    string
+	Cloudinary cloudinary.Config
 }
 
 // LoadConfig loads the configuration from environment variables
 func LoadConfig() *AppConfig {
+	// Load .env file if it exists
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("No .env file found, relying on environment variables")
 	}
 
 	// Create an AppConfig instance and populate it with values from the environment
 	return &AppConfig{
-		Port:    os.Getenv("PORT"),
-		Env:     os.Getenv("GO_ENV"),
-		AppName: os.Getenv("APP_NAME"),
-		DBName:  os.Getenv("DB_NAME"),
-		DBUser:  os.Getenv("DB_USER"),
-		DBPass:  os.Getenv("DB_PASSWORD"),
-		DBHost:  os.Getenv("DB_HOST"),
-		Dialect: os.Getenv("DB_DIALECT"),
+		Port:    getEnv("PORT", "8080"),
+		Env:     getEnv("GO_ENV", "development"),
+		AppName: getEnv("APP_NAME", "ticket-zetu-api"),
+		DBName:  getEnv("DB_NAME", ""),
+		DBUser:  getEnv("DB_USER", ""),
+		DBPass:  getEnv("DB_PASSWORD", ""),
+		DBHost:  getEnv("DB_HOST", "localhost:3306"),
+		Dialect: getEnv("DB_DIALECT", "mysql"),
+		Cloudinary: cloudinary.Config{
+			CloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
+			APIKey:    getEnv("CLOUDINARY_API_KEY", ""),
+			APISecret: getEnv("CLOUDINARY_API_SECRET", ""),
+		},
 	}
 }
 
@@ -47,4 +55,12 @@ func GetDSN(config *AppConfig) string {
 		config.DBHost,
 		config.DBName,
 	)
+}
+
+// getEnv retrieves an environment variable with a fallback value
+func getEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return fallback
 }

@@ -2,7 +2,7 @@ package category
 
 import (
 	"errors"
-	"ticket-zetu-api/modules/tickets/models/categories"
+	"ticket-zetu-api/modules/events/models/categories"
 	"ticket-zetu-api/modules/users/authorization"
 
 	"github.com/google/uuid"

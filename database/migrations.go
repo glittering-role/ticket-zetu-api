@@ -3,9 +3,9 @@ package database
 import (
 	"log"
 	Logs "ticket-zetu-api/logs/model"
+	Category "ticket-zetu-api/modules/events/models/categories"
+	Subcategory "ticket-zetu-api/modules/events/models/categories"
 	Organizer "ticket-zetu-api/modules/organizers/models"
-	Category "ticket-zetu-api/modules/tickets/models/categories"
-	Subcategory "ticket-zetu-api/modules/tickets/models/categories"
 	Permission "ticket-zetu-api/modules/users/models/authorization"
 	Role "ticket-zetu-api/modules/users/models/authorization"
 	RolePermission "ticket-zetu-api/modules/users/models/authorization"
@@ -15,14 +15,16 @@ import (
 	UserSecurityAttributes "ticket-zetu-api/modules/users/models/members"
 	UserSession "ticket-zetu-api/modules/users/models/members"
 
-	Event "ticket-zetu-api/modules/tickets/models/events"
-	EventImage "ticket-zetu-api/modules/tickets/models/events"
-	Venue "ticket-zetu-api/modules/tickets/models/events"
+	Event "ticket-zetu-api/modules/events/models/events"
+	EventImage "ticket-zetu-api/modules/events/models/events"
+	Venue "ticket-zetu-api/modules/events/models/events"
 
 	DiscountCode "ticket-zetu-api/modules/tickets/models/tickets"
 	PriceTier "ticket-zetu-api/modules/tickets/models/tickets"
 	Ticket "ticket-zetu-api/modules/tickets/models/tickets"
 	TicketType "ticket-zetu-api/modules/tickets/models/tickets"
+
+	VenueImage "ticket-zetu-api/modules/events/models/events"
 
 	"gorm.io/gorm"
 )
@@ -54,6 +56,7 @@ func Migrate(db *gorm.DB) error {
 
 		// Event Models
 		&Venue.Venue{},
+		&VenueImage.VenueImage{},
 		&Event.Event{},
 		&EventImage.EventImage{},
 

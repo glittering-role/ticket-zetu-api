@@ -7,13 +7,15 @@ import (
 	"syscall"
 	"time"
 
+	"ticket-zetu-api/cloudinary"
 	"ticket-zetu-api/config"
 	"ticket-zetu-api/database"
 	"ticket-zetu-api/logs/handler"
 	logs "ticket-zetu-api/logs/routes/v1"
 	"ticket-zetu-api/logs/service"
+	categories "ticket-zetu-api/modules/events/routes/v1"
+	venue "ticket-zetu-api/modules/events/routes/v1"
 	organization "ticket-zetu-api/modules/organizers/routes/v1"
-	categories "ticket-zetu-api/modules/tickets/routes/v1"
 	auth "ticket-zetu-api/modules/users/routes/v1"
 	roles "ticket-zetu-api/modules/users/routes/v1"
 	users "ticket-zetu-api/modules/users/routes/v1"
@@ -24,6 +26,11 @@ import (
 func main() {
 	// Load configuration
 	appConfig := config.LoadConfig()
+
+	cloudinaryService, err := cloudinary.NewCloudinaryService(appConfig.Cloudinary)
+	if err != nil {
+		log.Fatalf("Failed to initialize Cloudinary: %v", err)
+	}
 
 	// Initialize database
 	database.InitDB()
@@ -54,7 +61,7 @@ func main() {
 	users.UserRoutes(api, database.DB, logHandler)
 	categories.CategoryRoutes(api, database.DB, logHandler)
 	organization.OrganizerRoutes(api, database.DB, logHandler)
-
+	venue.VenueRoutes(api, database.DB, logHandler, cloudinaryService)
 	// Graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM)
