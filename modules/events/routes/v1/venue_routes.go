@@ -20,8 +20,8 @@ func VenueRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandle
 
 	venueGroup := router.Group("/venues", authMiddleware)
 	{
-		venueGroup.Get("/", venueController.GetVenues)
-		venueGroup.Get("/:id", venueController.GetVenue)
+		venueGroup.Get("/", venueController.GetVenuesForOrganizer)
+		venueGroup.Get("/:id", venueController.GetSingleVenueForOrganizer)
 		venueGroup.Post("/", venueController.CreateVenue)
 		venueGroup.Put("/:id", venueController.UpdateVenue)
 		venueGroup.Delete("/:id", venueController.DeleteVenue)

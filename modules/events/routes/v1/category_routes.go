@@ -30,7 +30,7 @@ func CategoryRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHan
 	subCategoryGroup := router.Group("/sub_categories", authMiddleware)
 	{
 		// Subcategory routes
-		subCategoryGroup.Post("/:id/subcategories", subcategoryController.CreateSubcategory)
+		subCategoryGroup.Post("/", subcategoryController.CreateSubcategory)
 		subCategoryGroup.Put("/subcategories/:id", subcategoryController.UpdateSubcategory)
 		subCategoryGroup.Delete("/subcategories/:id", subcategoryController.DeleteSubcategory)
 	}

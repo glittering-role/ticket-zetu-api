@@ -5,6 +5,7 @@ import (
 	"ticket-zetu-api/logs/handler"
 	"ticket-zetu-api/modules/events/venues/service"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -12,6 +13,7 @@ type VenueController struct {
 	service    service.VenueService
 	logHandler *handler.LogHandler
 	cloudinary *cloudinary.CloudinaryService
+	validator  *validator.Validate
 }
 
 func NewVenueController(service service.VenueService, logHandler *handler.LogHandler, cloudinary *cloudinary.CloudinaryService) *VenueController {
@@ -19,12 +21,14 @@ func NewVenueController(service service.VenueService, logHandler *handler.LogHan
 		service:    service,
 		logHandler: logHandler,
 		cloudinary: cloudinary,
+		validator:  validator.New(),
 	}
 }
 
 func (c *VenueController) UpdateVenue(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
+
 	var input struct {
 		Name        string  `form:"name" validate:"required,min=2,max=255"`
 		Description string  `form:"description" validate:"max=1000"`
@@ -43,46 +47,20 @@ func (c *VenueController) UpdateVenue(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
 	}
 
-	// Basic validation
-	if len(input.Name) < 2 || len(input.Name) > 255 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Name must be between 2 and 255 characters"), fiber.StatusBadRequest)
-	}
-	if input.Address == "" {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Address cannot be empty"), fiber.StatusBadRequest)
-	}
-	if len(input.City) < 2 || len(input.City) > 100 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "City must be between 2 and 100 characters"), fiber.StatusBadRequest)
-	}
-	if len(input.State) > 100 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "State must be 100 characters or less"), fiber.StatusBadRequest)
-	}
-	if len(input.Country) < 2 || len(input.Country) > 100 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Country must be between 2 and 100 characters"), fiber.StatusBadRequest)
-	}
-	if input.Capacity < 0 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Capacity cannot be negative"), fiber.StatusBadRequest)
-	}
-	if len(input.ContactInfo) > 255 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Contact info must be 255 characters or less"), fiber.StatusBadRequest)
-	}
-	if len(input.Description) > 1000 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Description must be 1000 characters or less"), fiber.StatusBadRequest)
-	}
-	if input.Status != "active" && input.Status != "inactive" && input.Status != "suspended" {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Status must be one of active, inactive, suspended"), fiber.StatusBadRequest)
+	if err := c.validator.Struct(input); err != nil {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 	}
 
-	// Handle file uploads
 	var imageURLs []string
 	form, err := ctx.MultipartForm()
-	if err == nil { // Only process files if multipart form is present
+	if err == nil {
 		files := form.File["images"]
 		for _, file := range files {
-			if file.Size > 10*1024*1024 { // Limit file size to 10MB
+			if file.Size > 10*1024*1024 {
 				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "File size exceeds 10MB limit"), fiber.StatusBadRequest)
 			}
 			if !isValidFileType(file.Header.Get("Content-Type")) {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid file type. Only images and videos are allowed"), fiber.StatusBadRequest)
+				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid file type. Only images are allowed"), fiber.StatusBadRequest)
 			}
 
 			f, err := file.Open()
@@ -116,16 +94,16 @@ func (c *VenueController) UpdateVenue(ctx *fiber.Ctx) error {
 		imageURLs,
 	)
 	if err != nil {
-		if err.Error() == "user lacks update:venues permission" {
+		switch err.Error() {
+		case "user lacks update:venues permission":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
-		}
-		if err.Error() == "venue not found" {
+		case "venue not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
-		}
-		if err.Error() == "organizer not found" {
+		case "organizer not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		default:
+			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 		}
-		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 	}
 	return c.logHandler.LogSuccess(ctx, venue, "Venue updated successfully", true)
 }
@@ -136,52 +114,59 @@ func (c *VenueController) DeleteVenue(ctx *fiber.Ctx) error {
 
 	err := c.service.DeleteVenue(userID, id)
 	if err != nil {
-		if err.Error() == "user lacks delete:venues permission" {
+		switch err.Error() {
+		case "user lacks delete:venues permission":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
-		}
-		if err.Error() == "venue not found" {
+		case "venue not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
-		}
-		if err.Error() == "organizer not found" {
+		case "organizer not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		case "cannot delete an active venue":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		default:
+			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 		}
-		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 	}
 	return c.logHandler.LogSuccess(ctx, nil, "Venue deleted successfully", true)
 }
 
-func (c *VenueController) GetVenue(ctx *fiber.Ctx) error {
+func (c *VenueController) GetSingleVenueForOrganizer(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
+	// Exclude venue_images from fields as it's a relationship, not a column
+	fields := ctx.Query("fields", "id,name,description,address,city,state,country,capacity,contact_info,latitude,longitude,status,organizer_id")
 
-	venue, err := c.service.GetVenue(userID, id)
+	venue, err := c.service.GetVenue(userID, id, fields)
 	if err != nil {
-		if err.Error() == "user lacks read:venues permission" {
+		switch err.Error() {
+		case "user lacks read:venues permission":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
-		}
-		if err.Error() == "venue not found" {
+		case "venue not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
-		}
-		if err.Error() == "organizer not found" {
+		case "organizer not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		default:
+			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 		}
-		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 	}
 	return c.logHandler.LogSuccess(ctx, venue, "Venue retrieved successfully", true)
 }
 
-func (c *VenueController) GetVenues(ctx *fiber.Ctx) error {
+func (c *VenueController) GetVenuesForOrganizer(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
+	// Exclude venue_images from fields as it's a relationship, not a column
+	fields := ctx.Query("fields", "id,name,description,address,city,state,country,capacity,contact_info,latitude,longitude,status,organizer_id")
 
-	venues, err := c.service.GetVenues(userID)
+	venues, err := c.service.GetVenues(userID, fields)
 	if err != nil {
-		if err.Error() == "user lacks read:venues permission" {
+		switch err.Error() {
+		case "user lacks read:venues permission":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
-		}
-		if err.Error() == "organizer not found" {
+		case "organizer not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		default:
+			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 		}
-		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 	}
 	return c.logHandler.LogSuccess(ctx, venues, "Venues retrieved successfully", true)
 }

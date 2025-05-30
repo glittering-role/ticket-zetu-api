@@ -1,0 +1,66 @@
+1. Pricing Strategy
+Your current design has two ways to modify prices:
+
+TicketType.PriceModifier: Multiplies the base price
+
+PriceTier.PercentageIncrease: Another multiplier
+
+Consider:
+
+Clarifying the order of operations (which modifier applies first)
+
+Potentially consolidating pricing modifiers into a single concept
+
+Adding audit logging for price changes
+
+2. Inventory Management
+You have:
+
+Event.TotalSeats and AvailableSeats
+
+But also seat assignments in Ticket
+
+Recommendations:
+
+Add validation to ensure assigned seats don't exceed capacity
+
+Consider separating general admission (no assigned seats) from seated events
+
+Add a reservation system to handle temporary holds on tickets during checkout
+
+3. Discount Code Improvements
+Current design is good but could be enhanced:
+
+Add MinPurchaseAmount requirement for discounts
+
+Consider adding user-specific discount codes
+
+Add tracking of who used each discount code
+
+4. Ticket Lifecycle
+Your statuses (valid/used/etc.) are good. Consider adding:
+
+Expiration dates for tickets
+
+Transfer history if tickets change hands
+
+Refund policy tracking
+
+5. Additional Features to Consider
+Ticket Transfers:
+
+Your IsTransferable flag is a good start
+
+Add transfer history and approval workflow
+
+Waitlisting:
+
+When events sell out, allow users to join a waitlist
+
+Season Passes:
+
+Tickets that grant access to multiple events
+
+Access Control:
+
+Integration with barcode scanners for entry validation

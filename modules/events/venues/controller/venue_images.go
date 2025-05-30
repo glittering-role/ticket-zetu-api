@@ -63,7 +63,7 @@ func (c *VenueController) CreateVenue(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Description must be 1000 characters or less"), fiber.StatusBadRequest)
 	}
 
-	venue, err := c.service.CreateVenue(
+	_, err := c.service.CreateVenue(
 		userID,
 		input.Name,
 		input.Description,
@@ -85,7 +85,7 @@ func (c *VenueController) CreateVenue(ctx *fiber.Ctx) error {
 		}
 		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 	}
-	return c.logHandler.LogSuccess(ctx, venue, "Venue created successfully", true)
+	return c.logHandler.LogSuccess(ctx, nil, "Venue created successfully", true)
 }
 
 func (c *VenueController) AddVenueImage(ctx *fiber.Ctx) error {

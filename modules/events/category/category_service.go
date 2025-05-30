@@ -46,13 +46,13 @@ func (s *categoryService) HasPermission(userID, permission string) (bool, error)
 }
 
 func (s *categoryService) CreateSubcategory(userID, categoryID, name, description, imageURL string) (*categories.Subcategory, error) {
-	hasPerm, err := s.HasPermission(userID, "create:subcategories")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks create:subcategories permission")
-	}
+	// hasPerm, err := s.HasPermission(userID, "create:subcategories")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks create:subcategories permission")
+	// }
 
 	if _, err := uuid.Parse(categoryID); err != nil {
 		return nil, errors.New("invalid category ID format")
@@ -171,13 +171,13 @@ func (s *categoryService) DeleteSubcategory(userID, id string) error {
 }
 
 func (s *categoryService) GetCategories(userID string) ([]categories.Category, error) {
-	hasPerm, err := s.HasPermission(userID, "view:categories")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks view:categories permission")
-	}
+	//hasPerm, err := s.HasPermission(userID, "view:categories")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks view:categories permission")
+	// }
 
 	var categories []categories.Category
 	if err := s.db.
@@ -240,13 +240,13 @@ func (s *categoryService) GetSubcategories(userID, categoryID string) ([]categor
 }
 
 func (s *categoryService) CreateCategory(userID, name, description, imageURL string) (*categories.Category, error) {
-	hasPerm, err := s.HasPermission(userID, "create:categories")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks create:categories permission")
-	}
+	// hasPerm, err := s.HasPermission(userID, "create:categories")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks create:categories permission")
+	// }
 
 	// Check if category name already exists
 	var existingCategory categories.Category

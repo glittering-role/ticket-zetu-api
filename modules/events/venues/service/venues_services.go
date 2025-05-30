@@ -3,21 +3,41 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"ticket-zetu-api/cloudinary"
 	"ticket-zetu-api/modules/events/models/events"
-	"ticket-zetu-api/modules/organizers/models"
+	organizers "ticket-zetu-api/modules/organizers/models"
 	"ticket-zetu-api/modules/users/authorization"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
+// VenueResponse defines the JSON response structure for venues
+type VenueResponse struct {
+	ID          string              `json:"id"`
+	Name        string              `json:"name"`
+	Description string              `json:"description,omitempty"`
+	Address     string              `json:"address"`
+	City        string              `json:"city"`
+	State       string              `json:"state,omitempty"`
+	Country     string              `json:"country"`
+	Capacity    int                 `json:"capacity"`
+	ContactInfo string              `json:"contact_info,omitempty"`
+	Latitude    float64             `json:"latitude"`
+	Longitude   float64             `json:"longitude"`
+	Status      string              `json:"status"`
+	CreatedAt   time.Time           `json:"created_at"`
+	VenueImages []events.VenueImage `json:"venue_images,omitempty"`
+}
+
 type VenueService interface {
 	CreateVenue(userID, name, description, address, city, state, country string, capacity int, contactInfo string, latitude, longitude float64) (*events.Venue, error)
 	UpdateVenue(userID, id, name, description, address, city, state, country string, capacity int, contactInfo string, latitude, longitude float64, status string, imageURLs []string) (*events.Venue, error)
 	DeleteVenue(userID, id string) error
-	GetVenue(userID, id string) (*events.Venue, error)
-	GetVenues(userID string) ([]events.Venue, error)
+	GetVenue(userID, id, fields string) (*VenueResponse, error)
+	GetVenues(userID, fields string) ([]VenueResponse, error)
 	AddVenueImage(userID, venueID, imageURL string, isPrimary bool) (*events.VenueImage, error)
 	DeleteVenueImage(userID, venueID, imageID string) error
 	HasPermission(userID, permission string) (bool, error)
@@ -59,6 +79,27 @@ func (s *venueService) getUserOrganizer(userID string) (*organizers.Organizer, e
 	return &organizer, nil
 }
 
+// Valid fields for the venues table
+var validVenueFields = map[string]bool{
+	"id":           true,
+	"name":         true,
+	"description":  true,
+	"address":      true,
+	"city":         true,
+	"state":        true,
+	"country":      true,
+	"capacity":     true,
+	"contact_info": true,
+	"latitude":     true,
+	"longitude":    true,
+	"status":       true,
+	// Metadata fields only if explicitly requested
+	"created_at": true,
+	"updated_at": true,
+	"deleted_at": true,
+	"version":    true,
+}
+
 func (s *venueService) CreateVenue(userID, name, description, address, city, state, country string, capacity int, contactInfo string, latitude, longitude float64) (*events.Venue, error) {
 	_, err := s.HasPermission(userID, "create:venues")
 	// if err != nil {
@@ -86,6 +127,9 @@ func (s *venueService) CreateVenue(userID, name, description, address, city, sta
 		Longitude:   longitude,
 		OrganizerID: organizer.ID,
 		Status:      "active",
+		Version:     1,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	if err := s.db.Create(&venue).Error; err != nil {
@@ -132,12 +176,13 @@ func (s *venueService) UpdateVenue(userID, id, name, description, address, city,
 	venue.Latitude = latitude
 	venue.Longitude = longitude
 	venue.Status = status
+	venue.Version++
+	venue.UpdatedAt = time.Now()
 
 	if err := s.db.Save(&venue).Error; err != nil {
 		return nil, err
 	}
 
-	// Update venue images: delete existing and add new ones if provided
 	if len(imageURLs) > 0 {
 		var existingImages []events.VenueImage
 		if err := s.db.Where("venue_id = ? AND deleted_at IS NULL", venue.ID).Find(&existingImages).Error; err != nil {
@@ -156,6 +201,7 @@ func (s *venueService) UpdateVenue(userID, id, name, description, address, city,
 				VenueID:   venue.ID,
 				ImageURL:  url,
 				IsPrimary: i == 0,
+				CreatedAt: time.Now(),
 			}
 			if err := s.db.Create(&venueImage).Error; err != nil {
 				return nil, err
@@ -196,7 +242,6 @@ func (s *venueService) DeleteVenue(userID, id string) error {
 		return errors.New("cannot delete an active venue")
 	}
 
-	// Delete associated images from Cloudinary
 	var venueImages []events.VenueImage
 	if err := s.db.Where("venue_id = ? AND deleted_at IS NULL", venue.ID).Find(&venueImages).Error; err != nil {
 		return err
@@ -214,7 +259,7 @@ func (s *venueService) DeleteVenue(userID, id string) error {
 	return nil
 }
 
-func (s *venueService) GetVenue(userID, id string) (*events.Venue, error) {
+func (s *venueService) GetVenue(userID, id, fields string) (*VenueResponse, error) {
 	hasPerm, err := s.HasPermission(userID, "read:venues")
 	if err != nil {
 		return nil, err
@@ -233,17 +278,52 @@ func (s *venueService) GetVenue(userID, id string) (*events.Venue, error) {
 	}
 
 	var venue events.Venue
-	if err := s.db.Preload("VenueImages").Where("id = ? AND organizer_id = ? AND deleted_at IS NULL", id, organizer.ID).First(&venue).Error; err != nil {
+	query := s.db.Preload("VenueImages").Where("id = ? AND organizer_id = ? AND deleted_at IS NULL", id, organizer.ID)
+	if fields != "" {
+		selectedFields := []string{}
+		for _, field := range strings.Split(fields, ",") {
+			field = strings.TrimSpace(field)
+			if validVenueFields[field] && field != "created_at" && field != "updated_at" && field != "deleted_at" && field != "version" {
+				selectedFields = append(selectedFields, field)
+			}
+		}
+		if len(selectedFields) > 0 {
+			query = query.Select(selectedFields)
+		} else {
+			query = query.Select("id", "name", "description", "address", "city", "state", "country", "capacity", "contact_info", "latitude", "longitude", "status", "created_at")
+		}
+	} else {
+		query = query.Select("id", "name", "description", "address", "city", "state", "country", "capacity", "contact_info", "latitude", "longitude", "status", "created_at")
+	}
+	if err := query.First(&venue).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("venue not found")
 		}
 		return nil, err
 	}
 
-	return &venue, nil
+	// Map to VenueResponse to control JSON output
+	response := &VenueResponse{
+		ID:          venue.ID,
+		Name:        venue.Name,
+		Description: venue.Description,
+		Address:     venue.Address,
+		City:        venue.City,
+		State:       venue.State,
+		Country:     venue.Country,
+		Capacity:    venue.Capacity,
+		ContactInfo: venue.ContactInfo,
+		Latitude:    venue.Latitude,
+		Longitude:   venue.Longitude,
+		Status:      venue.Status,
+		CreatedAt:   venue.CreatedAt,
+		VenueImages: venue.VenueImages,
+	}
+
+	return response, nil
 }
 
-func (s *venueService) GetVenues(userID string) ([]events.Venue, error) {
+func (s *venueService) GetVenues(userID, fields string) ([]VenueResponse, error) {
 	hasPerm, err := s.HasPermission(userID, "read:venues")
 	if err != nil {
 		return nil, err
@@ -258,11 +338,49 @@ func (s *venueService) GetVenues(userID string) ([]events.Venue, error) {
 	}
 
 	var venues []events.Venue
-	if err := s.db.Preload("VenueImages").Where("organizer_id = ? AND deleted_at IS NULL", organizer.ID).Find(&venues).Error; err != nil {
+	query := s.db.Preload("VenueImages").Where("organizer_id = ? AND deleted_at IS NULL", organizer.ID)
+	if fields != "" {
+		selectedFields := []string{}
+		for _, field := range strings.Split(fields, ",") {
+			field = strings.TrimSpace(field)
+			if validVenueFields[field] && field != "created_at" && field != "updated_at" && field != "deleted_at" && field != "version" {
+				selectedFields = append(selectedFields, field)
+			}
+		}
+		if len(selectedFields) > 0 {
+			query = query.Select(selectedFields)
+		} else {
+			query = query.Select("id", "name", "description", "address", "city", "state", "country", "capacity", "contact_info", "latitude", "longitude", "status", "created_at")
+		}
+	} else {
+		query = query.Select("id", "name", "description", "address", "city", "state", "country", "capacity", "contact_info", "latitude", "longitude", "status", "created_at")
+	}
+	if err := query.Find(&venues).Error; err != nil {
 		return nil, err
 	}
 
-	return venues, nil
+	// Map to VenueResponse
+	responses := make([]VenueResponse, len(venues))
+	for i, venue := range venues {
+		responses[i] = VenueResponse{
+			ID:          venue.ID,
+			Name:        venue.Name,
+			Description: venue.Description,
+			Address:     venue.Address,
+			City:        venue.City,
+			State:       venue.State,
+			Country:     venue.Country,
+			Capacity:    venue.Capacity,
+			ContactInfo: venue.ContactInfo,
+			Latitude:    venue.Latitude,
+			Longitude:   venue.Longitude,
+			Status:      venue.Status,
+			CreatedAt:   venue.CreatedAt,
+			VenueImages: venue.VenueImages,
+		}
+	}
+
+	return responses, nil
 }
 
 func (s *venueService) AddVenueImage(userID, venueID, imageURL string, isPrimary bool) (*events.VenueImage, error) {
@@ -291,7 +409,6 @@ func (s *venueService) AddVenueImage(userID, venueID, imageURL string, isPrimary
 		return nil, err
 	}
 
-	// If setting as primary, unset other primary images
 	if isPrimary {
 		if err := s.db.Model(&events.VenueImage{}).Where("venue_id = ? AND is_primary = ?", venueID, true).Update("is_primary", false).Error; err != nil {
 			return nil, err
@@ -302,6 +419,7 @@ func (s *venueService) AddVenueImage(userID, venueID, imageURL string, isPrimary
 		VenueID:   venueID,
 		ImageURL:  imageURL,
 		IsPrimary: isPrimary,
+		CreatedAt: time.Now(),
 	}
 
 	if err := s.db.Create(&venueImage).Error; err != nil {
