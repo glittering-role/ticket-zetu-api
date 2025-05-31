@@ -29,7 +29,6 @@ type Event struct {
 	StartTime      time.Time              `gorm:"not null;index" json:"start_time"`
 	EndTime        time.Time              `gorm:"not null" json:"end_time"`
 	OrganizerID    string                 `gorm:"type:char(36);not null;index" json:"-"`
-	PriceTierID    string                 `gorm:"type:char(36);index" json:"price_tier_id"`
 	BasePrice      float64                `gorm:"type:numeric(10,2);not null;check:base_price >= 0" json:"base_price"`
 	IsFeatured     bool                   `gorm:"default:false;index" json:"is_featured"`
 	Status         EventStatus            `gorm:"size:20;not null;default:'active';index" json:"status"`

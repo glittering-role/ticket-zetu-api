@@ -169,9 +169,7 @@ func (s *priceTierService) UpdatePriceTier(userID, id, name, description string,
 	if description != "" {
 		priceTier.Description = description
 	}
-	if percentageIncrease >= 0 {
-		priceTier.PercentageIncrease = percentageIncrease
-	}
+
 	if status != "" {
 		priceTier.Status = tickets.PriceTierStatus(status)
 	}

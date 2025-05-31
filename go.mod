@@ -34,7 +34,6 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/crypto v0.38.0
 	golang.org/x/sys v0.33.0 // indirect
-	gorm.io/datatypes v1.2.5
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.26.1
 )

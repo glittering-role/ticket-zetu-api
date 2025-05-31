@@ -8,7 +8,6 @@ import (
 	"ticket-zetu-api/modules/events/models/categories"
 	"ticket-zetu-api/modules/events/models/events"
 	organizers "ticket-zetu-api/modules/organizers/models"
-	"ticket-zetu-api/modules/tickets/models/tickets"
 	"ticket-zetu-api/modules/users/authorization"
 	"time"
 
@@ -37,7 +36,7 @@ type EventResponse struct {
 
 type EventService interface {
 	CreateEvent(userID, title, subcategoryID, description, venueID string, totalSeats int, basePrice float64, startTime, endTime time.Time, isFeatured bool) (*events.Event, error)
-	UpdateEvent(userID, id, title, description, venueID, subcategoryID, priceTierID string, totalSeats int, basePrice float64, startTime, endTime time.Time, isFeatured bool, status string, imageURLs []string) (*events.Event, error)
+	UpdateEvent(userID, id, title, description, venueID, subcategoryID string, totalSeats int, basePrice float64, startTime, endTime time.Time, isFeatured bool, status string, imageURLs []string) (*events.Event, error)
 	DeleteEvent(userID, id string) error
 	GetEvent(userID, id, fields string) (*EventResponse, error) // Corrected syntax
 	GetEvents(userID, fields string) ([]EventResponse, error)   // Corrected signature
@@ -93,7 +92,6 @@ var validEventFields = map[string]bool{
 	"available_seats": true,
 	"start_time":      true,
 	"end_time":        true,
-	"price_tier_id":   true,
 	"base_price":      true,
 	"is_featured":     true,
 	"status":          true,
@@ -196,7 +194,7 @@ func (s *eventService) CreateEvent(userID, title string, subcategoryID string, d
 	return &event, nil
 }
 
-func (s *eventService) UpdateEvent(userID, id, title, description, venueID string, subcategoryID string, priceTierID string, totalSeats int, basePrice float64, startTime, endTime time.Time, isFeatured bool, status string, imageURLs []string) (*events.Event, error) {
+func (s *eventService) UpdateEvent(userID, id, title, description, venueID string, subcategoryID string, totalSeats int, basePrice float64, startTime, endTime time.Time, isFeatured bool, status string, imageURLs []string) (*events.Event, error) {
 	hasPerm, err := s.HasPermission(userID, "update:events")
 	if err != nil {
 		return nil, err
@@ -216,10 +214,6 @@ func (s *eventService) UpdateEvent(userID, id, title, description, venueID strin
 
 	if _, err := uuid.Parse(venueID); err != nil {
 		return nil, errors.New("invalid venue ID format")
-	}
-
-	if _, err := uuid.Parse(priceTierID); err != nil {
-		return nil, errors.New("invalid price tier ID format")
 	}
 
 	if _, err := uuid.Parse(subcategoryID); err != nil {
@@ -244,15 +238,6 @@ func (s *eventService) UpdateEvent(userID, id, title, description, venueID strin
 		return nil, err
 	}
 
-	// Validate price tier exists
-	var priceTier tickets.PriceTier
-	if err := s.db.Where("id = ? AND deleted_at IS NULL", priceTierID).First(&priceTier).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("price tier not found")
-		}
-		return nil, err
-	}
-
 	var event events.Event
 	if err := s.db.Where("id = ? AND organizer_id = ? AND deleted_at IS NULL", id, organizer.ID).First(&event).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -269,7 +254,6 @@ func (s *eventService) UpdateEvent(userID, id, title, description, venueID strin
 	event.AvailableSeats = totalSeats // Assume full reset; adjust if bookings exist
 	event.StartTime = startTime
 	event.EndTime = endTime
-	event.PriceTierID = priceTierID
 	event.BasePrice = basePrice
 	event.IsFeatured = isFeatured
 	event.Status = events.EventStatus(status)
@@ -413,7 +397,6 @@ func (s *eventService) GetEvent(userID, id, fields string) (*EventResponse, erro
 		AvailableSeats: event.AvailableSeats,
 		StartTime:      event.StartTime,
 		EndTime:        event.EndTime,
-		PriceTierID:    event.PriceTierID,
 		BasePrice:      event.BasePrice,
 		IsFeatured:     event.IsFeatured,
 		Status:         string(event.Status),
@@ -474,7 +457,6 @@ func (s *eventService) GetEvents(userID, fields string) ([]EventResponse, error)
 			AvailableSeats: event.AvailableSeats,
 			StartTime:      event.StartTime,
 			EndTime:        event.EndTime,
-			PriceTierID:    event.PriceTierID,
 			BasePrice:      event.BasePrice,
 			IsFeatured:     event.IsFeatured,
 			Status:         string(event.Status),

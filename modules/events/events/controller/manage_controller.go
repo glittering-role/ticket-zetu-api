@@ -66,7 +66,6 @@ func (c *EventController) UpdateEvent(ctx *fiber.Ctx) error {
 		input.Description,
 		input.VenueID,
 		input.CategoryID,
-		input.SubcategoryID,
 		input.TotalSeats,
 		input.BasePrice,
 		input.StartTime,
