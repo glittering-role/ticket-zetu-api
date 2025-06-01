@@ -1,5 +1,5 @@
 # The Go binary name
-BINARY_NAME=h-api-go
+BINARY_NAME=ticket-zetu-api
 
 # Directories
 SRC_DIR=cmd

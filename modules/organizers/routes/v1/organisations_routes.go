@@ -26,5 +26,6 @@ func OrganizerRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHa
 		organizerGroup.Put("/:id", organizerController.UpdateOrganizer)
 		organizerGroup.Delete("/:id", organizerController.DeleteOrganizer)
 		organizerGroup.Patch("/:id/deactivate", organizerController.DeactivateOrganizer)
+		organizerGroup.Get("/search", organizerController.SearchOrganizers)
 	}
 }

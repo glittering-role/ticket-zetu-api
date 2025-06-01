@@ -64,7 +64,7 @@ func (s *CloudinaryService) DeleteFile(ctx context.Context, url string) error {
 	publicID, resourceType := extractPublicID(url, s.CloudName)
 	if publicID == "" {
 		log.Printf("No valid public ID extracted from URL: %s", url)
-		return nil // Skip deletion if no valid public ID
+		return nil // No error, just nothing to delete
 	}
 
 	_, err := s.Client.Upload.Destroy(ctx, uploader.DestroyParams{
@@ -80,12 +80,6 @@ func (s *CloudinaryService) DeleteFile(ctx context.Context, url string) error {
 
 // extractPublicID extracts the public ID and resource type from a Cloudinary URL
 func extractPublicID(url, cloudName string) (string, string) {
-	// Expected URL formats:
-	// Image: https://res.cloudinary.com/<cloud_name>/image/upload[/v<version>]/<folder>/<public_id>.<format>
-	// Video: https://res.cloudinary.com/<cloud_name>/video/upload[/v<version>]/<folder>/<public_id>.<format>
-	// Examples:
-	// - https://res.cloudinary.com/dlylnt0uj/image/upload/venues/sample_image.jpg
-	// - https://res.cloudinary.com/dlylnt0uj/video/upload/v1234567890/venues/sample_video.mp4
 
 	var resourceType string
 	var prefix string

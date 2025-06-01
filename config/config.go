@@ -9,7 +9,6 @@ import (
 	"ticket-zetu-api/cloudinary"
 )
 
-// AppConfig holds the application configuration
 type AppConfig struct {
 	Port       string
 	Env        string
@@ -24,7 +23,7 @@ type AppConfig struct {
 
 // LoadConfig loads the configuration from environment variables
 func LoadConfig() *AppConfig {
-	// Load .env file if it exists
+
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, relying on environment variables")
 	}
