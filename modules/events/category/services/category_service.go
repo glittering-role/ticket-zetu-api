@@ -14,9 +14,11 @@ import (
 type CategoryService interface {
 	GetCategories(userID string) ([]dto.CategoryDTO, error)
 	GetCategory(userID, id string) (*dto.CategoryDTO, error)
-	CreateCategory(userID, name, description, imageURL string) (*dto.CategoryDTO, error)
-	UpdateCategory(userID, id, name, description, imageURL string, isActive bool) (*dto.CategoryDTO, error)
+	CreateCategory(userID, name, description string) (*dto.CategoryDTO, error)
+	UpdateCategory(userID, id, name, description string) (*dto.CategoryDTO, error)
 	DeleteCategory(userID, id string) error
+	ToggleCategoryStatus(userID, id string, isActive bool) error
+	GetAllCategoriesWithTheirSubCategories(userID string) ([]dto.CategoryDTO, error)
 }
 
 type categoryService struct {
@@ -36,6 +38,7 @@ func (s *categoryService) toDTO(category *categories.Category) *dto.CategoryDTO 
 			ID:          sub.ID,
 			Name:        sub.Name,
 			Description: sub.Description,
+			ImageURL:    sub.ImageURL,
 			IsActive:    sub.IsActive,
 			CategoryID:  sub.CategoryID,
 			CreatedAt:   sub.CreatedAt.Format(time.RFC3339),
@@ -73,10 +76,38 @@ func getDeletedAtTime(deletedAt gorm.DeletedAt) *time.Time {
 	return nil
 }
 
-func (s *categoryService) GetCategories(userID string) ([]dto.CategoryDTO, error) {
+// services/category_service.go
+
+func (s *categoryService) GetAllCategoriesWithTheirSubCategories(userID string) ([]dto.CategoryDTO, error) {
+	// Add permission check if needed
+	// if err := s.authService.CheckPermission(userID, "view:categories"); err != nil {
+	//     return nil, err
+	// }
+
 	var categories []categories.Category
 	if err := s.db.
-		Preload("Subcategories").
+		Preload("Subcategories"). // Preload subcategories
+		Where("deleted_at IS NULL AND is_active = ?", true).
+		Find(&categories).Error; err != nil {
+		return nil, err
+	}
+
+	var categoriesDTO []dto.CategoryDTO
+	for _, category := range categories {
+		categoriesDTO = append(categoriesDTO, *s.toDTO(&category))
+	}
+
+	return categoriesDTO, nil
+}
+
+func (s *categoryService) GetCategories(userID string) ([]dto.CategoryDTO, error) {
+	// Add permission check if needed
+	// if err := s.authService.CheckPermission(userID, "read:categories"); err != nil {
+	//     return nil, err
+	// }
+
+	var categories []categories.Category
+	if err := s.db.
 		Where("deleted_at IS NULL AND is_active = ?", true).
 		Find(&categories).Error; err != nil {
 		return nil, err
@@ -93,6 +124,7 @@ func (s *categoryService) GetCategory(userID, id string) (*dto.CategoryDTO, erro
 	if _, err := uuid.Parse(id); err != nil {
 		return nil, errors.New("invalid category ID format")
 	}
+
 	var category categories.Category
 	if err := s.db.
 		Preload("Subcategories").
@@ -106,7 +138,17 @@ func (s *categoryService) GetCategory(userID, id string) (*dto.CategoryDTO, erro
 	return s.toDTO(&category), nil
 }
 
-func (s *categoryService) CreateCategory(userID, name, description, imageURL string) (*dto.CategoryDTO, error) {
+func (s *categoryService) CreateCategory(userID, name, description string) (*dto.CategoryDTO, error) {
+	// Add permission check
+	_, err := s.HasPermission(userID, "create:categories")
+	if err != nil {
+		return nil, err
+	}
+
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks create:categories permission")
+	// }
+
 	var existingCategory categories.Category
 	if err := s.db.Where("name = ? AND deleted_at IS NULL", name).First(&existingCategory).Error; err == nil {
 		return nil, errors.New("category name already exists")
@@ -115,7 +157,6 @@ func (s *categoryService) CreateCategory(userID, name, description, imageURL str
 	category := categories.Category{
 		Name:          name,
 		Description:   description,
-		ImageURL:      imageURL,
 		IsActive:      true,
 		LastUpdatedBy: userID,
 	}
@@ -127,7 +168,17 @@ func (s *categoryService) CreateCategory(userID, name, description, imageURL str
 	return s.toDTO(&category), nil
 }
 
-func (s *categoryService) UpdateCategory(userID, id, name, description, imageURL string, isActive bool) (*dto.CategoryDTO, error) {
+func (s *categoryService) UpdateCategory(userID, id, name, description string) (*dto.CategoryDTO, error) {
+	// Add permission check
+	hasPerm, err := s.HasPermission(userID, "update:categories")
+	if err != nil {
+		return nil, err
+	}
+
+	if !hasPerm {
+		return nil, errors.New("user lacks update:categories permission")
+	}
+
 	if _, err := uuid.Parse(id); err != nil {
 		return nil, errors.New("invalid category ID format")
 	}
@@ -147,8 +198,6 @@ func (s *categoryService) UpdateCategory(userID, id, name, description, imageURL
 
 	category.Name = name
 	category.Description = description
-	category.ImageURL = imageURL
-	category.IsActive = isActive
 	category.LastUpdatedBy = userID
 
 	if err := s.db.Save(&category).Error; err != nil {
@@ -159,6 +208,15 @@ func (s *categoryService) UpdateCategory(userID, id, name, description, imageURL
 }
 
 func (s *categoryService) DeleteCategory(userID, id string) error {
+	// Add permission check
+	hasPerm, err := s.HasPermission(userID, "delete:categories")
+	if err != nil {
+		return err
+	}
+	if !hasPerm {
+		return errors.New("user lacks delete:categories permission")
+	}
+
 	if _, err := uuid.Parse(id); err != nil {
 		return errors.New("invalid category ID format")
 	}
@@ -176,6 +234,38 @@ func (s *categoryService) DeleteCategory(userID, id string) error {
 	}
 
 	if err := s.db.Delete(&category).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *categoryService) ToggleCategoryStatus(userID, id string, isActive bool) error {
+	// Add permission check
+	hasPerm, err := s.HasPermission(userID, "update:categories")
+	if err != nil {
+		return err
+	}
+	if !hasPerm {
+		return errors.New("user lacks update:categories permission")
+	}
+
+	if _, err := uuid.Parse(id); err != nil {
+		return errors.New("invalid category ID format")
+	}
+
+	var category categories.Category
+	if err := s.db.Where("id = ? AND deleted_at IS NULL", id).First(&category).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("category not found")
+		}
+		return err
+	}
+
+	category.IsActive = isActive
+	category.LastUpdatedBy = userID
+
+	if err := s.db.Save(&category).Error; err != nil {
 		return err
 	}
 

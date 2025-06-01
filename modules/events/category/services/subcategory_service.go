@@ -13,9 +13,10 @@ import (
 
 type SubcategoryService interface {
 	GetSubcategories(userID, categoryID string) ([]dto.SubcategoryDTO, error)
-	CreateSubcategory(userID, categoryID, name, description, imageURL string) (*dto.SubcategoryDTO, error)
-	UpdateSubcategory(userID, id, name, description, imageURL string, isActive bool) (*dto.SubcategoryDTO, error)
+	CreateSubcategory(userID, categoryID, name, description string) (*dto.SubcategoryDTO, error)
+	UpdateSubcategory(userID, id, name, description string) (*dto.SubcategoryDTO, error)
 	DeleteSubcategory(userID, id string) error
+	ToggleSubCategoryStatus(userID, id string, isActive bool) error
 }
 
 type subcategoryService struct {
@@ -30,7 +31,7 @@ func NewSubcategoryService(db *gorm.DB, authService authorization.PermissionServ
 
 func (s *subcategoryService) toDTO(subcategory *categories.Subcategory) *dto.SubcategoryDTO {
 	var categoryName, categoryImage string
-	if subcategory.CategoryID != "" {
+	if subcategory.Category.ID != "" {
 		categoryName = subcategory.Category.Name
 		categoryImage = subcategory.Category.ImageURL
 	}
@@ -52,18 +53,40 @@ func (s *subcategoryService) toDTO(subcategory *categories.Subcategory) *dto.Sub
 }
 
 func (s *subcategoryService) GetSubcategories(userID, categoryID string) ([]dto.SubcategoryDTO, error) {
+
+	_, err := s.HasPermission(userID, "read:subcategories")
+	if err != nil {
+		return nil, err
+	}
+
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks read:subcategories permission")
+	// }
+
+	// Validate category ID format
 	if _, err := uuid.Parse(categoryID); err != nil {
 		return nil, errors.New("invalid category ID format")
 	}
+
+	// Check if category exists
+	var category categories.Category
+	if err := s.db.Where("id = ? AND deleted_at IS NULL", categoryID).First(&category).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("category not found")
+		}
+		return nil, err
+	}
+
 	var subcategories []categories.Subcategory
 	if err := s.db.
 		Preload("Category").
-		Where("category_id = ? AND deleted_at IS NULL AND is_active = ?", categoryID, true).
+		Where("category_id = ? AND deleted_at IS NULL", categoryID).
 		Find(&subcategories).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("subcategories not found")
-		}
 		return nil, err
+	}
+
+	if len(subcategories) == 0 {
+		return []dto.SubcategoryDTO{}, nil
 	}
 
 	var subcategoriesDTO []dto.SubcategoryDTO
@@ -73,7 +96,16 @@ func (s *subcategoryService) GetSubcategories(userID, categoryID string) ([]dto.
 	return subcategoriesDTO, nil
 }
 
-func (s *subcategoryService) CreateSubcategory(userID, categoryID, name, description, imageURL string) (*dto.SubcategoryDTO, error) {
+func (s *subcategoryService) CreateSubcategory(userID, categoryID, name, description string) (*dto.SubcategoryDTO, error) {
+	_, err := s.HasPermission(userID, "create:subcategories")
+	if err != nil {
+		return nil, err
+	}
+
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks create:subcategories permission")
+	// }
+
 	if _, err := uuid.Parse(categoryID); err != nil {
 		return nil, errors.New("invalid category ID format")
 	}
@@ -82,7 +114,7 @@ func (s *subcategoryService) CreateSubcategory(userID, categoryID, name, descrip
 	var category categories.Category
 	if err := s.db.Where("id = ? AND deleted_at IS NULL AND is_active = ?", categoryID, true).First(&category).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("category not found")
+			return nil, errors.New("category not found or inactive")
 		}
 		return nil, err
 	}
@@ -97,7 +129,6 @@ func (s *subcategoryService) CreateSubcategory(userID, categoryID, name, descrip
 		CategoryID:    categoryID,
 		Name:          name,
 		Description:   description,
-		ImageURL:      imageURL,
 		IsActive:      true,
 		LastUpdatedBy: userID,
 	}
@@ -114,26 +145,31 @@ func (s *subcategoryService) CreateSubcategory(userID, categoryID, name, descrip
 	return s.toDTO(&subcategory), nil
 }
 
-func (s *subcategoryService) UpdateSubcategory(userID, id, name, description, imageURL string, isActive bool) (*dto.SubcategoryDTO, error) {
+func (s *subcategoryService) UpdateSubcategory(userID, id, name, description string) (*dto.SubcategoryDTO, error) {
+	hasPerm, err := s.HasPermission(userID, "update:subcategories")
+	if err != nil {
+		return nil, err
+	}
+
+	if !hasPerm {
+		return nil, errors.New("user lacks update:subcategories permission")
+	}
+
 	if _, err := uuid.Parse(id); err != nil {
 		return nil, errors.New("invalid subcategory ID format")
 	}
 
 	var subcategory categories.Subcategory
-	if err := s.db.Where("id = ? AND deleted_at IS NULL", id).First(&subcategory).Error; err != nil {
+	if err := s.db.Preload("Category").Where("id = ? AND deleted_at IS NULL", id).First(&subcategory).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("subcategory not found")
 		}
 		return nil, err
 	}
 
-	// Check if category exists and is active
-	var category categories.Category
-	if err := s.db.Where("id = ? AND deleted_at IS NULL AND is_active = ?", subcategory.CategoryID, true).First(&category).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("parent category not found")
-		}
-		return nil, err
+	// Check if category is active
+	if !subcategory.Category.IsActive {
+		return nil, errors.New("parent category is inactive")
 	}
 
 	// Check if subcategory name already exists within the category (excluding current subcategory)
@@ -144,16 +180,9 @@ func (s *subcategoryService) UpdateSubcategory(userID, id, name, description, im
 
 	subcategory.Name = name
 	subcategory.Description = description
-	subcategory.ImageURL = imageURL
-	subcategory.IsActive = isActive
 	subcategory.LastUpdatedBy = userID
 
 	if err := s.db.Save(&subcategory).Error; err != nil {
-		return nil, err
-	}
-
-	// Preload the category to include in the DTO
-	if err := s.db.Preload("Category").First(&subcategory, "id = ?", subcategory.ID).Error; err != nil {
 		return nil, err
 	}
 
@@ -161,6 +190,15 @@ func (s *subcategoryService) UpdateSubcategory(userID, id, name, description, im
 }
 
 func (s *subcategoryService) DeleteSubcategory(userID, id string) error {
+	hasPerm, err := s.HasPermission(userID, "delete:subcategories")
+	if err != nil {
+		return err
+	}
+
+	if !hasPerm {
+		return errors.New("user lacks delete:subcategories permission")
+	}
+
 	if _, err := uuid.Parse(id); err != nil {
 		return errors.New("invalid subcategory ID format")
 	}
@@ -177,7 +215,51 @@ func (s *subcategoryService) DeleteSubcategory(userID, id string) error {
 		return errors.New("cannot delete an active subcategory")
 	}
 
-	if err := s.db.Delete(&subcategory).Error; err != nil {
+	// Use soft delete
+	if err := s.db.Model(&subcategory).Update("deleted_at", time.Now()).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *subcategoryService) ToggleSubCategoryStatus(userID, id string, isActive bool) error {
+	hasPerm, err := s.HasPermission(userID, "update:subcategories")
+	if err != nil {
+		return err
+	}
+
+	if !hasPerm {
+		return errors.New("user lacks update:subcategories permission")
+	}
+
+	if _, err := uuid.Parse(id); err != nil {
+		return errors.New("invalid subcategory ID format")
+	}
+
+	var subcategory categories.Subcategory
+	if err := s.db.Where("id = ? AND deleted_at IS NULL", id).First(&subcategory).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("subcategory not found")
+		}
+		return err
+	}
+
+	// Check if parent category is active when activating subcategory
+	if isActive {
+		var category categories.Category
+		if err := s.db.Where("id = ? AND deleted_at IS NULL", subcategory.CategoryID).First(&category).Error; err != nil {
+			return errors.New("parent category not found")
+		}
+		if !category.IsActive {
+			return errors.New("cannot activate subcategory with inactive parent category")
+		}
+	}
+
+	subcategory.IsActive = isActive
+	subcategory.LastUpdatedBy = userID
+
+	if err := s.db.Save(&subcategory).Error; err != nil {
 		return err
 	}
 
