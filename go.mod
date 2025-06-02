@@ -13,6 +13,8 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
+	github.com/tinylib/msgp v1.2.5 // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 )
@@ -21,7 +23,7 @@ require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/cloudinary/cloudinary-go/v2 v2.10.0
 	github.com/go-playground/validator/v10 v10.26.0
-	github.com/gofiber/fiber/v2 v2.52.6
+	github.com/gofiber/fiber/v2 v2.52.8
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.17.9 // indirect

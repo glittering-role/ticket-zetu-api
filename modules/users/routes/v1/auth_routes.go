@@ -2,17 +2,19 @@ package routes
 
 import (
 	"ticket-zetu-api/logs/handler"
-	"ticket-zetu-api/modules/users/authentication"
 
 	"gorm.io/gorm"
+	"ticket-zetu-api/modules/users/authentication/controllers"
+	"ticket-zetu-api/modules/users/authentication/service"
+	"ticket-zetu-api/modules/users/authentication/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func SetupAuthRoutes(api fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
-	userService := authentication.NewUserService(db)
+	userService := auth_service.NewUserService(db)
 	authController := authentication.NewAuthController(db, logHandler, userService)
-	userNameCheck := authentication.CheckUsernameAvailability(db, logHandler)
+	userNameCheck := auth_utils.CheckUsernameAvailability(db, logHandler)
 
 	auth := api.Group("/auth")
 	{

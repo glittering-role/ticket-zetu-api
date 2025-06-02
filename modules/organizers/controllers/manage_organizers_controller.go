@@ -16,12 +16,8 @@ func (c *OrganizerController) UpdateOrganizer(ctx *fiber.Ctx) error {
 		CompanyName     string  `json:"company_name,omitempty" validate:"max=255"`
 		TaxID           string  `json:"tax_id,omitempty" validate:"max=100"`
 		BankAccountInfo string  `json:"bank_account_info,omitempty"`
-		ImageURL        string  `json:"image_url,omitempty" validate:"max=255"`
 		CommissionRate  float64 `json:"commission_rate" validate:"gte=0,lte=100"`
 		Balance         float64 `json:"balance" validate:"gte=0"`
-		Status          string  `json:"status" validate:"oneof=active inactive suspended"`
-		IsFlagged       bool    `json:"is_flagged"`
-		IsBanned        bool    `json:"is_banned"`
 		Notes           string  `json:"notes,omitempty"`
 	}
 
@@ -45,23 +41,18 @@ func (c *OrganizerController) UpdateOrganizer(ctx *fiber.Ctx) error {
 	if len(input.TaxID) > 100 {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Tax ID must be 100 characters or less"), fiber.StatusBadRequest)
 	}
-	if len(input.ImageURL) > 255 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Image URL must be 255 characters or less"), fiber.StatusBadRequest)
-	}
+
 	if input.CommissionRate < 0 || input.CommissionRate > 100 {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Commission rate must be between 0 and 100"), fiber.StatusBadRequest)
 	}
 	if input.Balance < 0 {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Balance cannot be negative"), fiber.StatusBadRequest)
 	}
-	if input.Status != "active" && input.Status != "inactive" && input.Status != "suspended" {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Status must be one of active, inactive, suspended"), fiber.StatusBadRequest)
-	}
 	if _, err := uuid.Parse(id); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid organizer ID format"), fiber.StatusBadRequest)
 	}
 
-	_, err := c.service.UpdateOrganizer(userID, id, input.Name, input.ContactPerson, input.Email, input.Phone, input.CompanyName, input.TaxID, input.BankAccountInfo, input.ImageURL, input.CommissionRate, input.Balance, input.IsFlagged, input.IsBanned)
+	_, err := c.service.UpdateOrganizer(userID, id, input.Name, input.ContactPerson, input.Email, input.Phone, input.CompanyName, input.TaxID, input.BankAccountInfo, input.CommissionRate, input.Balance, input.Notes)
 	if err != nil {
 		if err.Error() == "invalid organizer ID format" {
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
@@ -132,4 +123,79 @@ func (c *OrganizerController) DeactivateOrganizer(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 	}
 	return c.logHandler.LogSuccess(ctx, nil, "Organizer deactivated successfully", true)
+}
+
+func (c *OrganizerController) ToggleOrganizerStatus(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("user_id").(string)
+	id := ctx.Params("id")
+
+	if _, err := uuid.Parse(id); err != nil {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid organizer ID format"), fiber.StatusBadRequest)
+	}
+
+	err := c.service.ToggleOrganizationsStatus(userID, id)
+	if err != nil {
+		if err.Error() == "invalid organizer ID format" {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		}
+		if err.Error() == "organizer not found" {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
+		}
+		if err.Error() == "user lacks update:organizers permission" {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
+		}
+		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
+	}
+
+	return c.logHandler.LogSuccess(ctx, nil, "Organizer status toggled successfully", true)
+}
+
+func (c *OrganizerController) FlagOrganizer(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("user_id").(string)
+	id := ctx.Params("id")
+
+	if _, err := uuid.Parse(id); err != nil {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid organizer ID format"), fiber.StatusBadRequest)
+	}
+
+	err := c.service.FlagOrganization(userID, id)
+	if err != nil {
+		if err.Error() == "invalid organizer ID format" {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		}
+		if err.Error() == "organizer not found" {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
+		}
+		if err.Error() == "user lacks update:organizers permission" {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
+		}
+		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
+	}
+
+	return c.logHandler.LogSuccess(ctx, nil, "Organizer flag status updated successfully", true)
+}
+
+func (c *OrganizerController) BanOrganizer(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("user_id").(string)
+	id := ctx.Params("id")
+
+	if _, err := uuid.Parse(id); err != nil {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid organizer ID format"), fiber.StatusBadRequest)
+	}
+
+	err := c.service.BanOrganization(userID, id)
+	if err != nil {
+		if err.Error() == "invalid organizer ID format" {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		}
+		if err.Error() == "organizer not found" {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
+		}
+		if err.Error() == "user lacks update:organizers permission" {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
+		}
+		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
+	}
+
+	return c.logHandler.LogSuccess(ctx, nil, "Organizer ban status updated successfully", true)
 }

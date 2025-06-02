@@ -9,8 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (s *organizerService) CreateOrganizer(userID, name, contactPerson, email, phone, companyName, taxID, bankAccountInfo, imageURL string, commissionRate, balance float64) (*organizer_dto.OrganizerResponse, error) {
-	// Check if email already exists
+func (s *organizerService) CreateOrganizer(userID, name, contactPerson, email, phone, companyName, taxID, bankAccountInfo string, commissionRate, balance float64, notes string) (*organizer_dto.OrganizerResponse, error) {
 	var existingOrganizer organizers.Organizer
 	if err := s.db.Where("email = ? AND deleted_at IS NULL", email).First(&existingOrganizer).Error; err == nil {
 		return nil, errors.New("organizer email already exists")
@@ -24,13 +23,13 @@ func (s *organizerService) CreateOrganizer(userID, name, contactPerson, email, p
 		CompanyName:     companyName,
 		TaxID:           taxID,
 		BankAccountInfo: bankAccountInfo,
-		ImageURL:        imageURL,
 		CommissionRate:  commissionRate,
 		Balance:         balance,
 		Status:          "active",
 		IsFlagged:       false,
 		IsBanned:        false,
 		CreatedBy:       userID,
+		Notes:           notes,
 	}
 
 	if err := s.db.Create(&dbOrganizer).Error; err != nil {
@@ -40,7 +39,7 @@ func (s *organizerService) CreateOrganizer(userID, name, contactPerson, email, p
 	return s.toOrganizerResponse(&dbOrganizer), nil
 }
 
-func (s *organizerService) UpdateOrganizer(userID, id, name, contactPerson, email, phone, companyName, taxID, bankAccountInfo, imageURL string, commissionRate, balance float64, isFlagged, isBanned bool) (*organizer_dto.OrganizerResponse, error) {
+func (s *organizerService) UpdateOrganizer(userID string, id, name, contactPerson, email, phone, companyName, taxID, bankAccountInfo string, commissionRate, balance float64, notes string) (*organizer_dto.OrganizerResponse, error) {
 	hasPerm, err := s.HasPermission(userID, "update:organizers")
 	if err != nil {
 		return nil, err
@@ -74,11 +73,9 @@ func (s *organizerService) UpdateOrganizer(userID, id, name, contactPerson, emai
 	dbOrganizer.CompanyName = companyName
 	dbOrganizer.TaxID = taxID
 	dbOrganizer.BankAccountInfo = bankAccountInfo
-	dbOrganizer.ImageURL = imageURL
 	dbOrganizer.CommissionRate = commissionRate
 	dbOrganizer.Balance = balance
-	dbOrganizer.IsFlagged = isFlagged
-	dbOrganizer.IsBanned = isBanned
+	dbOrganizer.Notes = notes
 
 	if err := s.db.Save(&dbOrganizer).Error; err != nil {
 		return nil, err
