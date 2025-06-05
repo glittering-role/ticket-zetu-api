@@ -59,6 +59,19 @@ var (
 	blacklist        = []string{"admin", "root", "moderator"}
 )
 
+// CheckUsername godoc
+// @Summary Check username availability
+// @Description Checks if a username is available and provides suggestions if taken
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param username query string true "Username to check"
+// @Success 200 {object} auth_utils.UsernameCheckResponse
+// @Failure 400 {object} map[string]interface{} "Invalid username format"
+// @Failure 429 {object} map[string]interface{} "Too many requests"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /auth/check-username [get]
+// CheckUsername handles username availability checks
 func (uc *UsernameCheck) CheckUsername(ctx *fiber.Ctx) error {
 	// Rate limiting by IP
 	ip := ctx.IP()

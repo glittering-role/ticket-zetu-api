@@ -25,6 +25,17 @@ type SignUpRequest struct {
 	DateOfBirth string `json:"date_of_birth" validate:"omitempty,datetime=2006-01-02"`
 }
 
+// SignUp godoc
+// @Summary Register a new user
+// @Description Creates a new user account
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body authentication.SignUpRequest true "Signup data"
+// @Success 201 {object} map[string]interface{} "Account created successfully"
+// @Failure 400 {object} map[string]interface{} "Validation error"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /auth/sign-up [post]
 // SignUp handles user registration
 func (c *AuthController) SignUp(ctx *fiber.Ctx) error {
 	var req SignUpRequest

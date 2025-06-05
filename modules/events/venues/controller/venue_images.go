@@ -18,76 +18,22 @@ func isValidFileType(contentType string) bool {
 	return false
 }
 
-func (c *VenueController) CreateVenue(ctx *fiber.Ctx) error {
-	userID := ctx.Locals("user_id").(string)
-	var input struct {
-		Name        string  `json:"name" validate:"required,min=2,max=255"`
-		Description string  `json:"description" validate:"max=1000"`
-		Address     string  `json:"address" validate:"required"`
-		City        string  `json:"city" validate:"required,min=2,max=100"`
-		State       string  `json:"state" validate:"max=100"`
-		Country     string  `json:"country" validate:"required,min=2,max=100"`
-		Capacity    int     `json:"capacity" validate:"gte=0"`
-		ContactInfo string  `json:"contact_info" validate:"max=255"`
-		Latitude    float64 `json:"latitude"`
-		Longitude   float64 `json:"longitude"`
-	}
-
-	if err := ctx.BodyParser(&input); err != nil {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
-	}
-
-	// Basic validation
-	if len(input.Name) < 2 || len(input.Name) > 255 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Name must be between 2 and 255 characters"), fiber.StatusBadRequest)
-	}
-	if input.Address == "" {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Address cannot be empty"), fiber.StatusBadRequest)
-	}
-	if len(input.City) < 2 || len(input.City) > 100 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "City must be between 2 and 100 characters"), fiber.StatusBadRequest)
-	}
-	if len(input.State) > 100 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "State must be 100 characters or less"), fiber.StatusBadRequest)
-	}
-	if len(input.Country) < 2 || len(input.Country) > 100 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Country must be between 2 and 100 characters"), fiber.StatusBadRequest)
-	}
-	if input.Capacity < 0 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Capacity cannot be negative"), fiber.StatusBadRequest)
-	}
-	if len(input.ContactInfo) > 255 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Contact info must be 255 characters or less"), fiber.StatusBadRequest)
-	}
-	if len(input.Description) > 1000 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Description must be 1000 characters or less"), fiber.StatusBadRequest)
-	}
-
-	_, err := c.service.CreateVenue(
-		userID,
-		input.Name,
-		input.Description,
-		input.Address,
-		input.City,
-		input.State,
-		input.Country,
-		input.Capacity,
-		input.ContactInfo,
-		input.Latitude,
-		input.Longitude,
-	)
-	if err != nil {
-		if err.Error() == "user lacks create:venues permission" {
-			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
-		}
-		if err.Error() == "organizer not found" {
-			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
-		}
-		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
-	}
-	return c.logHandler.LogSuccess(ctx, nil, "Venue created successfully", true)
-}
-
+// AddVenueImage godoc
+// @Summary Add Venue Image
+// @Description Add an image to a venue.
+// @Tags Venue Group
+// @Accept multipart/form-data
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Venue ID"
+// @Param is_primary formData bool false "Is this image primary?"
+// @Param image formData file true "Image file to upload"
+// @Success 200 {object} map[string]interface{} "Venue image added successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body or file"
+// @Failure 403 {object} map[string]interface{} "User lacks create permission"
+// @Failure 404 {object} map[string]interface{} "Venue not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /venues/{id}/images [post]
 func (c *VenueController) AddVenueImage(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	venueID := ctx.Params("id")
@@ -139,6 +85,21 @@ func (c *VenueController) AddVenueImage(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, venueImage, "Venue image added successfully", true)
 }
 
+// DeleteVenueImage godoc
+// @Summary Delete Venue Image
+// @Description Delete an image from a venue.
+// @Tags Venue Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param venue_id path string true "Venue ID"
+// @Param image_id path string true "Image ID"
+// @Success 200 {object} map[string]interface{} "Venue image deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 403 {object} map[string]interface{} "User lacks delete permission"
+// @Failure 404 {object} map[string]interface{} "Venue or image not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /venues/{venue_id}/images/{image_id} [delete]
 func (c *VenueController) DeleteVenueImage(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	venueID := ctx.Params("venue_id")

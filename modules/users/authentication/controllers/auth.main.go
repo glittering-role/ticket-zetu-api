@@ -34,7 +34,11 @@ type AuthController struct {
 	validator   *validator.Validate
 }
 
-// NewAuthController initializes a new AuthController
+// SetupAuthRoutes sets up authentication routes
+// @title Authentication API
+// @version 1.0
+// @description Handles user authentication including signup, login, logout, and username validation
+// @BasePath /api/v1
 func NewAuthController(
 	db *gorm.DB,
 	logHandler *handler.LogHandler,

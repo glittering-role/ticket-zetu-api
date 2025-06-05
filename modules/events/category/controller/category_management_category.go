@@ -1,14 +1,30 @@
 package category
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"ticket-zetu-api/modules/events/category/dto"
 
+	"github.com/gofiber/fiber/v2"
+)
+
+// CreateCategory godoc
+// @Summary Update Category
+// @Description Update category.
+// @Tags Category Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Category ID"
+// @Param input body dto.CreateCategoryDto true "Category details"
+// @Success 200 {object} map[string]interface{} "Category updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 403 {object} map[string]interface{} "User lacks update permission"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /categories/{id} [put]
 func (c *CategoryController) UpdateCategory(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
-	var input struct {
-		Name        string `json:"name" validate:"required,min=2,max=50"`
-		Description string `json:"description,omitempty"`
-	}
+
+	var input dto.CreateCategoryDto
 
 	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
@@ -36,6 +52,20 @@ func (c *CategoryController) UpdateCategory(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, nil, "Category updated successfully", true)
 }
 
+// DeleteCategory godoc
+// @Summary Delete a category
+// @Description Deletes a specific category by ID
+// @Tags Category Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Category ID"
+// @Success 200 {object} map[string]interface{} "Category deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid category ID format"
+// @Failure 403 {object} map[string]interface{} "User lacks delete permission"
+// @Failure 404 {object} map[string]interface{} "Category not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /categories/{id} [delete]
 func (c *CategoryController) DeleteCategory(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
@@ -56,14 +86,26 @@ func (c *CategoryController) DeleteCategory(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, nil, "Category deleted successfully", true)
 }
 
-// Category action activate  or  deactivate  a category
+// ToggleCategoryStatus godoc
+// @Summary Toggle category status
+// @Description Activates or deactivates a specific category
+// @Tags Category Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Category ID"
+// @Param input body dto.ToggleCategoryStatusInput true "Status details"
+// @Success 200 {object} map[string]interface{} "Category status updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body or category ID"
+// @Failure 403 {object} map[string]interface{} "User lacks update permission"
+// @Failure 404 {object} map[string]interface{} "Category not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /categories/{id}/toggle-status [put]
 func (c *CategoryController) ToggleCategoryStatus(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
 
-	var input struct {
-		IsActive bool `json:"is_active"`
-	}
+	var input dto.ToggleCategoryStatusInput
 
 	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)

@@ -13,3 +13,16 @@ type CategoryDTO struct {
 	DeletedAt     *string          `json:"deleted_at,omitempty"`
 	Subcategories []SubcategoryDTO `json:"subcategories,omitempty"`
 }
+
+type CreateCategoryDto struct {
+	Name        string `json:"name" validate:"required,min=2,max=50"`
+	Description string `json:"description,omitempty"`
+}
+
+type ToggleCategoryStatusInput struct {
+	IsActive bool `json:"is_active" validate:"required"`
+}
+
+type ImageResponse struct {
+	ImageURL string `json:"image_url"`
+}

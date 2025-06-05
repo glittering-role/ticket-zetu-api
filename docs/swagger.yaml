@@ -1,0 +1,3553 @@
+basePath: /
+definitions:
+  auth_utils.UsernameCheckResponse:
+    properties:
+      available:
+        type: boolean
+      message:
+        type: string
+      suggestions:
+        items:
+          type: string
+        type: array
+    type: object
+  authentication.LoginRequest:
+    properties:
+      password:
+        minLength: 8
+        type: string
+      remember_me:
+        type: boolean
+      username_or_email:
+        type: string
+    required:
+    - password
+    - username_or_email
+    type: object
+  authentication.SignUpRequest:
+    properties:
+      date_of_birth:
+        type: string
+      email:
+        maxLength: 255
+        type: string
+      first_name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      last_name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      password:
+        minLength: 8
+        type: string
+      phone:
+        maxLength: 20
+        minLength: 10
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    - phone
+    - username
+    type: object
+  authorization.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+    type: object
+  dto.CreateCategoryDto:
+    properties:
+      description:
+        type: string
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+    required:
+    - name
+    type: object
+  dto.CreatePermissionDto:
+    properties:
+      description:
+        type: string
+      permission_name:
+        type: string
+      scope:
+        type: string
+    required:
+    - permission_name
+    type: object
+  dto.CreateRoleDto:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      is_system_role:
+        type: boolean
+      level:
+        minimum: 0
+        type: integer
+      role_name:
+        maxLength: 100
+        type: string
+    required:
+    - role_name
+    type: object
+  dto.PermissionAssignmentDto:
+    properties:
+      permission_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      role_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    required:
+    - permission_id
+    - role_id
+    type: object
+  dto.PermissionResponseDto:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      last_modified_by:
+        type: string
+      permission_name:
+        type: string
+      scope:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.RoleAssignmentDto:
+    properties:
+      role_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    required:
+    - role_id
+    - user_id
+    type: object
+  dto.RoleResponseDto:
+    properties:
+      created_at:
+        example: "2025-06-05T10:00:00Z"
+        type: string
+      created_by:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      description:
+        example: Administrator role
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      is_system_role:
+        example: false
+        type: boolean
+      last_modified_by:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      level:
+        example: 10
+        type: integer
+      number_of_users:
+        example: 5
+        type: integer
+      role_name:
+        example: Admin
+        type: string
+      status:
+        example: active
+        type: string
+      updated_at:
+        example: "2025-10-01T12:00:00Z"
+        type: string
+      version:
+        example: 1
+        type: integer
+    type: object
+  dto.ToggleCategoryStatusInput:
+    properties:
+      is_active:
+        type: boolean
+    required:
+    - is_active
+    type: object
+  dto.UpdateEmailDto:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+    required:
+    - email
+    type: object
+  dto.UpdatePermissionDto:
+    properties:
+      description:
+        type: string
+      permission_name:
+        type: string
+      scope:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.UpdatePhoneDto:
+    properties:
+      phone:
+        maxLength: 20
+        type: string
+    required:
+    - phone
+    type: object
+  dto.UpdateRoleDto:
+    properties:
+      description:
+        maxLength: 255
+        type: string
+      is_system_role:
+        type: boolean
+      level:
+        minimum: 0
+        type: integer
+      role_name:
+        maxLength: 100
+        type: string
+      status:
+        enum:
+        - active
+        - inactive
+        - archived
+        type: string
+    type: object
+  dto.UpdateUserDto:
+    properties:
+      avatar_url:
+        type: string
+      date_of_birth:
+        type: string
+      first_name:
+        maxLength: 100
+        type: string
+      gender:
+        maxLength: 50
+        type: string
+      last_name:
+        maxLength: 100
+        type: string
+    type: object
+  dto.UpdateUserPreferencesDto:
+    properties:
+      allow_following:
+        type: boolean
+      language:
+        type: string
+      show_email:
+        type: boolean
+      show_gender:
+        type: boolean
+      show_location:
+        type: boolean
+      show_phone:
+        type: boolean
+      show_profile:
+        type: boolean
+      show_role:
+        type: boolean
+      theme:
+        enum:
+        - light
+        - dark
+        type: string
+      timezone:
+        type: string
+    type: object
+  dto.UserLocationDto:
+    properties:
+      city:
+        example: New York
+        type: string
+      continent:
+        example: North America
+        type: string
+      country:
+        example: US
+        type: string
+      last_active:
+        example: "2025-06-05T08:00:00Z"
+        type: string
+      state:
+        example: NY
+        type: string
+      state_name:
+        example: New York
+        type: string
+      timezone:
+        example: America/New_York
+        type: string
+      zip:
+        example: "10001"
+        type: string
+    type: object
+  dto.UserLocationUpdateDto:
+    properties:
+      city:
+        maxLength: 100
+        type: string
+      continent:
+        maxLength: 50
+        type: string
+      country:
+        maxLength: 100
+        type: string
+      last_active:
+        type: string
+      state:
+        maxLength: 100
+        type: string
+      state_name:
+        maxLength: 100
+        type: string
+      timezone:
+        maxLength: 50
+        type: string
+      zip:
+        maxLength: 20
+        type: string
+    type: object
+  dto.UserPreferencesDto:
+    properties:
+      allow_following:
+        type: boolean
+      created_at:
+        type: string
+      id:
+        type: string
+      language:
+        type: string
+      show_email:
+        type: boolean
+      show_gender:
+        type: boolean
+      show_location:
+        type: boolean
+      show_phone:
+        type: boolean
+      show_profile:
+        type: boolean
+      show_role:
+        type: boolean
+      theme:
+        type: string
+      timezone:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  dto.UserProfileResponseDto:
+    properties:
+      avatar_url:
+        example: https://example.com/avatar.jpg
+        type: string
+      created_at:
+        example: "2025-06-05T10:00:00Z"
+        type: string
+      date_of_birth:
+        example: "1990-01-01"
+        type: string
+      email:
+        example: john.doe@example.com
+        type: string
+      first_name:
+        example: John
+        type: string
+      gender:
+        example: male
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      last_name:
+        example: Doe
+        type: string
+      location:
+        example: New York, NY, US
+        type: string
+      location_detail:
+        $ref: '#/definitions/dto.UserLocationDto'
+      phone:
+        example: "+1234567890"
+        type: string
+      role_name:
+        example: Admin
+        type: string
+      updated_at:
+        example: "2025-10-01T12:00:00Z"
+        type: string
+      username:
+        example: johndoe
+        type: string
+    type: object
+  organizer_dto.CreateOrganizerRequest:
+    properties:
+      balance:
+        minimum: 0
+        type: number
+      bank_account_info:
+        type: string
+      commission_rate:
+        maximum: 100
+        minimum: 0
+        type: number
+      company_name:
+        maxLength: 255
+        type: string
+      contact_person:
+        maxLength: 255
+        minLength: 2
+        type: string
+      email:
+        type: string
+      image_url:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      notes:
+        type: string
+      phone:
+        maxLength: 50
+        type: string
+      tax_id:
+        maxLength: 100
+        type: string
+    required:
+    - contact_person
+    - email
+    - name
+    type: object
+  organizer_dto.SubscriptionInfo:
+    properties:
+      is_subscribed:
+        type: boolean
+      notification_preference:
+        type: string
+      receive_event_updates:
+        type: boolean
+      receive_newsletters:
+        type: boolean
+      receive_promotions:
+        type: boolean
+      subscription_date:
+        type: string
+    type: object
+  organizer_dto.UpdateOrganizerRequest:
+    properties:
+      allow_subscriptions:
+        type: boolean
+      balance:
+        minimum: 0
+        type: number
+      bank_account_info:
+        type: string
+      commission_rate:
+        maximum: 100
+        minimum: 0
+        type: number
+      company_name:
+        maxLength: 255
+        type: string
+      contact_person:
+        maxLength: 255
+        minLength: 2
+        type: string
+      email:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      notes:
+        type: string
+      phone:
+        maxLength: 50
+        type: string
+      tax_id:
+        maxLength: 100
+        type: string
+    required:
+    - contact_person
+    - email
+    - name
+    type: object
+  organizers.BanSubscriberInput:
+    properties:
+      reason:
+        type: string
+    type: object
+  venue_dto.CreateVenueDto:
+    properties:
+      address:
+        type: string
+      capacity:
+        minimum: 0
+        type: integer
+      city:
+        maxLength: 100
+        minLength: 2
+        type: string
+      contact_info:
+        maxLength: 255
+        type: string
+      country:
+        maxLength: 100
+        minLength: 2
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      state:
+        maxLength: 100
+        type: string
+      status:
+        enum:
+        - active
+        - inactive
+        - suspended
+        type: string
+    required:
+    - address
+    - city
+    - country
+    - name
+    type: object
+host: localhost:8080/api/v1
+info:
+  contact:
+    email: support@ticketzetu.com
+    name: API Support
+  description: This is the API documentation for Ticket Zetu application
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Ticket Zetu API
+  version: "1.0"
+paths:
+  /auth/check-username:
+    get:
+      consumes:
+      - application/json
+      description: Checks if a username is available and provides suggestions if taken
+      parameters:
+      - description: Username to check
+        in: query
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth_utils.UsernameCheckResponse'
+        "400":
+          description: Invalid username format
+          schema:
+            additionalProperties: true
+            type: object
+        "429":
+          description: Too many requests
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check username availability
+      tags:
+      - Authentication
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logs out the user and invalidates the session
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: No session found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Terminate user session
+      tags:
+      - Authentication
+  /auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: Logs in a user and returns session tokens
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/authentication.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties: true
+            type: object
+        "423":
+          description: Account locked
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Authenticate a user
+      tags:
+      - Authentication
+  /auth/sign-up:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account
+      parameters:
+      - description: Signup data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/authentication.SignUpRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Account created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new user
+      tags:
+      - Authentication
+  /categories:
+    get:
+      consumes:
+      - application/json
+      description: Retrieving  All Categories.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all Categories
+      tags:
+      - Category Group
+    post:
+      consumes:
+      - application/json
+      description: Creates a new category.
+      parameters:
+      - description: Category details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCategoryDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks create permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new Category
+      tags:
+      - Category Group
+  /categories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a specific category by ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid category ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks delete permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Category not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a category
+      tags:
+      - Category Group
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific Category by its ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid Category ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks view permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Category not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get Category details
+      tags:
+      - Category Group
+    put:
+      consumes:
+      - application/json
+      description: Update category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCategoryDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update Category
+      tags:
+      - Category Group
+  /categories/{id}/subcategories:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all subcategories under a specific category
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subcategories retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid category ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks view permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Subcategories not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get subcategories by category ID
+      tags:
+      - Subcategories
+  /categories/{id}/toggle-status:
+    put:
+      consumes:
+      - application/json
+      description: Activates or deactivates a specific category
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ToggleCategoryStatusInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category status updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or category ID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Category not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Toggle category status
+      tags:
+      - Category Group
+  /categories/all:
+    get:
+      consumes:
+      - application/json
+      description: Retrieving  All Categories  With their Subcategories.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all Categories Sub Categories
+      tags:
+      - Category Group
+  /category_images/{entity_type}/{entity_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes the image associated with a specified category or subcategory
+      parameters:
+      - description: Entity type (category or subcategory)
+        enum:
+        - category
+        - subcategory
+        in: path
+        name: entity_type
+        required: true
+        type: string
+      - description: Entity ID (UUID)
+        in: path
+        name: entity_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category image deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid category image request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission to delete category image
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Category or subcategory for image not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error while deleting category image
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete an image from a category or subcategory
+      tags:
+      - Category Images
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads an image for a specified category or subcategory
+      parameters:
+      - description: Entity type (category or subcategory)
+        enum:
+        - category
+        - subcategory
+        in: path
+        name: entity_type
+        required: true
+        type: string
+      - description: Entity ID (UUID)
+        in: path
+        name: entity_id
+        required: true
+        type: string
+      - description: Image file to upload
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category image added successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid category image request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission to modify category image
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Category or subcategory for image not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error while adding category image
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Add an image to a category or subcategory
+      tags:
+      - Category Images
+  /logs:
+    delete:
+      consumes:
+      - application/json
+      description: Delete logs with optional filters
+      parameters:
+      - description: Filter by IP address
+        in: query
+        name: ip_address
+        type: string
+      - description: Filter by route
+        in: query
+        name: route
+        type: string
+      - description: Filter by message (partial match)
+        in: query
+        name: message
+        type: string
+      - description: Filter by log level (e.g., info, error)
+        in: query
+        name: level
+        type: string
+      - description: Filter by date (YYYY-MM-DD)
+        in: query
+        name: date
+        type: string
+      - description: Filter by month (YYYY-MM)
+        in: query
+        name: month
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logs deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid query parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete Logs
+      tags:
+      - Logs
+    get:
+      consumes:
+      - application/json
+      description: Retrieve logs with optional filters
+      parameters:
+      - description: Filter by IP address
+        in: query
+        name: ip_address
+        type: string
+      - description: Filter by route
+        in: query
+        name: route
+        type: string
+      - description: Filter by message (partial match)
+        in: query
+        name: message
+        type: string
+      - description: Filter by log level (e.g., info, error)
+        in: query
+        name: level
+        type: string
+      - description: Filter by date (YYYY-MM-DD)
+        in: query
+        name: date
+        type: string
+      - description: Filter by month (YYYY-MM)
+        in: query
+        name: month
+        type: string
+      - description: Number of logs to retrieve (default 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for pagination (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logs retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid query parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Logs
+      tags:
+      - Logs
+  /organizations/{organization_id}/image:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes the image associated with a specific organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organization_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Organization image deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organization not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete organization image
+      tags:
+      - Organization Images
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads an image for a specific organization
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organization_id
+        required: true
+        type: string
+      - description: Image file
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Organization image added successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid form data or file
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organization not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Upload organization image
+      tags:
+      - Organization Images
+  /organizers:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a paginated list of organizations with limited or full
+        details based on user permissions
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Organizations retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List all organizations
+      tags:
+      - Organizers
+    post:
+      consumes:
+      - application/json
+      description: Creates a new organizer with the provided details
+      parameters:
+      - description: Organizer details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/organizer_dto.CreateOrganizerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Organizer created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks create permission
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Organizer email already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new organizer
+      tags:
+      - Organizers
+  /organizers/{id}:
+    delete:
+      description: Deletes an inactive organizer
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Organizer deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid organizer ID format or organizer is active
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks delete permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete an organizer
+      tags:
+      - Organizers
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific organizer by its ID
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Organizer retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid organizer ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks view permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get organizer details
+      tags:
+      - Organizers
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing organizer's details
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Organizer details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/organizer_dto.UpdateOrganizerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Organizer updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Organizer email already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update an organizer
+      tags:
+      - Organizers
+  /organizers/{id}/ban:
+    patch:
+      description: Toggles the banned status of an organizer
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Organizer ban status updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid organizer ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Ban or unban an organizer
+      tags:
+      - Organizers
+  /organizers/{id}/deactivate:
+    patch:
+      description: Sets an organizer's status to inactive
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Organizer deactivated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid organizer ID format or already inactive
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Deactivate an organizer
+      tags:
+      - Organizers
+  /organizers/{id}/flag:
+    patch:
+      description: Marks or unmarks an organizer as flagged
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Organizer flag status updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid organizer ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Flag or unflag an organizer
+      tags:
+      - Organizers
+  /organizers/{id}/toggle-status:
+    patch:
+      description: Toggles the active/inactive status of an organizer
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Organizer status toggled successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid organizer ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Toggle organizer status
+      tags:
+      - Organizers
+  /organizers/my-organization:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the organizer associated with the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: My organizer retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks view permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user's own organizer
+      tags:
+      - Organizers
+  /organizers/search:
+    get:
+      consumes:
+      - application/json
+      description: Searches organizers by name or creator, with pagination
+      parameters:
+      - description: Search term for organizer name
+        in: query
+        name: search
+        type: string
+      - description: Creator ID (UUID)
+        in: query
+        name: created_by
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Organizers retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid creator ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks view permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Search organizers
+      tags:
+      - Organizers
+  /permissions:
+    get:
+      consumes:
+      - application/json
+      description: Get list of permissions with optional filters
+      parameters:
+      - description: Filter by permission name
+        in: query
+        name: permission_name
+        type: string
+      - description: Filter by status (active/inactive)
+        in: query
+        name: status
+        type: string
+      - default: 100
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset results
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.PermissionResponseDto'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List permissions
+      tags:
+      - Authorization
+    post:
+      consumes:
+      - application/json
+      description: Creates a new permission
+      parameters:
+      - description: Permission details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePermissionDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.PermissionResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new permission
+      tags:
+      - Authorization
+  /permissions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a permission by its ID
+      parameters:
+      - description: Permission ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete permission
+      tags:
+      - Authorization
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a permission by its ID
+      parameters:
+      - description: Permission ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PermissionResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get permission by ID
+      tags:
+      - Authorization
+    put:
+      consumes:
+      - application/json
+      description: Update a permission by its ID
+      parameters:
+      - description: Permission ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Permission update details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePermissionDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PermissionResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update permission
+      tags:
+      - Authorization
+  /permissions/assign:
+    post:
+      consumes:
+      - application/json
+      description: Assigns a permission to a role if the user has sufficient permissions
+      parameters:
+      - description: Role and Permission IDs
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PermissionAssignmentDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authorization.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Assign a permission to a role
+      tags:
+      - Authorization
+  /permissions/remove:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a permission from a role if the user has sufficient permissions
+      parameters:
+      - description: Role and Permission IDs
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PermissionAssignmentDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authorization.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Remove a permission from a role
+      tags:
+      - Authorization
+  /roles:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of roles with optional filters
+      parameters:
+      - description: Filter by role name
+        in: query
+        name: role_name
+        type: string
+      - description: Filter by status (active/inactive/archived)
+        in: query
+        name: status
+        type: string
+      - description: Limit results
+        in: query
+        name: limit
+        type: integer
+      - description: Offset results
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/authorization.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.RoleResponseDto'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List roles
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      description: Creates a new role if the user has sufficient permissions
+      parameters:
+      - description: Role details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRoleDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/authorization.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponseDto'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new role
+      tags:
+      - Roles
+  /roles/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a role by its ID if the user has sufficient permissions
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authorization.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a role
+      tags:
+      - Roles
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a role by its ID
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/authorization.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponseDto'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get a role by ID
+      tags:
+      - Roles
+    put:
+      consumes:
+      - application/json
+      description: Updates a role by its ID if the user has sufficient permissions
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role update details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRoleDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/authorization.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponseDto'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update a role
+      tags:
+      - Roles
+  /roles/assign:
+    post:
+      consumes:
+      - application/json
+      description: Assigns a role to a user if the user has sufficient permissions
+      parameters:
+      - description: User and Role IDs
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RoleAssignmentDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/authorization.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Assign a role to a user
+      tags:
+      - Roles
+  /subcategories:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new subcategory under a specific category
+      parameters:
+      - description: Category ID
+        in: body
+        name: category_id
+        required: true
+        schema:
+          type: string
+      - description: Subcategory name
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: Subcategory description
+        in: body
+        name: description
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Subcategory created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks create permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Category not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Subcategory name already exists in this category
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new subcategory
+      tags:
+      - Subcategories
+  /subcategories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a specific subcategory by ID
+      parameters:
+      - description: Subcategory ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subcategory deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid subcategory ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks delete permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Subcategory not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a subcategory
+      tags:
+      - Subcategories
+    put:
+      consumes:
+      - application/json
+      description: Updates the details of a specific subcategory
+      parameters:
+      - description: Subcategory ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Subcategory name
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: Subcategory description
+        in: body
+        name: description
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subcategory updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Subcategory or parent category not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Subcategory name already exists in this category
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update an existing subcategory
+      tags:
+      - Subcategories
+  /subcategories/{id}/toggle-status:
+    put:
+      consumes:
+      - application/json
+      description: Activates or deactivates a specific subcategory
+      parameters:
+      - description: Subcategory ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subcategory status toggled successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid subcategory ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks update permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Subcategory not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Toggle subcategory status
+      tags:
+      - Subcategories
+  /subscriptions:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a paginated list of organizers the user is subscribed
+        to
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subscriptions retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks required permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user subscriptions
+      tags:
+      - Subscriptions
+  /subscriptions/{organizer_id}/preferences:
+    patch:
+      consumes:
+      - application/json
+      description: Updates the subscription preferences for an organizer
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: organizer_id
+        required: true
+        type: string
+      - description: Subscription preferences
+        in: body
+        name: preferences
+        required: true
+        schema:
+          $ref: '#/definitions/organizer_dto.SubscriptionInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subscription preferences updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or organizer ID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks required permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Subscription not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update subscription preferences
+      tags:
+      - Subscriptions
+  /subscriptions/{organizer_id}/subscribe:
+    delete:
+      consumes:
+      - application/json
+      description: Unsubscribes the authenticated user from an organizer
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: organizer_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully unsubscribed from organizer
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid organizer ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks required permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Subscription not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Unsubscribe from an organizer
+      tags:
+      - Subscriptions
+    post:
+      consumes:
+      - application/json
+      description: Subscribes the authenticated user to an organizer
+      parameters:
+      - description: Organizer ID
+        in: path
+        name: organizer_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully subscribed to organizer
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid organizer ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks required permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Already subscribed to this organizer
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Subscribe to an organizer
+      tags:
+      - Subscriptions
+  /subscriptions/my-subscribers:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a paginated list of subscribers for the user's organizer
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subscribers retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks required permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: No organizer found for this user
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get organizer subscribers
+      tags:
+      - Subscriptions
+  /subscriptions/subscribers/{subscriber_id}/ban:
+    patch:
+      consumes:
+      - application/json
+      description: Bans a subscriber from an organizer
+      parameters:
+      - description: Subscriber ID
+        in: path
+        name: subscriber_id
+        required: true
+        type: string
+      - description: Ban reason
+        in: body
+        name: reason
+        required: true
+        schema:
+          $ref: '#/definitions/organizers.BanSubscriberInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Subscriber banned successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or subscriber ID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks required permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Subscription or organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Ban a subscriber
+      tags:
+      - Subscriptions
+  /users/{identifier}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a user's profile by ID, username, or email, respecting
+        privacy settings
+      parameters:
+      - description: User ID, username, or email
+        in: path
+        name: identifier
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfileResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user profile
+      tags:
+      - Users
+  /users/me:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the authenticated user's profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfileResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get own profile
+      tags:
+      - Users
+  /users/me/details:
+    post:
+      consumes:
+      - application/json
+      description: Updates the authenticated user's basic profile details
+      parameters:
+      - description: User details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfileResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update user details
+      tags:
+      - Users
+  /users/me/email:
+    post:
+      consumes:
+      - application/json
+      description: Updates the authenticated user's email, requiring verification
+      parameters:
+      - description: Email address
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateEmailDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfileResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update user email
+      tags:
+      - Users
+  /users/me/location:
+    post:
+      consumes:
+      - application/json
+      description: Updates the authenticated user's location details
+      parameters:
+      - description: Location details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserLocationUpdateDto'
+      produces:
+      - application/json
+      responses:
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update user location
+      tags:
+      - Users
+  /users/me/phone:
+    post:
+      consumes:
+      - application/json
+      description: Updates the authenticated user's phone number
+      parameters:
+      - description: Phone number
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePhoneDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserProfileResponseDto'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update user phone number
+      tags:
+      - Users
+  /users/me/preferences:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the authenticated user's preferences
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserPreferencesDto'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user preferences
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Updates the authenticated user's preferences
+      parameters:
+      - description: Preferences to update
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserPreferencesDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserPreferencesDto'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update user preferences
+      tags:
+      - Users
+  /venues:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all Venues for the Organizer
+      parameters:
+      - description: Comma-separated list of fields to include in the response
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Venues retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all Venues for Organizer
+      tags:
+      - Venue Group
+    post:
+      consumes:
+      - application/json
+      description: Create a new venue.
+      parameters:
+      - description: Venue details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/venue_dto.CreateVenueDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Venue created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks create permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create Venue
+      tags:
+      - Venue Group
+  /venues/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete Venue.
+      parameters:
+      - description: Venue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Venue deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks delete permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Venue not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Venue
+      tags:
+      - Venue Group
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific Venue by its ID for the Organizer
+      parameters:
+      - description: Venue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comma-separated list of fields to include in the response
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Venue retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid Venue ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks view permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Venue not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get Venue details for Organizer
+      tags:
+      - Venue Group
+    put:
+      consumes:
+      - application/json
+      description: Update Venue.
+      parameters:
+      - description: Venue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Venue details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/venue_dto.CreateVenueDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Venue updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks create permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update Venue
+      tags:
+      - Venue Group
+  /venues/{id}/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Add an image to a venue.
+      parameters:
+      - description: Venue ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Is this image primary?
+        in: formData
+        name: is_primary
+        type: boolean
+      - description: Image file to upload
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Venue image added successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or file
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks create permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Venue not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Add Venue Image
+      tags:
+      - Venue Group
+  /venues/{venue_id}/images/{image_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an image from a venue.
+      parameters:
+      - description: Venue ID
+        in: path
+        name: venue_id
+        required: true
+        type: string
+      - description: Image ID
+        in: path
+        name: image_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Venue image deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks delete permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Venue or image not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete Venue Image
+      tags:
+      - Venue Group
+  /venues/all:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a venue by ID.
+      parameters:
+      - description: Fields to include in the response, comma-separated
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Venue retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Venue not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get Venue
+      tags:
+      - Venue Group
+swagger: "2.0"

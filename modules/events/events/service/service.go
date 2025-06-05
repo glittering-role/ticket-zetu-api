@@ -8,7 +8,7 @@ import (
 	"ticket-zetu-api/modules/events/models/categories"
 	"ticket-zetu-api/modules/events/models/events"
 	organizers "ticket-zetu-api/modules/organizers/models"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,11 +47,11 @@ type EventService interface {
 
 type eventService struct {
 	db                   *gorm.DB
-	authorizationService authorization.PermissionService
+	authorizationService authorization_service.PermissionService
 	cloudinary           *cloudinary.CloudinaryService
 }
 
-func NewEventService(db *gorm.DB, authService authorization.PermissionService, cloudinary *cloudinary.CloudinaryService) EventService {
+func NewEventService(db *gorm.DB, authService authorization_service.PermissionService, cloudinary *cloudinary.CloudinaryService) EventService {
 	return &eventService{
 		db:                   db,
 		authorizationService: authService,

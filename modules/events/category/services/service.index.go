@@ -3,7 +3,7 @@ package services
 import (
 	"errors"
 	"ticket-zetu-api/cloudinary"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -11,11 +11,11 @@ import (
 
 type BaseService struct {
 	db                   *gorm.DB
-	authorizationService authorization.PermissionService
+	authorizationService authorization_service.PermissionService
 	cloudinary           *cloudinary.CloudinaryService
 }
 
-func NewBaseService(db *gorm.DB, authService authorization.PermissionService) *BaseService {
+func NewBaseService(db *gorm.DB, authService authorization_service.PermissionService) *BaseService {
 	return &BaseService{
 		db:                   db,
 		authorizationService: authService,

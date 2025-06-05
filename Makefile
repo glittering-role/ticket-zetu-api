@@ -23,14 +23,22 @@ REFLEX_CMD=reflex
 .PHONY: all
 all: run
 
-# Run the application
+# Generate Swagger docs
+.PHONY: swagger
+swagger:
+	@echo "Cleaning old Swagger docs..."
+	rm -rf docs/
+	@echo "Generating Swagger docs..."
+	swag init -g cmd/main.go --output docs/
+
+# Run the application (with Swagger generation)
 .PHONY: run
-run:
+run: swagger
 	$(GO_RUN) $(SRC_DIR)/main.go
 
-# Build the application
+# Build the application (with Swagger generation)
 .PHONY: build
-build:
+build: swagger
 	$(GO_BUILD) -o $(BINARY_NAME) $(SRC_DIR)/main.go
 
 # Format Go code
@@ -53,12 +61,12 @@ clean:
 install-reflex:
 	$(GO_GET) github.com/cespare/reflex
 
-# Hot reload the application with Reflex
+# Hot reload the application with Reflex (with Swagger generation)
 .PHONY: dev
-dev:
+dev: swagger
 	$(REFLEX_CMD) -r '\.go$$' -s -- $(GO_RUN) $(SRC_DIR)/main.go
 
-# Hot reload with custom config (specify different paths)
+# Hot reload with custom config (with Swagger generation)
 .PHONY: dev-custom
-dev-custom:
+dev-custom: swagger
 	$(REFLEX_CMD) -c reflex.conf

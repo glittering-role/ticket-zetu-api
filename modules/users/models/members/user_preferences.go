@@ -14,6 +14,7 @@ type UserPreferences struct {
 	ShowPhone      bool           `gorm:"default:false" json:"show_phone"`
 	ShowLocation   bool           `gorm:"default:false" json:"show_location"`
 	ShowGender     bool           `gorm:"default:false" json:"show_gender"`
+	ShowRole       bool           `gorm:"default:false" json:"show_role"`
 	ShowProfile    bool           `gorm:"default:true;index" json:"show_profile"`
 	AllowFollowing bool           `gorm:"default:true;index" json:"allow_following"`
 	Language       string         `gorm:"type:varchar(10);default:'en';index" json:"language"`
@@ -37,11 +38,11 @@ func (UserPreferences) TableName() string {
 
 // Helpers
 func (p *UserPreferences) IsPublicProfile() bool {
-	return p.ShowProfile && (p.ShowEmail || p.ShowPhone || p.ShowLocation || p.ShowGender)
+	return p.ShowProfile && (p.ShowEmail || p.ShowPhone || p.ShowLocation || p.ShowGender || p.ShowRole)
 }
 
 func (p *UserPreferences) VisibleFields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 5)
 	if p.ShowEmail {
 		fields = append(fields, "email")
 	}
@@ -53,6 +54,9 @@ func (p *UserPreferences) VisibleFields() []string {
 	}
 	if p.ShowGender {
 		fields = append(fields, "gender")
+	}
+	if p.ShowRole {
+		fields = append(fields, "role")
 	}
 	return fields
 }
@@ -80,6 +84,8 @@ func (p *UserPreferences) ShouldShow(field string) bool {
 		return p.ShowLocation && p.ShowProfile
 	case "gender":
 		return p.ShowGender && p.ShowProfile
+	case "role":
+		return p.ShowRole && p.ShowProfile
 	default:
 		return false
 	}

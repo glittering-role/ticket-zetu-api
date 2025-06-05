@@ -6,7 +6,7 @@ import (
 	"ticket-zetu-api/modules/events/models/events"
 	organizers "ticket-zetu-api/modules/organizers/models"
 	"ticket-zetu-api/modules/tickets/models/tickets"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 	"time"
 
 	"github.com/google/uuid"
@@ -42,10 +42,10 @@ type PriceTierService interface {
 
 type priceTierService struct {
 	db                   *gorm.DB
-	authorizationService authorization.PermissionService
+	authorizationService authorization_service.PermissionService
 }
 
-func NewPriceTierService(db *gorm.DB, authService authorization.PermissionService) PriceTierService {
+func NewPriceTierService(db *gorm.DB, authService authorization_service.PermissionService) PriceTierService {
 	return &priceTierService{
 		db:                   db,
 		authorizationService: authService,

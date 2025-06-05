@@ -1,21 +1,23 @@
 package routes
 
 import (
+	"ticket-zetu-api/logs/handler"
+	authorization "ticket-zetu-api/modules/users/authorization/controller"
+	"ticket-zetu-api/modules/users/authorization/service"
+	"ticket-zetu-api/modules/users/middleware"
+
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
-	"ticket-zetu-api/logs/handler"
-	"ticket-zetu-api/modules/users/authorization"
-	"ticket-zetu-api/modules/users/middleware"
 )
 
 func AuthorizationRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
 	authMiddleware := middleware.IsAuthenticated(db)
 
-	roleService := authorization.NewRoleService(db)
+	roleService := authorization_service.NewRoleService(db)
 	roleController := authorization.NewRoleController(roleService, logHandler)
 
-	permissionService := authorization.NewPermissionService(db)
-	permissionController := authorization.NewPermissionController(permissionService, logHandler, db)
+	permissionService := authorization_service.NewPermissionService(db)
+	permissionController := authorization.NewPermissionController(permissionService, logHandler)
 
 	roleGroup := router.Group("/roles", authMiddleware)
 	{
@@ -35,6 +37,6 @@ func AuthorizationRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.L
 		permissionGroup.Put("/:id", permissionController.UpdatePermission)
 		permissionGroup.Delete("/:id", permissionController.DeletePermission)
 		permissionGroup.Post("/assign", permissionController.AssignPermissionToRole)
-		permissionGroup.Post("/remove", permissionController.RemovePermissionFromRole)
+		permissionGroup.Delete("/remove", permissionController.RemovePermissionFromRole)
 	}
 }

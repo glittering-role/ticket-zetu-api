@@ -26,10 +26,23 @@ import (
 	roles "ticket-zetu-api/modules/users/routes/v1"
 	users "ticket-zetu-api/modules/users/routes/v1"
 
+	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
+	_ "ticket-zetu-api/docs" // Import the generated docs package for Swagger
 )
+
+// @title Ticket Zetu API
+// @version 1.0
+// @description This is the API documentation for Ticket Zetu application
+// @termsOfService http://swagger.io/terms/
+// @contact.name API Support
+// @contact.email support@ticketzetu.com
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+// @host localhost:8080/api/v1
+// @BasePath /
 
 func main() {
 	// Load configuration
@@ -76,6 +89,8 @@ func main() {
 			})
 		},
 	}))
+
+	app.Get("/swagger/*", swagger.New()) // default
 
 	// Create API group
 	api := app.Group("/api/v1")

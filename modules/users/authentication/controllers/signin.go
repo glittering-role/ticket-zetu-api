@@ -20,6 +20,20 @@ type LoginRequest struct {
 	RememberMe      bool   `json:"remember_me"`
 }
 
+// SignIn godoc
+// @Summary Authenticate a user
+// @Description Logs in a user and returns session tokens
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body authentication.LoginRequest true "Login credentials"
+// @Success 200 {object} map[string]interface{} "Login successful"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 401 {object} map[string]interface{} "Invalid credentials"
+// @Failure 423 {object} map[string]interface{} "Account locked"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /auth/sign-in [post]
+// SignIn handles user login
 func (c *AuthController) SignIn(ctx *fiber.Ctx) error {
 	var req LoginRequest
 	if err := ctx.BodyParser(&req); err != nil {

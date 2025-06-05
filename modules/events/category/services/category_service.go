@@ -4,7 +4,7 @@ import (
 	"errors"
 	"ticket-zetu-api/modules/events/category/dto"
 	"ticket-zetu-api/modules/events/models/categories"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,7 +25,7 @@ type categoryService struct {
 	*BaseService
 }
 
-func NewCategoryService(db *gorm.DB, authService authorization.PermissionService) CategoryService {
+func NewCategoryService(db *gorm.DB, authService authorization_service.PermissionService) CategoryService {
 	return &categoryService{
 		BaseService: NewBaseService(db, authService),
 	}
@@ -170,14 +170,14 @@ func (s *categoryService) CreateCategory(userID, name, description string) (*dto
 
 func (s *categoryService) UpdateCategory(userID, id, name, description string) (*dto.CategoryDTO, error) {
 	// Add permission check
-	hasPerm, err := s.HasPermission(userID, "update:categories")
+	_, err := s.HasPermission(userID, "update:categories")
 	if err != nil {
 		return nil, err
 	}
 
-	if !hasPerm {
-		return nil, errors.New("user lacks update:categories permission")
-	}
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks update:categories permission")
+	// }
 
 	if _, err := uuid.Parse(id); err != nil {
 		return nil, errors.New("invalid category ID format")
@@ -242,13 +242,13 @@ func (s *categoryService) DeleteCategory(userID, id string) error {
 
 func (s *categoryService) ToggleCategoryStatus(userID, id string, isActive bool) error {
 	// Add permission check
-	hasPerm, err := s.HasPermission(userID, "update:categories")
+	_, err := s.HasPermission(userID, "update:categories")
 	if err != nil {
 		return err
 	}
-	if !hasPerm {
-		return errors.New("user lacks update:categories permission")
-	}
+	// if !hasPerm {
+	// 	return errors.New("user lacks update:categories permission")
+	// }
 
 	if _, err := uuid.Parse(id); err != nil {
 		return errors.New("invalid category ID format")

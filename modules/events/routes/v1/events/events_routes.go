@@ -5,7 +5,7 @@ import (
 	"ticket-zetu-api/logs/handler"
 	events_controller "ticket-zetu-api/modules/events/events/controller"
 	service "ticket-zetu-api/modules/events/events/service"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 	"ticket-zetu-api/modules/users/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -14,7 +14,7 @@ import (
 
 func SetupEventsRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, cloudinary *cloudinary.CloudinaryService) {
 	authMiddleware := middleware.IsAuthenticated(db)
-	authService := authorization.NewPermissionService(db)
+	authService := authorization_service.NewPermissionService(db)
 	// Event routes
 	eventService := service.NewEventService(db, authService, cloudinary)
 	eventController := events_controller.NewEventController(eventService, logHandler, cloudinary)

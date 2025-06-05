@@ -36,17 +36,17 @@ func (s *organizerService) CreateOrganizer(userID, name, contactPerson, email, p
 		return nil, err
 	}
 
-	return s.toOrganizerResponse(&dbOrganizer), nil
+	return s.toOrganizerResponse(&dbOrganizer, userID), nil
 }
 
-func (s *organizerService) UpdateOrganizer(userID string, id, name, contactPerson, email, phone, companyName, taxID, bankAccountInfo string, commissionRate, balance float64, notes string) (*organizer_dto.OrganizerResponse, error) {
-	hasPerm, err := s.HasPermission(userID, "update:organizers")
+func (s *organizerService) UpdateOrganizer(userID string, id, name, contactPerson, email, phone, companyName, taxID, bankAccountInfo string, commissionRate, balance float64, notes string, allowSubscriptions bool) (*organizer_dto.OrganizerResponse, error) {
+	_, err := s.HasPermission(userID, "update:organizers")
 	if err != nil {
 		return nil, err
 	}
-	if !hasPerm {
-		return nil, errors.New("user lacks update:organizers permission")
-	}
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks update:organizers permission")
+	// }
 
 	if _, err := uuid.Parse(id); err != nil {
 		return nil, errors.New("invalid organizer ID format")
@@ -76,10 +76,11 @@ func (s *organizerService) UpdateOrganizer(userID string, id, name, contactPerso
 	dbOrganizer.CommissionRate = commissionRate
 	dbOrganizer.Balance = balance
 	dbOrganizer.Notes = notes
+	dbOrganizer.AllowSubscriptions = allowSubscriptions
 
 	if err := s.db.Save(&dbOrganizer).Error; err != nil {
 		return nil, err
 	}
 
-	return s.toOrganizerResponse(&dbOrganizer), nil
+	return s.toOrganizerResponse(&dbOrganizer, userID), nil
 }

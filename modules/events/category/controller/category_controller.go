@@ -2,6 +2,7 @@ package category
 
 import (
 	"ticket-zetu-api/logs/handler"
+	"ticket-zetu-api/modules/events/category/dto"
 	"ticket-zetu-api/modules/events/category/services"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,12 +20,23 @@ func NewCategoryController(service services.CategoryService, logHandler *handler
 	}
 }
 
+// CreateCategory godoc
+// @Summary Create a new Category
+// @Description Creates a new category.
+// @Tags Category Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param input body dto.CreateCategoryDto true "Category details"
+// @Success 200 {object} map[string]interface{} "Category created successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 403 {object} map[string]interface{} "User lacks create permission"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /categories [post]
 func (c *CategoryController) CreateCategory(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	var input struct {
-		Name        string `json:"name" validate:"required,min=2,max=50"`
-		Description string `json:"description,omitempty"`
-	}
+
+	var input dto.CreateCategoryDto
 
 	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
@@ -48,6 +60,18 @@ func (c *CategoryController) CreateCategory(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, nil, "Category created successfully", true)
 }
 
+// ReadCategory godoc
+// @Summary Get all Categories
+// @Description Retrieving  All Categories.
+// @Tags Category Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} map[string]interface{} "Category retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 403 {object} map[string]interface{} "User lacks read permission"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /categories [get]
 func (c *CategoryController) GetCategories(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	categories, err := c.service.GetCategories(userID)
@@ -60,6 +84,20 @@ func (c *CategoryController) GetCategories(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, categories, "Categories retrieved successfully", true)
 }
 
+// GetCategory godoc
+// @Summary Get Category details
+// @Description Retrieves details of a specific Category by its ID
+// @Tags Category Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Category ID"
+// @Success 200 {object} map[string]interface{} "Category retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid Category ID format"
+// @Failure 403 {object} map[string]interface{} "User lacks view permission"
+// @Failure 404 {object} map[string]interface{} "Category not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /categories/{id} [get]
 func (c *CategoryController) GetCategory(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
@@ -79,8 +117,18 @@ func (c *CategoryController) GetCategory(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, category, "Category retrieved successfully", true)
 }
 
-// category/controller.go
-
+// ReadCategory godoc
+// @Summary Get all Categories Sub Categories
+// @Description Retrieving  All Categories  With their Subcategories.
+// @Tags Category Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} map[string]interface{} "Category retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 403 {object} map[string]interface{} "User lacks read permission"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /categories/all [get]
 func (c *CategoryController) GetAllCategoriesWithTheirSubCategories(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	categories, err := c.service.GetAllCategoriesWithTheirSubCategories(userID)

@@ -4,7 +4,7 @@ import (
 	"ticket-zetu-api/logs/handler"
 	tickets_controller "ticket-zetu-api/modules/tickets/price_tires/controller"
 	price_tier_service "ticket-zetu-api/modules/tickets/price_tires/service"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 	"ticket-zetu-api/modules/users/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,7 +13,7 @@ import (
 
 func SetupPriceTierRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
 	authMiddleware := middleware.IsAuthenticated(db)
-	authService := authorization.NewPermissionService(db)
+	authService := authorization_service.NewPermissionService(db)
 
 	priceTierService := price_tier_service.NewPriceTierService(db, authService)
 	priceTierController := tickets_controller.NewPriceTierController(priceTierService, logHandler)

@@ -20,13 +20,29 @@ func NewSubcategoryController(service services.SubcategoryService, logHandler *h
 	}
 }
 
+// CreateSubcategory godoc
+// @Summary Create a new subcategory
+// @Description Creates a new subcategory under a specific category
+// @Tags Subcategories
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param category_id body string true "Category ID"
+// @Param name body string true "Subcategory name"
+// @Param description body string false "Subcategory description"
+// @Success 201 {object} map[string]interface{} "Subcategory created successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 403 {object} map[string]interface{} "User lacks create permission"
+// @Failure 404 {object} map[string]interface{} "Category not found"
+// @Failure 409 {object} map[string]interface{} "Subcategory name already exists in this category"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /subcategories [post]
 func (c *SubcategoryController) CreateSubcategory(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	var input struct {
 		CategoryID  string `json:"category_id" validate:"required"`
 		Name        string `json:"name" validate:"required,min=2,max=50"`
 		Description string `json:"description,omitempty"`
-		ImageURL    string `json:"image_url,omitempty"`
 	}
 
 	if err := ctx.BodyParser(&input); err != nil {
@@ -57,6 +73,20 @@ func (c *SubcategoryController) CreateSubcategory(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, nil, "Subcategory created successfully", true)
 }
 
+// GetSubcategories godoc
+// @Summary Get subcategories by category ID
+// @Description Retrieves all subcategories under a specific category
+// @Tags Subcategories
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Category ID"
+// @Success 200 {object} map[string]interface{} "Subcategories retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid category ID format"
+// @Failure 403 {object} map[string]interface{} "User lacks view permission"
+// @Failure 404 {object} map[string]interface{} "Subcategories not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /categories/{id}/subcategories [get]
 func (c *SubcategoryController) GetSubcategories(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	categoryID := ctx.Params("id")

@@ -2,6 +2,7 @@ package category
 
 import (
 	"ticket-zetu-api/logs/handler"
+	"ticket-zetu-api/modules/events/category/dto"
 	"ticket-zetu-api/modules/events/category/services"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,9 +20,25 @@ func NewImageController(service services.ImageService, logHandler *handler.LogHa
 	}
 }
 
+// AddImage godoc
+// @Summary Add an image to a category or subcategory
+// @Description Uploads an image for a specified category or subcategory
+// @Tags Category Images
+// @Accept multipart/form-data
+// @Produce json
+// @Security ApiKeyAuth
+// @Param entity_type path string true "Entity type (category or subcategory)" Enums(category, subcategory)
+// @Param entity_id path string true "Entity ID (UUID)"
+// @Param image formData file true "Image file to upload"
+// @Success 200 {object} map[string]interface{} "Category image added successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid category image request"
+// @Failure 403 {object} map[string]interface{} "User lacks permission to modify category image"
+// @Failure 404 {object} map[string]interface{} "Category or subcategory for image not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error while adding category image"
+// @Router /category_images/{entity_type}/{entity_id} [post]
 func (c *ImageController) AddImage(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	entityType := ctx.Params("entity_type") // "category" or "subcategory"
+	entityType := ctx.Params("entity_type")
 	entityID := ctx.Params("entity_id")
 
 	form, err := ctx.MultipartForm()
@@ -50,12 +67,27 @@ func (c *ImageController) AddImage(ctx *fiber.Ctx) error {
 		}
 	}
 
-	return c.logHandler.LogSuccess(ctx, fiber.Map{"image_url": url}, "Image added successfully", true)
+	return c.logHandler.LogSuccess(ctx, dto.ImageResponse{ImageURL: url}, "Image added successfully", true)
 }
 
+// DeleteImage godoc
+// @Summary Delete an image from a category or subcategory
+// @Description Removes the image associated with a specified category or subcategory
+// @Tags Category Images
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param entity_type path string true "Entity type (category or subcategory)" Enums(category, subcategory)
+// @Param entity_id path string true "Entity ID (UUID)"
+// @Success 200 {object} map[string]interface{} "Category image deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid category image request"
+// @Failure 403 {object} map[string]interface{} "User lacks permission to delete category image"
+// @Failure 404 {object} map[string]interface{} "Category or subcategory for image not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error while deleting category image"
+// @Router /category_images/{entity_type}/{entity_id} [delete]
 func (c *ImageController) DeleteImage(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	entityType := ctx.Params("entity_type") // "category" or "subcategory"
+	entityType := ctx.Params("entity_type")
 	entityID := ctx.Params("entity_id")
 
 	err := c.service.DeleteImage(userID, entityType, entityID)

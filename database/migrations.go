@@ -5,7 +5,10 @@ import (
 	Logs "ticket-zetu-api/logs/model"
 	Category "ticket-zetu-api/modules/events/models/categories"
 	Subcategory "ticket-zetu-api/modules/events/models/categories"
+
+	OrganizationSubscription "ticket-zetu-api/modules/organizers/models"
 	Organizer "ticket-zetu-api/modules/organizers/models"
+
 	Permission "ticket-zetu-api/modules/users/models/authorization"
 	Role "ticket-zetu-api/modules/users/models/authorization"
 	RolePermission "ticket-zetu-api/modules/users/models/authorization"
@@ -53,6 +56,7 @@ func Migrate(db *gorm.DB) error {
 
 		// Organizer Models
 		&Organizer.Organizer{},
+		&OrganizationSubscription.OrganizationSubscription{},
 
 		// Event Models
 		&Venue.Venue{},

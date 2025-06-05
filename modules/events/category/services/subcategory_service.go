@@ -4,7 +4,7 @@ import (
 	"errors"
 	"ticket-zetu-api/modules/events/category/dto"
 	"ticket-zetu-api/modules/events/models/categories"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,7 +23,7 @@ type subcategoryService struct {
 	*BaseService
 }
 
-func NewSubcategoryService(db *gorm.DB, authService authorization.PermissionService) SubcategoryService {
+func NewSubcategoryService(db *gorm.DB, authService authorization_service.PermissionService) SubcategoryService {
 	return &subcategoryService{
 		BaseService: NewBaseService(db, authService),
 	}

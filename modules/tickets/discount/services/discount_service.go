@@ -6,7 +6,7 @@ import (
 	"ticket-zetu-api/modules/events/models/events"
 	organizers "ticket-zetu-api/modules/organizers/models"
 	"ticket-zetu-api/modules/tickets/models/tickets"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,11 +45,11 @@ type DiscountService interface {
 
 type discountService struct {
 	db                   *gorm.DB
-	authorizationService authorization.PermissionService
+	authorizationService authorization_service.PermissionService
 	logHandler           *handler.LogHandler
 }
 
-func NewDiscountService(db *gorm.DB, authService authorization.PermissionService, logHandler *handler.LogHandler) DiscountService {
+func NewDiscountService(db *gorm.DB, authService authorization_service.PermissionService, logHandler *handler.LogHandler) DiscountService {
 	return &discountService{
 		db:                   db,
 		authorizationService: authService,

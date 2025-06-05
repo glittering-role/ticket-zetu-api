@@ -19,7 +19,24 @@ func NewLogController(service *service.LogService) *LogController {
 	return &LogController{Service: service}
 }
 
-// GetLogs retrieves logs based on optional query filters.
+// Logs docs
+// @Summary Get Logs
+// @Description Retrieve logs with optional filters
+// @Tags Logs
+// @Accept json
+// @Produce json
+// @Param ip_address query string false "Filter by IP address"
+// @Param route query string false "Filter by route"
+// @Param message query string false "Filter by message (partial match)"
+// @Param level query string false "Filter by log level (e.g., info, error)"
+// @Param date query string false "Filter by date (YYYY-MM-DD)"
+// @Param month query string false "Filter by month (YYYY-MM)"
+// @Param limit query int false "Number of logs to retrieve (default 100)"
+// @Param offset query int false "Offset for pagination (default 0)"
+// @Success 200 {object} map[string]interface{} "Logs retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid query parameters"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /logs [get]
 func (lc *LogController) GetLogs(c *fiber.Ctx, logHandler *handler.LogHandler) error {
 	query := c.Queries()
 	conditions := make(map[string]interface{})
@@ -91,8 +108,22 @@ func (lc *LogController) GetLogs(c *fiber.Ctx, logHandler *handler.LogHandler) e
 	return logHandler.LogSuccess(c, logs, "Logs retrieved successfully", true)
 }
 
-// DeleteLogs deletes logs based on optional query filters.
-
+// DeleteLogs docs
+// @Summary Delete Logs
+// @Description Delete logs with optional filters
+// @Tags Logs
+// @Accept json
+// @Produce json
+// @Param ip_address query string false "Filter by IP address"
+// @Param route query string false "Filter by route"
+// @Param message query string false "Filter by message (partial match)"
+// @Param level query string false "Filter by log level (e.g., info, error)"
+// @Param date query string false "Filter by date (YYYY-MM-DD)"
+// @Param month query string false "Filter by month (YYYY-MM)"
+// @Success 200 {object} map[string]interface{} "Logs deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid query parameters"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /logs [delete]
 func (lc *LogController) DeleteLogs(c *fiber.Ctx, logHandler *handler.LogHandler) error {
 	query := c.Queries()
 	conditions := make(map[string]interface{})

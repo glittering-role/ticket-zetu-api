@@ -3,6 +3,7 @@ package venues_controller
 import (
 	"ticket-zetu-api/cloudinary"
 	"ticket-zetu-api/logs/handler"
+	venue_dto "ticket-zetu-api/modules/events/venues/dto"
 	"ticket-zetu-api/modules/events/venues/service"
 
 	"github.com/go-playground/validator/v10"
@@ -25,23 +26,25 @@ func NewVenueController(service service.VenueService, logHandler *handler.LogHan
 	}
 }
 
+// CreateVenue godoc
+// @Summary Update Venue
+// @Description Update Venue.
+// @Tags Venue Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Venue ID"
+// @Param input body venue_dto.CreateVenueDto true "Venue details"
+// @Success 200 {object} map[string]interface{} "Venue updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 403 {object} map[string]interface{} "User lacks create permission"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /venues/{id} [put]
 func (c *VenueController) UpdateVenue(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
 
-	var input struct {
-		Name        string  `form:"name" validate:"required,min=2,max=255"`
-		Description string  `form:"description" validate:"max=1000"`
-		Address     string  `form:"address" validate:"required"`
-		City        string  `form:"city" validate:"required,min=2,max=100"`
-		State       string  `form:"state" validate:"max=100"`
-		Country     string  `form:"country" validate:"required,min=2,max=100"`
-		Capacity    int     `form:"capacity" validate:"gte=0"`
-		ContactInfo string  `form:"contact_info" validate:"max=255"`
-		Latitude    float64 `form:"latitude"`
-		Longitude   float64 `form:"longitude"`
-		Status      string  `form:"status" validate:"oneof=active inactive suspended"`
-	}
+	var input venue_dto.CreateVenueDto
 
 	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
@@ -108,6 +111,20 @@ func (c *VenueController) UpdateVenue(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, venue, "Venue updated successfully", true)
 }
 
+// DeleteVenue godoc
+// @Summary Delete Venue
+// @Description Delete Venue.
+// @Tags Venue Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Venue ID"
+// @Success 200 {object} map[string]interface{} "Venue deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 403 {object} map[string]interface{} "User lacks delete permission"
+// @Failure 404 {object} map[string]interface{} "Venue not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /venues/{id} [delete]
 func (c *VenueController) DeleteVenue(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
@@ -130,10 +147,25 @@ func (c *VenueController) DeleteVenue(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, nil, "Venue deleted successfully", true)
 }
 
+// GetSingleVenueForOrganizer godoc
+// @Summary Get Venue details for Organizer
+// @Description Retrieves details of a specific Venue by its ID for the Organizer
+// @Tags Venue Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Venue ID"
+// @Param fields query string false "Comma-separated list of fields to include in the response"
+// @Success 200 {object} map[string]interface{} "Venue retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid Venue ID format"
+// @Failure 403 {object} map[string]interface{} "User lacks view permission"
+// @Failure 404 {object} map[string]interface{} "Venue not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /venues/{id} [get]
 func (c *VenueController) GetSingleVenueForOrganizer(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
-	// Exclude venue_images from fields as it's a relationship, not a column
+
 	fields := ctx.Query("fields", "id,name,description,address,city,state,country,capacity,contact_info,latitude,longitude,status,organizer_id")
 
 	venue, err := c.service.GetVenue(userID, id, fields)
@@ -152,9 +184,23 @@ func (c *VenueController) GetSingleVenueForOrganizer(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, venue, "Venue retrieved successfully", true)
 }
 
+// GetVenuesForOrganizer godoc
+// @Summary Get all Venues for Organizer
+// @Description Retrieves all Venues for the Organizer
+// @Tags Venue Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param fields query string false "Comma-separated list of fields to include in the response"
+// @Success 200 {object} map[string]interface{} "Venues retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 403 {object} map[string]interface{} "User lacks read permission"
+// @Failure 404 {object} map[string]interface{} "Organizer not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /venues [get]
 func (c *VenueController) GetVenuesForOrganizer(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	// Exclude venue_images from fields as it's a relationship, not a column
+
 	fields := ctx.Query("fields", "id,name,description,address,city,state,country,capacity,contact_info,latitude,longitude,status,organizer_id")
 
 	venues, err := c.service.GetVenues(userID, fields)

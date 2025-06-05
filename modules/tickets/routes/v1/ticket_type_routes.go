@@ -6,7 +6,7 @@ import (
 
 	ticket_type_controller "ticket-zetu-api/modules/tickets/ticket_type/controller"
 	ticket_type_service "ticket-zetu-api/modules/tickets/ticket_type/service"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 	"ticket-zetu-api/modules/users/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -15,7 +15,7 @@ import (
 
 func SetupTicketTypeRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
 	authMiddleware := middleware.IsAuthenticated(db)
-	authService := authorization.NewPermissionService(db)
+	authService := authorization_service.NewPermissionService(db)
 
 	ticketTypeService := ticket_type_service.NewTicketTypeService(db, authService)
 	ticketTypeController := ticket_type_controller.NewTicketTypeController(ticketTypeService, logHandler)

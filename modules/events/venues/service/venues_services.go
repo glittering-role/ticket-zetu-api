@@ -1,55 +1,37 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"strings"
 	"ticket-zetu-api/cloudinary"
 	"ticket-zetu-api/modules/events/models/events"
+	venue_dto "ticket-zetu-api/modules/events/venues/dto"
 	organizers "ticket-zetu-api/modules/organizers/models"
-	"ticket-zetu-api/modules/users/authorization"
-	"time"
+	"ticket-zetu-api/modules/users/authorization/service"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-// VenueResponse defines the JSON response structure for venues
-type VenueResponse struct {
-	ID          string              `json:"id"`
-	Name        string              `json:"name"`
-	Description string              `json:"description,omitempty"`
-	Address     string              `json:"address"`
-	City        string              `json:"city"`
-	State       string              `json:"state,omitempty"`
-	Country     string              `json:"country"`
-	Capacity    int                 `json:"capacity"`
-	ContactInfo string              `json:"contact_info,omitempty"`
-	Latitude    float64             `json:"latitude"`
-	Longitude   float64             `json:"longitude"`
-	Status      string              `json:"status"`
-	CreatedAt   time.Time           `json:"created_at"`
-	VenueImages []events.VenueImage `json:"venue_images,omitempty"`
-}
-
 type VenueService interface {
 	CreateVenue(userID, name, description, address, city, state, country string, capacity int, contactInfo string, latitude, longitude float64) (*events.Venue, error)
 	UpdateVenue(userID, id, name, description, address, city, state, country string, capacity int, contactInfo string, latitude, longitude float64, status string, imageURLs []string) (*events.Venue, error)
 	DeleteVenue(userID, id string) error
-	GetVenue(userID, id, fields string) (*VenueResponse, error)
-	GetVenues(userID, fields string) ([]VenueResponse, error)
+	GetVenue(userID, id, fields string) (*venue_dto.VenueResponse, error)
+	GetVenues(userID, fields string) ([]venue_dto.VenueResponse, error)
 	AddVenueImage(userID, venueID, imageURL string, isPrimary bool) (*events.VenueImage, error)
 	DeleteVenueImage(userID, venueID, imageID string) error
 	HasPermission(userID, permission string) (bool, error)
+	GetAllVenues(fields string) ([]venue_dto.VenueResponse, error)
 }
 
 type venueService struct {
 	db                   *gorm.DB
-	authorizationService authorization.PermissionService
+	authorizationService authorization_service.PermissionService
 	cloudinary           *cloudinary.CloudinaryService
 }
 
-func NewVenueService(db *gorm.DB, authService authorization.PermissionService, cloudinary *cloudinary.CloudinaryService) VenueService {
+func NewVenueService(db *gorm.DB, authService authorization_service.PermissionService, cloudinary *cloudinary.CloudinaryService) VenueService {
 	return &venueService{
 		db:                   db,
 		authorizationService: authService,
@@ -79,6 +61,25 @@ func (s *venueService) getUserOrganizer(userID string) (*organizers.Organizer, e
 	return &organizer, nil
 }
 
+func (s *venueService) mapVenueToResponse(venue *events.Venue) *venue_dto.VenueResponse {
+	return &venue_dto.VenueResponse{
+		ID:          venue.ID,
+		Name:        venue.Name,
+		Description: venue.Description,
+		Address:     venue.Address,
+		City:        venue.City,
+		State:       venue.State,
+		Country:     venue.Country,
+		Capacity:    venue.Capacity,
+		ContactInfo: venue.ContactInfo,
+		Latitude:    venue.Latitude,
+		Longitude:   venue.Longitude,
+		Status:      venue.Status,
+		CreatedAt:   venue.CreatedAt,
+		VenueImages: venue.VenueImages,
+	}
+}
+
 // Valid fields for the venues table
 var validVenueFields = map[string]bool{
 	"id":           true,
@@ -93,180 +94,20 @@ var validVenueFields = map[string]bool{
 	"latitude":     true,
 	"longitude":    true,
 	"status":       true,
-	// Metadata fields only if explicitly requested
-	"created_at": true,
-	"updated_at": true,
-	"deleted_at": true,
-	"version":    true,
+	"created_at":   true,
+	"updated_at":   true,
+	"deleted_at":   true,
+	"version":      true,
 }
 
-func (s *venueService) CreateVenue(userID, name, description, address, city, state, country string, capacity int, contactInfo string, latitude, longitude float64) (*events.Venue, error) {
-	_, err := s.HasPermission(userID, "create:venues")
-	// if err != nil {
-	// 	return nil, err
-	// }
+func (s *venueService) GetVenue(userID, id, fields string) (*venue_dto.VenueResponse, error) {
+	_, err := s.HasPermission(userID, "read:venues")
+	if err != nil {
+		return nil, err
+	}
 	// if !hasPerm {
-	// 	return nil, errors.New("user lacks create:venues permission")
+	// 	return nil, errors.New("user lacks read:venues permission")
 	// }
-
-	organizer, err := s.getUserOrganizer(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	venue := events.Venue{
-		Name:        name,
-		Description: description,
-		Address:     address,
-		City:        city,
-		State:       state,
-		Country:     country,
-		Capacity:    capacity,
-		ContactInfo: contactInfo,
-		Latitude:    latitude,
-		Longitude:   longitude,
-		OrganizerID: organizer.ID,
-		Status:      "active",
-		Version:     1,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-
-	if err := s.db.Create(&venue).Error; err != nil {
-		return nil, err
-	}
-
-	return &venue, nil
-}
-
-func (s *venueService) UpdateVenue(userID, id, name, description, address, city, state, country string, capacity int, contactInfo string, latitude, longitude float64, status string, imageURLs []string) (*events.Venue, error) {
-	hasPerm, err := s.HasPermission(userID, "update:venues")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks update:venues permission")
-	}
-
-	organizer, err := s.getUserOrganizer(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := uuid.Parse(id); err != nil {
-		return nil, errors.New("invalid venue ID format")
-	}
-
-	var venue events.Venue
-	if err := s.db.Where("id = ? AND organizer_id = ? AND deleted_at IS NULL", id, organizer.ID).First(&venue).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("venue not found")
-		}
-		return nil, err
-	}
-
-	venue.Name = name
-	venue.Description = description
-	venue.Address = address
-	venue.City = city
-	venue.State = state
-	venue.Country = country
-	venue.Capacity = capacity
-	venue.ContactInfo = contactInfo
-	venue.Latitude = latitude
-	venue.Longitude = longitude
-	venue.Status = status
-	venue.Version++
-	venue.UpdatedAt = time.Now()
-
-	if err := s.db.Save(&venue).Error; err != nil {
-		return nil, err
-	}
-
-	if len(imageURLs) > 0 {
-		var existingImages []events.VenueImage
-		if err := s.db.Where("venue_id = ? AND deleted_at IS NULL", venue.ID).Find(&existingImages).Error; err != nil {
-			return nil, err
-		}
-		for _, img := range existingImages {
-			if err := s.cloudinary.DeleteFile(context.Background(), img.ImageURL); err != nil {
-				return nil, err
-			}
-		}
-		if err := s.db.Where("venue_id = ?", venue.ID).Delete(&events.VenueImage{}).Error; err != nil {
-			return nil, err
-		}
-		for i, url := range imageURLs {
-			venueImage := events.VenueImage{
-				VenueID:   venue.ID,
-				ImageURL:  url,
-				IsPrimary: i == 0,
-				CreatedAt: time.Now(),
-			}
-			if err := s.db.Create(&venueImage).Error; err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return &venue, nil
-}
-
-func (s *venueService) DeleteVenue(userID, id string) error {
-	hasPerm, err := s.HasPermission(userID, "delete:venues")
-	if err != nil {
-		return err
-	}
-	if !hasPerm {
-		return errors.New("user lacks delete:venues permission")
-	}
-
-	organizer, err := s.getUserOrganizer(userID)
-	if err != nil {
-		return err
-	}
-
-	if _, err := uuid.Parse(id); err != nil {
-		return errors.New("invalid venue ID format")
-	}
-
-	var venue events.Venue
-	if err := s.db.Where("id = ? AND organizer_id = ? AND deleted_at IS NULL", id, organizer.ID).First(&venue).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("venue not found")
-		}
-		return err
-	}
-
-	if venue.Status == "active" {
-		return errors.New("cannot delete an active venue")
-	}
-
-	var venueImages []events.VenueImage
-	if err := s.db.Where("venue_id = ? AND deleted_at IS NULL", venue.ID).Find(&venueImages).Error; err != nil {
-		return err
-	}
-	for _, img := range venueImages {
-		if err := s.cloudinary.DeleteFile(context.Background(), img.ImageURL); err != nil {
-			return err
-		}
-	}
-
-	if err := s.db.Delete(&venue).Error; err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *venueService) GetVenue(userID, id, fields string) (*VenueResponse, error) {
-	hasPerm, err := s.HasPermission(userID, "read:venues")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks read:venues permission")
-	}
 
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {
@@ -302,35 +143,17 @@ func (s *venueService) GetVenue(userID, id, fields string) (*VenueResponse, erro
 		return nil, err
 	}
 
-	// Map to VenueResponse to control JSON output
-	response := &VenueResponse{
-		ID:          venue.ID,
-		Name:        venue.Name,
-		Description: venue.Description,
-		Address:     venue.Address,
-		City:        venue.City,
-		State:       venue.State,
-		Country:     venue.Country,
-		Capacity:    venue.Capacity,
-		ContactInfo: venue.ContactInfo,
-		Latitude:    venue.Latitude,
-		Longitude:   venue.Longitude,
-		Status:      venue.Status,
-		CreatedAt:   venue.CreatedAt,
-		VenueImages: venue.VenueImages,
-	}
-
-	return response, nil
+	return s.mapVenueToResponse(&venue), nil
 }
 
-func (s *venueService) GetVenues(userID, fields string) ([]VenueResponse, error) {
-	hasPerm, err := s.HasPermission(userID, "read:venues")
+func (s *venueService) GetVenues(userID, fields string) ([]venue_dto.VenueResponse, error) {
+	_, err := s.HasPermission(userID, "read:venues")
 	if err != nil {
 		return nil, err
 	}
-	if !hasPerm {
-		return nil, errors.New("user lacks read:venues permission")
-	}
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks read:venues permission")
+	// }
 
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {
@@ -359,121 +182,41 @@ func (s *venueService) GetVenues(userID, fields string) ([]VenueResponse, error)
 		return nil, err
 	}
 
-	// Map to VenueResponse
-	responses := make([]VenueResponse, len(venues))
+	responses := make([]venue_dto.VenueResponse, len(venues))
 	for i, venue := range venues {
-		responses[i] = VenueResponse{
-			ID:          venue.ID,
-			Name:        venue.Name,
-			Description: venue.Description,
-			Address:     venue.Address,
-			City:        venue.City,
-			State:       venue.State,
-			Country:     venue.Country,
-			Capacity:    venue.Capacity,
-			ContactInfo: venue.ContactInfo,
-			Latitude:    venue.Latitude,
-			Longitude:   venue.Longitude,
-			Status:      venue.Status,
-			CreatedAt:   venue.CreatedAt,
-			VenueImages: venue.VenueImages,
-		}
+		responses[i] = *s.mapVenueToResponse(&venue)
 	}
 
 	return responses, nil
 }
 
-func (s *venueService) AddVenueImage(userID, venueID, imageURL string, isPrimary bool) (*events.VenueImage, error) {
-	hasPerm, err := s.HasPermission(userID, "create:venue_images")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks create:venue_images permission")
-	}
-
-	organizer, err := s.getUserOrganizer(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := uuid.Parse(venueID); err != nil {
-		return nil, errors.New("invalid venue ID format")
-	}
-
-	var venue events.Venue
-	if err := s.db.Where("id = ? AND organizer_id = ? AND deleted_at IS NULL", venueID, organizer.ID).First(&venue).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("venue not found")
+func (s *venueService) GetAllVenues(fields string) ([]venue_dto.VenueResponse, error) {
+	var venues []events.Venue
+	query := s.db.Preload("VenueImages").Where("deleted_at IS NULL")
+	if fields != "" {
+		selectedFields := []string{}
+		for _, field := range strings.Split(fields, ",") {
+			field = strings.TrimSpace(field)
+			if validVenueFields[field] && field != "created_at" && field != "updated_at" && field != "deleted_at" && field != "version" {
+				selectedFields = append(selectedFields, field)
+			}
 		}
+		if len(selectedFields) > 0 {
+			query = query.Select(selectedFields)
+		} else {
+			query = query.Select("id", "name", "description", "address", "city", "state", "country", "capacity", "contact_info", "latitude", "longitude", "status", "created_at")
+		}
+	} else {
+		query = query.Select("id", "name", "description", "address", "city", "state", "country", "capacity", "contact_info", "latitude", "longitude", "status", "created_at")
+	}
+	if err := query.Find(&venues).Error; err != nil {
 		return nil, err
 	}
 
-	if isPrimary {
-		if err := s.db.Model(&events.VenueImage{}).Where("venue_id = ? AND is_primary = ?", venueID, true).Update("is_primary", false).Error; err != nil {
-			return nil, err
-		}
+	responses := make([]venue_dto.VenueResponse, len(venues))
+	for i, venue := range venues {
+		responses[i] = *s.mapVenueToResponse(&venue)
 	}
 
-	venueImage := events.VenueImage{
-		VenueID:   venueID,
-		ImageURL:  imageURL,
-		IsPrimary: isPrimary,
-		CreatedAt: time.Now(),
-	}
-
-	if err := s.db.Create(&venueImage).Error; err != nil {
-		return nil, err
-	}
-
-	return &venueImage, nil
-}
-
-func (s *venueService) DeleteVenueImage(userID, venueID, imageID string) error {
-	hasPerm, err := s.HasPermission(userID, "delete:venue_images")
-	if err != nil {
-		return err
-	}
-	if !hasPerm {
-		return errors.New("user lacks delete:venue_images permission")
-	}
-
-	organizer, err := s.getUserOrganizer(userID)
-	if err != nil {
-		return err
-	}
-
-	if _, err := uuid.Parse(venueID); err != nil {
-		return errors.New("invalid venue ID format")
-	}
-
-	if _, err := uuid.Parse(imageID); err != nil {
-		return errors.New("invalid image ID format")
-	}
-
-	var venue events.Venue
-	if err := s.db.Where("id = ? AND organizer_id = ? AND deleted_at IS NULL", venueID, organizer.ID).First(&venue).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("venue not found")
-		}
-		return err
-	}
-
-	var venueImage events.VenueImage
-	if err := s.db.Where("id = ? AND venue_id = ? AND deleted_at IS NULL", imageID, venueID).First(&venueImage).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("venue image not found")
-		}
-		return err
-	}
-
-	if err := s.cloudinary.DeleteFile(context.Background(), venueImage.ImageURL); err != nil {
-		return err
-	}
-
-	if err := s.db.Delete(&venueImage).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return responses, nil
 }

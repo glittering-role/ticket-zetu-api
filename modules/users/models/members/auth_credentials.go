@@ -17,8 +17,9 @@ const (
 type UserSecurityAttributes struct {
 	ID                       uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	UserID                   uuid.UUID      `gorm:"type:char(36);uniqueIndex" json:"user_id"`
-	Password                 string         `gorm:"type:text" json:"-"` // Always exclude from JSON
+	Password                 string         `gorm:"type:text" json:"-"`
 	AuthType                 AuthType       `gorm:"type:varchar(20);default:'password'" json:"auth_type"`
+	PendingEmail             string         `gorm:"type:varchar(255)" json:"-"`
 	PasswordResetToken       string         `gorm:"type:text" json:"-"`
 	PasswordResetTokenExpiry *time.Time     `gorm:"type:timestamp" json:"-"`
 	EmailVerificationToken   string         `gorm:"type:text" json:"-"`
@@ -64,7 +65,6 @@ func (a *UserSecurityAttributes) NeedsEmailVerification() bool {
 		(a.EmailTokenExpiry == nil || a.EmailTokenExpiry.After(time.Now()))
 }
 
-// Added security helper methods
 func (a *UserSecurityAttributes) ResetLoginAttempts() {
 	a.FailedLoginAttempts = 0
 	a.LockUntil = nil

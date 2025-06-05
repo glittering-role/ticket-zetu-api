@@ -18,6 +18,7 @@ func SetupAuthRoutes(api fiber.Router, db *gorm.DB, logHandler *handler.LogHandl
 
 	auth := api.Group("/auth")
 	{
+
 		auth.Post("/sign-up", authController.SignUp)
 		auth.Post("/sign-in", authController.SignIn)
 		auth.Get("/check-username", userNameCheck.CheckUsername)

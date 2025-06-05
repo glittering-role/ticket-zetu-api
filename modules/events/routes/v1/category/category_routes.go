@@ -5,7 +5,7 @@ import (
 	"ticket-zetu-api/logs/handler"
 	category "ticket-zetu-api/modules/events/category/controller"
 	"ticket-zetu-api/modules/events/category/services"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 	"ticket-zetu-api/modules/users/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -14,7 +14,7 @@ import (
 
 func CategoryRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, cloudinary *cloudinary.CloudinaryService) {
 	authMiddleware := middleware.IsAuthenticated(db)
-	authService := authorization.NewPermissionService(db)
+	authService := authorization_service.NewPermissionService(db)
 
 	// Category service and controller
 	categoryService := services.NewCategoryService(db, authService)
@@ -37,6 +37,7 @@ func CategoryRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHan
 		categoryGroup.Post("/", categoryController.CreateCategory)
 		categoryGroup.Put("/:id", categoryController.UpdateCategory)
 		categoryGroup.Delete("/:id", categoryController.DeleteCategory)
+		categoryGroup.Put("/:id/toggle-status", categoryController.ToggleCategoryStatus)
 	}
 
 	subCategoryGroup := router.Group("/sub_categories", authMiddleware)
@@ -44,8 +45,9 @@ func CategoryRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHan
 		// Subcategory routes
 		subCategoryGroup.Get("/", subcategoryController.GetSubcategories)
 		subCategoryGroup.Post("/", subcategoryController.CreateSubcategory)
-		subCategoryGroup.Put("/subcategories/:id", subcategoryController.UpdateSubcategory)
-		subCategoryGroup.Delete("/subcategories/:id", subcategoryController.DeleteSubcategory)
+		subCategoryGroup.Put("/:id", subcategoryController.UpdateSubcategory)
+		subCategoryGroup.Delete("/:id", subcategoryController.DeleteSubcategory)
+		subCategoryGroup.Put("/:id/toggle-status", subcategoryController.ToggleSubcategoryStatus)
 	}
 
 	imageGroup := router.Group("/category_images", authMiddleware)

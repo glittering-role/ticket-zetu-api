@@ -6,7 +6,7 @@ import (
 	"mime/multipart"
 	"ticket-zetu-api/cloudinary"
 	organizers "ticket-zetu-api/modules/organizers/models"
-	"ticket-zetu-api/modules/users/authorization"
+	"ticket-zetu-api/modules/users/authorization/service"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -22,7 +22,7 @@ type organizationImageService struct {
 	cloudinary *cloudinary.CloudinaryService
 }
 
-func NewOrganizationImageService(db *gorm.DB, authService authorization.PermissionService, cloudinary *cloudinary.CloudinaryService) OrganizationImageService {
+func NewOrganizationImageService(db *gorm.DB, authService authorization_service.PermissionService, cloudinary *cloudinary.CloudinaryService) OrganizationImageService {
 	base := NewBaseService(db, authService, cloudinary)
 
 	return &organizationImageService{

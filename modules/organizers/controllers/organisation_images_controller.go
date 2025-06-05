@@ -19,6 +19,21 @@ func NewOrganizationImageController(service organizers_services.OrganizationImag
 	}
 }
 
+// AddOrganizationImage godoc
+// @Summary Upload organization image
+// @Description Uploads an image for a specific organization
+// @Tags Organization Images
+// @Accept multipart/form-data
+// @Produce json
+// @Security ApiKeyAuth
+// @Param organization_id path string true "Organization ID"
+// @Param image formData file true "Image file"
+// @Success 200 {object} map[string]interface{} "Organization image added successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid form data or file"
+// @Failure 403 {object} map[string]interface{} "User lacks update permission"
+// @Failure 404 {object} map[string]interface{} "Organization not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /organizations/{organization_id}/image [post]
 func (c *OrganizationImageController) AddOrganizationImage(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	organizationID := ctx.Params("organization_id")
@@ -50,6 +65,19 @@ func (c *OrganizationImageController) AddOrganizationImage(ctx *fiber.Ctx) error
 	return c.logHandler.LogSuccess(ctx, fiber.Map{"image_url": url}, "Organization image added successfully", true)
 }
 
+// DeleteOrganizationImage godoc
+// @Summary Delete organization image
+// @Description Deletes the image associated with a specific organization
+// @Tags Organization Images
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param organization_id path string true "Organization ID"
+// @Success 200 {object} map[string]interface{} "Organization image deleted successfully"
+// @Failure 403 {object} map[string]interface{} "User lacks update permission"
+// @Failure 404 {object} map[string]interface{} "Organization not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /organizations/{organization_id}/image [delete]
 func (c *OrganizationImageController) DeleteOrganizationImage(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	organizationID := ctx.Params("organization_id")
