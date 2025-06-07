@@ -2,10 +2,10 @@ package ticket_type_service
 
 import (
 	"errors"
-	"strings"
 	"ticket-zetu-api/modules/events/models/events"
 	organizers "ticket-zetu-api/modules/organizers/models"
 	"ticket-zetu-api/modules/tickets/models/tickets"
+	"ticket-zetu-api/modules/tickets/ticket_type/dto"
 	"ticket-zetu-api/modules/users/authorization/service"
 	"time"
 
@@ -13,32 +13,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type TicketTypeResponse struct {
-	ID                string       `json:"id"`
-	EventID           string       `json:"event_id"`
-	Name              string       `json:"name"`
-	Description       string       `json:"description"`
-	PriceModifier     float64      `json:"price_modifier"`
-	Benefits          string       `json:"benefits"`
-	MaxTicketsPerUser int          `json:"max_tickets_per_user"`
-	Status            string       `json:"status"`
-	IsDefault         bool         `json:"is_default"`
-	SalesStart        time.Time    `json:"sales_start"`
-	SalesEnd          *time.Time   `json:"sales_end"`
-	QuantityAvailable *int         `json:"quantity_available"`
-	MinTicketsPerUser int          `json:"min_tickets_per_user"`
-	CreatedAt         time.Time    `json:"created_at"`
-	UpdatedAt         time.Time    `json:"updated_at"`
-	Event             events.Event `json:"event,omitempty"`
-}
-
 type TicketTypeService interface {
-	CreateTicketType(userID, eventID, name, description string, priceModifier float64, benefits string, maxTicketsPerUser int, status string, isDefault bool, salesStart time.Time, salesEnd *time.Time, quantityAvailable *int, minTicketsPerUser int) (*tickets.TicketType, error)
-	UpdateTicketType(userID, id, name, description string, priceModifier float64, benefits string, maxTicketsPerUser int, status string, isDefault *bool, salesStart time.Time, salesEnd *time.Time, quantityAvailable *int, minTicketsPerUser int) (*tickets.TicketType, error)
+	CreateTicketType(userID string, input dto.CreateTicketTypeInput) (*dto.TicketTypeResponse, error)
+	UpdateTicketType(userID string, id string, nput dto.UpdateTicketTypeInput) (*dto.TicketTypeResponse, error)
 	DeleteTicketType(userID, id string) error
-	GetTicketType(userID, id, fields string) (*TicketTypeResponse, error)
-	GetTicketTypes(userID, eventID, fields string) ([]TicketTypeResponse, error)
+	GetTicketType(userID, id, fields string) (*dto.TicketTypeResponse, error)
+	GetTicketTypes(userID, eventID, fields string) ([]dto.TicketTypeResponse, error)
 	HasPermission(userID, permission string) (bool, error)
+	GetAllTicketTypesForOrganization(userID, fields string) ([]dto.TicketTypeResponse, error)
 }
 
 type ticketTypeService struct {
@@ -62,6 +44,27 @@ func (s *ticketTypeService) HasPermission(userID, permission string) (bool, erro
 		return false, err
 	}
 	return hasPerm, nil
+}
+
+func (s *ticketTypeService) toDTO(ticketType *tickets.TicketType) *dto.TicketTypeResponse {
+	return &dto.TicketTypeResponse{
+		ID:                ticketType.ID,
+		EventID:           ticketType.EventID,
+		Name:              ticketType.Name,
+		Description:       ticketType.Description,
+		PriceModifier:     ticketType.PriceModifier,
+		Benefits:          ticketType.Benefits,
+		MaxTicketsPerUser: ticketType.MaxTicketsPerUser,
+		Status:            string(ticketType.Status),
+		IsDefault:         ticketType.IsDefault,
+		SalesStart:        ticketType.SalesStart,
+		SalesEnd:          ticketType.SalesEnd,
+		QuantityAvailable: ticketType.QuantityAvailable,
+		MinTicketsPerUser: ticketType.MinTicketsPerUser,
+		CreatedAt:         ticketType.CreatedAt,
+		UpdatedAt:         ticketType.UpdatedAt,
+		Event:             ticketType.Event, // Assuming Event is preloaded
+	}
 }
 
 func (s *ticketTypeService) getUserOrganizer(userID string) (*organizers.Organizer, error) {
@@ -93,7 +96,7 @@ var validTicketTypeFields = map[string]bool{
 	"updated_at":           true,
 }
 
-func (s *ticketTypeService) CreateTicketType(userID, eventID, name, description string, priceModifier float64, benefits string, maxTicketsPerUser int, status string, isDefault bool, salesStart time.Time, salesEnd *time.Time, quantityAvailable *int, minTicketsPerUser int) (*tickets.TicketType, error) {
+func (s *ticketTypeService) CreateTicketType(userID string, input dto.CreateTicketTypeInput) (*dto.TicketTypeResponse, error) {
 	hasPerm, err := s.HasPermission(userID, "create:ticket_types")
 	if err != nil {
 		return nil, err
@@ -103,7 +106,7 @@ func (s *ticketTypeService) CreateTicketType(userID, eventID, name, description 
 	}
 
 	// Validate event ID
-	if _, err := uuid.Parse(eventID); err != nil {
+	if _, err := uuid.Parse(input.EventID); err != nil {
 		return nil, errors.New("invalid event ID format")
 	}
 
@@ -115,22 +118,17 @@ func (s *ticketTypeService) CreateTicketType(userID, eventID, name, description 
 
 	// Verify the event belongs to the organizer
 	var event events.Event
-	if err := s.db.Where("id = ? AND organizer_id = ?", eventID, organizer.ID).First(&event).Error; err != nil {
+	if err := s.db.Where("id = ? AND organizer_id = ?", input.EventID, organizer.ID).First(&event).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("event not found")
 		}
 		return nil, err
 	}
 
-	// Set default status if not provided
-	if status == "" {
-		status = string(tickets.TicketTypeActive)
-	}
-
 	// If this is being set as default, unset any existing default for this event
-	if isDefault {
+	if input.IsDefault {
 		if err := s.db.Model(&tickets.TicketType{}).
-			Where("event_id = ? AND is_default = ?", eventID, true).
+			Where("event_id = ? AND is_default = ?", input.EventID, true).
 			Update("is_default", false).Error; err != nil {
 			return nil, err
 		}
@@ -138,19 +136,19 @@ func (s *ticketTypeService) CreateTicketType(userID, eventID, name, description 
 
 	ticketType := &tickets.TicketType{
 		ID:                uuid.New().String(),
-		EventID:           eventID,
+		EventID:           input.EventID,
 		OrganizerID:       organizer.ID,
-		Name:              name,
-		Description:       description,
-		PriceModifier:     priceModifier,
-		Benefits:          benefits,
-		MaxTicketsPerUser: maxTicketsPerUser,
-		Status:            tickets.TicketTypeStatus(status),
-		IsDefault:         isDefault,
-		SalesStart:        salesStart,
-		SalesEnd:          salesEnd,
-		QuantityAvailable: quantityAvailable,
-		MinTicketsPerUser: minTicketsPerUser,
+		Name:              input.Name,
+		Description:       input.Description,
+		PriceModifier:     input.PriceModifier,
+		Benefits:          input.Benefits,
+		MaxTicketsPerUser: input.MaxTicketsPerUser,
+		Status:            tickets.TicketTypeStatus(input.Status),
+		IsDefault:         input.IsDefault,
+		SalesStart:        input.SalesStart,
+		SalesEnd:          input.SalesEnd,
+		QuantityAvailable: input.QuantityAvailable,
+		MinTicketsPerUser: input.MinTicketsPerUser,
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
 	}
@@ -159,10 +157,10 @@ func (s *ticketTypeService) CreateTicketType(userID, eventID, name, description 
 		return nil, err
 	}
 
-	return ticketType, nil
+	return s.toDTO(ticketType), nil
 }
 
-func (s *ticketTypeService) UpdateTicketType(userID, id, name, description string, priceModifier float64, benefits string, maxTicketsPerUser int, status string, isDefault *bool, salesStart time.Time, salesEnd *time.Time, quantityAvailable *int, minTicketsPerUser int) (*tickets.TicketType, error) {
+func (s *ticketTypeService) UpdateTicketType(userID string, id string, input dto.UpdateTicketTypeInput) (*dto.TicketTypeResponse, error) {
 	hasPerm, err := s.HasPermission(userID, "update:ticket_types")
 	if err != nil {
 		return nil, err
@@ -191,48 +189,26 @@ func (s *ticketTypeService) UpdateTicketType(userID, id, name, description strin
 	}
 
 	// If this is being set as default, unset any existing default for this event
-	if isDefault != nil && *isDefault {
+	if input.IsDefault {
 		if err := s.db.Model(&tickets.TicketType{}).
-			Where("event_id = ? AND is_default = ? AND id != ?", ticketType.EventID, true, id).
+			Where("event_id = ? AND is_default = ? AND id != ?", ticketType.EventID, true, input.ID).
 			Update("is_default", false).Error; err != nil {
 			return nil, err
 		}
 	}
 
 	// Update fields
-	if name != "" {
-		ticketType.Name = name
-	}
-	if description != "" {
-		ticketType.Description = description
-	}
-	if priceModifier >= 0 {
-		ticketType.PriceModifier = priceModifier
-	}
-	if benefits != "" {
-		ticketType.Benefits = benefits
-	}
-	if maxTicketsPerUser > 0 {
-		ticketType.MaxTicketsPerUser = maxTicketsPerUser
-	}
-	if status != "" {
-		ticketType.Status = tickets.TicketTypeStatus(status)
-	}
-	if isDefault != nil {
-		ticketType.IsDefault = *isDefault
-	}
-	if !salesStart.IsZero() {
-		ticketType.SalesStart = salesStart
-	}
-	if salesEnd != nil {
-		ticketType.SalesEnd = salesEnd
-	}
-	if quantityAvailable != nil {
-		ticketType.QuantityAvailable = quantityAvailable
-	}
-	if minTicketsPerUser > 0 {
-		ticketType.MinTicketsPerUser = minTicketsPerUser
-	}
+	ticketType.Name = input.Name
+	ticketType.Description = input.Description
+	ticketType.PriceModifier = input.PriceModifier
+	ticketType.Benefits = input.Benefits
+	ticketType.MaxTicketsPerUser = input.MaxTicketsPerUser
+	ticketType.Status = tickets.TicketTypeStatus(input.Status)
+	ticketType.IsDefault = input.IsDefault
+	ticketType.SalesStart = input.SalesStart
+	ticketType.SalesEnd = input.SalesEnd
+	ticketType.QuantityAvailable = input.QuantityAvailable
+	ticketType.MinTicketsPerUser = input.MinTicketsPerUser
 
 	ticketType.UpdatedAt = time.Now()
 	ticketType.Version++
@@ -241,7 +217,7 @@ func (s *ticketTypeService) UpdateTicketType(userID, id, name, description strin
 		return nil, err
 	}
 
-	return &ticketType, nil
+	return s.toDTO(&ticketType), nil
 }
 
 func (s *ticketTypeService) DeleteTicketType(userID, id string) error {
@@ -291,145 +267,4 @@ func (s *ticketTypeService) DeleteTicketType(userID, id string) error {
 	}
 
 	return nil
-}
-
-func (s *ticketTypeService) GetTicketType(userID, id, fields string) (*TicketTypeResponse, error) {
-	hasPerm, err := s.HasPermission(userID, "read:ticket_types")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks read:ticket_types permission")
-	}
-
-	// Validate ticket type ID
-	if _, err := uuid.Parse(id); err != nil {
-		return nil, errors.New("invalid ticket type ID format")
-	}
-
-	// Get user's organizer
-	organizer, err := s.getUserOrganizer(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	var ticketType tickets.TicketType
-	query := s.db.Preload("Event").
-		Where("id = ? AND organizer_id = ?", id, organizer.ID)
-
-	if fields != "" {
-		selectedFields := []string{}
-		for _, field := range strings.Split(fields, ",") {
-			field = strings.TrimSpace(field)
-			if validTicketTypeFields[field] {
-				selectedFields = append(selectedFields, field)
-			}
-		}
-		if len(selectedFields) > 0 {
-			query = query.Select(selectedFields)
-		}
-	}
-
-	if err := query.First(&ticketType).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("ticket type not found")
-		}
-		return nil, err
-	}
-
-	response := &TicketTypeResponse{
-		ID:                ticketType.ID,
-		EventID:           ticketType.EventID,
-		Name:              ticketType.Name,
-		Description:       ticketType.Description,
-		PriceModifier:     ticketType.PriceModifier,
-		Benefits:          ticketType.Benefits,
-		MaxTicketsPerUser: ticketType.MaxTicketsPerUser,
-		Status:            string(ticketType.Status),
-		IsDefault:         ticketType.IsDefault,
-		SalesStart:        ticketType.SalesStart,
-		SalesEnd:          ticketType.SalesEnd,
-		QuantityAvailable: ticketType.QuantityAvailable,
-		MinTicketsPerUser: ticketType.MinTicketsPerUser,
-		CreatedAt:         ticketType.CreatedAt,
-		UpdatedAt:         ticketType.UpdatedAt,
-		Event:             ticketType.Event,
-	}
-
-	return response, nil
-}
-
-func (s *ticketTypeService) GetTicketTypes(userID, eventID, fields string) ([]TicketTypeResponse, error) {
-	hasPerm, err := s.HasPermission(userID, "read:ticket_types")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks read:ticket_types permission")
-	}
-
-	// Validate event ID
-	if _, err := uuid.Parse(eventID); err != nil {
-		return nil, errors.New("invalid event ID format")
-	}
-
-	// Get user's organizer
-	organizer, err := s.getUserOrganizer(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Verify the event belongs to the organizer
-	var event events.Event
-	if err := s.db.Where("id = ? AND organizer_id = ?", eventID, organizer.ID).First(&event).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("event not found")
-		}
-		return nil, err
-	}
-
-	var ticketTypes []tickets.TicketType
-	query := s.db.Preload("Event").
-		Where("event_id = ?", eventID)
-
-	if fields != "" {
-		selectedFields := []string{}
-		for _, field := range strings.Split(fields, ",") {
-			field = strings.TrimSpace(field)
-			if validTicketTypeFields[field] {
-				selectedFields = append(selectedFields, field)
-			}
-		}
-		if len(selectedFields) > 0 {
-			query = query.Select(selectedFields)
-		}
-	}
-
-	if err := query.Find(&ticketTypes).Error; err != nil {
-		return nil, err
-	}
-
-	responses := make([]TicketTypeResponse, len(ticketTypes))
-	for i, tt := range ticketTypes {
-		responses[i] = TicketTypeResponse{
-			ID:                tt.ID,
-			EventID:           tt.EventID,
-			Name:              tt.Name,
-			Description:       tt.Description,
-			PriceModifier:     tt.PriceModifier,
-			Benefits:          tt.Benefits,
-			MaxTicketsPerUser: tt.MaxTicketsPerUser,
-			Status:            string(tt.Status),
-			IsDefault:         tt.IsDefault,
-			SalesStart:        tt.SalesStart,
-			SalesEnd:          tt.SalesEnd,
-			QuantityAvailable: tt.QuantityAvailable,
-			MinTicketsPerUser: tt.MinTicketsPerUser,
-			CreatedAt:         tt.CreatedAt,
-			UpdatedAt:         tt.UpdatedAt,
-			Event:             tt.Event,
-		}
-	}
-
-	return responses, nil
 }

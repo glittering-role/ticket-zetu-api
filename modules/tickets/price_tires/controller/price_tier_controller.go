@@ -1,11 +1,12 @@
 package tickets_controller
 
 import (
+	"strconv"
 	"ticket-zetu-api/logs/handler"
 
+	"github.com/go-playground/validator/v10"
 	price_tier_service "ticket-zetu-api/modules/tickets/price_tires/service"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -23,6 +24,19 @@ func NewPriceTierController(service price_tier_service.PriceTierService, logHand
 	}
 }
 
+// GetPriceTiersForOrganizer godoc
+// @Summary Get price tiers for organizer
+// @Description Retrieves all price tiers belonging to the authenticated user's organization
+// @Tags Price Tiers
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param fields query string false "Comma-separated list of fields to include in response" default(id,name,percentage_increase,status,is_default)
+// @Success 200 {array} dto.GetPriceTierResponse "List of price tiers"
+// @Failure 403 {object} map[string]interface{} "User lacks read permission"
+// @Failure 404 {object} map[string]interface{} "Organizer not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /price-tiers/organization [get]
 func (c *PriceTierController) GetPriceTiersForOrganizer(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	fields := ctx.Query("fields", "id,name,percentage_increase,status,is_default")
@@ -41,6 +55,21 @@ func (c *PriceTierController) GetPriceTiersForOrganizer(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, priceTiers, "Price tiers retrieved successfully", true)
 }
 
+// GetSinglePriceTier godoc
+// @Summary Get a single price tier
+// @Description Retrieves details of a specific price tier
+// @Tags Price Tiers
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Price Tier ID"
+// @Param fields query string false "Comma-separated list of fields to include in response" default(id,name,description,percentage_increase,status,is_default,effective_from,effective_to,min_tickets,max_tickets)
+// @Success 200 {object} map[string]interface{} "Price tier details"
+// @Failure 400 {object} map[string]interface{} "Invalid price tier ID"
+// @Failure 403 {object} map[string]interface{} "User lacks read permission"
+// @Failure 404 {object} map[string]interface{} "Price tier not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /price-tiers/{id} [get]
 func (c *PriceTierController) GetSinglePriceTier(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
@@ -53,6 +82,8 @@ func (c *PriceTierController) GetSinglePriceTier(ctx *fiber.Ctx) error {
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
 		case "price tier not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
+		case "invalid price tier ID format":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 		default:
 			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 		}
@@ -60,25 +91,47 @@ func (c *PriceTierController) GetSinglePriceTier(ctx *fiber.Ctx) error {
 	return c.logHandler.LogSuccess(ctx, priceTier, "Price tier retrieved successfully", true)
 }
 
-func (c *PriceTierController) DeletePriceTier(ctx *fiber.Ctx) error {
+// GetAllPriceTiers godoc
+// @Summary Get all price tiers
+// @Description Retrieves all price tiers across all organizations (paginated)
+// @Tags Price Tiers
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param fields query string false "Comma-separated list of fields to include in response" default(id,name,percentage_increase,status,is_default)
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Items per page" default(10)
+// @Success 200 {object} map[string]interface{} "Paginated list of price tiers"
+// @Failure 400 {object} map[string]interface{} "Invalid pagination parameters"
+// @Failure 403 {object} map[string]interface{} "User lacks read permission"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /price-tiers [get]
+func (c *PriceTierController) GetAllPriceTiers(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	id := ctx.Params("id")
+	fields := ctx.Query("fields", "id,name,percentage_increase,status,is_default")
+	page := ctx.Query("page", "1")
+	limit := ctx.Query("limit", "10")
 
-	err := c.service.DeletePriceTier(userID, id)
+	// Validate page and limit
+	pageInt, err := strconv.Atoi(page)
+	if err != nil || pageInt <= 0 {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid page parameter"), fiber.StatusBadRequest)
+	}
+
+	limitInt, err := strconv.Atoi(limit)
+	if err != nil || limitInt <= 0 {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid limit parameter"), fiber.StatusBadRequest)
+	}
+
+	priceTiers, err := c.service.GetAllPriceTiers(userID, fields, pageInt, limitInt)
 	if err != nil {
 		switch err.Error() {
-		case "user lacks delete:price_tiers permission":
+		case "user lacks read:price_tiers permission":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
-		case "price tier not found":
-			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
-		case "cannot delete default price tier":
-			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
-		case "price tier is in use by events":
-			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusConflict, err.Error()), fiber.StatusConflict)
 		default:
 			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 		}
 	}
 
-	return c.logHandler.LogSuccess(ctx, nil, "Price tier deleted successfully", false)
+	return c.logHandler.LogSuccess(ctx, priceTiers, "All price tiers retrieved successfully", true)
 }

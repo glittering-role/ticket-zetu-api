@@ -1,4 +1,3 @@
-// In tickets/models/discount_codes.go
 package tickets
 
 import (

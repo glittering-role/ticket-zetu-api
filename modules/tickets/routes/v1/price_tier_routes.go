@@ -20,7 +20,7 @@ func SetupPriceTierRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.
 
 	priceTierGroup := router.Group("/price-tiers", authMiddleware)
 	{
-		priceTierGroup.Get("/organizer/:organizer_id", priceTierController.GetPriceTiersForOrganizer)
+		priceTierGroup.Get("/organization", priceTierController.GetPriceTiersForOrganizer)
 		priceTierGroup.Get("/:id", priceTierController.GetSinglePriceTier)
 		priceTierGroup.Get("/", priceTierController.GetAllPriceTiers)
 		priceTierGroup.Post("/", priceTierController.CreatePriceTier)

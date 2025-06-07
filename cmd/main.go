@@ -99,7 +99,7 @@ func main() {
 	logs.SetupRoutes(api, logService, logHandler)
 	roles.AuthorizationRoutes(api, database.DB, logHandler)
 	auth.SetupAuthRoutes(api, database.DB, logHandler)
-	users.UserRoutes(api, database.DB, logHandler)
+	users.UserRoutes(api, database.DB, logHandler, cloudinaryService)
 	categories.CategoryRoutes(api, database.DB, logHandler, cloudinaryService)
 	organization.OrganizerRoutes(api, database.DB, logHandler, cloudinaryService)
 	venue.VenueRoutes(api, database.DB, logHandler, cloudinaryService)

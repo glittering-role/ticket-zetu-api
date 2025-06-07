@@ -86,6 +86,42 @@ definitions:
     required:
     - permission_name
     type: object
+  dto.CreatePriceTierRequest:
+    properties:
+      base_price:
+        minimum: 0
+        type: number
+      description:
+        maxLength: 1000
+        type: string
+      effective_from:
+        type: string
+      effective_to:
+        type: string
+      is_default:
+        type: boolean
+      max_tickets:
+        minimum: 0
+        type: integer
+      min_tickets:
+        minimum: 0
+        type: integer
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+      organizer_id:
+        type: string
+      percentage_increase:
+        minimum: 0
+        type: number
+    required:
+    - base_price
+    - effective_from
+    - name
+    - organizer_id
+    - percentage_increase
+    type: object
   dto.CreateRoleDto:
     properties:
       description:
@@ -101,6 +137,80 @@ definitions:
         type: string
     required:
     - role_name
+    type: object
+  dto.CreateTicketTypeInput:
+    properties:
+      benefits:
+        type: string
+      description:
+        type: string
+      event_id:
+        type: string
+      is_default:
+        type: boolean
+      max_tickets_per_user:
+        minimum: 1
+        type: integer
+      min_tickets_per_user:
+        minimum: 1
+        type: integer
+      name:
+        type: string
+      price_modifier:
+        type: number
+      quantity_available:
+        type: integer
+      sales_end:
+        type: string
+      sales_start:
+        type: string
+      status:
+        enum:
+        - active
+        - inactive
+        - archived
+        type: string
+    required:
+    - event_id
+    - max_tickets_per_user
+    - min_tickets_per_user
+    - name
+    - price_modifier
+    - sales_start
+    - status
+    type: object
+  dto.GetPriceTierResponse:
+    properties:
+      base_price:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      effective_from:
+        type: string
+      effective_to:
+        type: string
+      id:
+        type: string
+      is_default:
+        type: boolean
+      max_tickets:
+        type: integer
+      min_tickets:
+        type: integer
+      name:
+        type: string
+      organizer_id:
+        type: string
+      percentage_increase:
+        type: number
+      status:
+        type: string
+      updated_at:
+        type: string
+      version:
+        type: integer
     type: object
   dto.PermissionAssignmentDto:
     properties:
@@ -220,6 +330,40 @@ definitions:
     required:
     - phone
     type: object
+  dto.UpdatePriceTierRequest:
+    properties:
+      base_price:
+        minimum: 0
+        type: number
+      description:
+        maxLength: 1000
+        type: string
+      effective_from:
+        type: string
+      effective_to:
+        type: string
+      is_default:
+        type: boolean
+      max_tickets:
+        minimum: 0
+        type: integer
+      min_tickets:
+        minimum: 0
+        type: integer
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+      percentage_increase:
+        minimum: 0
+        type: number
+      status:
+        enum:
+        - active
+        - inactive
+        - archived
+        type: string
+    type: object
   dto.UpdateRoleDto:
     properties:
       description:
@@ -239,6 +383,50 @@ definitions:
         - inactive
         - archived
         type: string
+    type: object
+  dto.UpdateTicketTypeInput:
+    properties:
+      benefits:
+        type: string
+      description:
+        type: string
+      event_id:
+        type: string
+      id:
+        type: string
+      is_default:
+        type: boolean
+      max_tickets_per_user:
+        minimum: 1
+        type: integer
+      min_tickets_per_user:
+        minimum: 1
+        type: integer
+      name:
+        type: string
+      price_modifier:
+        type: number
+      quantity_available:
+        type: integer
+      sales_end:
+        type: string
+      sales_start:
+        type: string
+      status:
+        enum:
+        - active
+        - inactive
+        - archived
+        type: string
+    required:
+    - event_id
+    - id
+    - max_tickets_per_user
+    - min_tickets_per_user
+    - name
+    - price_modifier
+    - sales_start
+    - status
     type: object
   dto.UpdateUserDto:
     properties:
@@ -868,24 +1056,24 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update category.
+      description: Update TicketType.
       parameters:
-      - description: Category ID
+      - description: TicketType ID
         in: path
         name: id
         required: true
         type: string
-      - description: Category details
+      - description: TicketType details
         in: body
         name: input
         required: true
         schema:
-          $ref: '#/definitions/dto.CreateCategoryDto'
+          $ref: '#/definitions/dto.UpdateTicketTypeInput'
       produces:
       - application/json
       responses:
         "200":
-          description: Category updated successfully
+          description: TicketType updated successfully
           schema:
             additionalProperties: true
             type: object
@@ -906,9 +1094,9 @@ paths:
             type: object
       security:
       - ApiKeyAuth: []
-      summary: Update Category
+      summary: Update TicketType
       tags:
-      - Category Group
+      - TicketType Group
   /categories/{id}/subcategories:
     get:
       consumes:
@@ -2119,6 +2307,286 @@ paths:
       summary: Remove a permission from a role
       tags:
       - Authorization
+  /price-tiers:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all price tiers across all organizations (paginated)
+      parameters:
+      - default: id,name,percentage_increase,status,is_default
+        description: Comma-separated list of fields to include in response
+        in: query
+        name: fields
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Paginated list of price tiers
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid pagination parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all price tiers
+      tags:
+      - Price Tiers
+    post:
+      consumes:
+      - application/json
+      description: Create a new price tier for the organizer
+      parameters:
+      - description: Price tier data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePriceTierRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Price tier created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new price tier
+      tags:
+      - Price Tiers
+  /price-tiers/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an existing price tier
+      parameters:
+      - description: Price Tier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Price tier deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid price tier ID or cannot delete default price tier
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Price tier not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Price tier is in use
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a price tier
+      tags:
+      - Price Tiers
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific price tier
+      parameters:
+      - description: Price Tier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: id,name,description,percentage_increase,status,is_default,effective_from,effective_to,min_tickets,max_tickets
+        description: Comma-separated list of fields to include in response
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Price tier details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid price tier ID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Price tier not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get a single price tier
+      tags:
+      - Price Tiers
+    put:
+      consumes:
+      - application/json
+      description: Update an existing price tier
+      parameters:
+      - description: Price Tier ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Price tier update data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePriceTierRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Price tier updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Price tier not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update a price tier
+      tags:
+      - Price Tiers
+  /price-tiers/organization:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all price tiers belonging to the authenticated user's
+        organization
+      parameters:
+      - default: id,name,percentage_increase,status,is_default
+        description: Comma-separated list of fields to include in response
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of price tiers
+          schema:
+            items:
+              $ref: '#/definitions/dto.GetPriceTierResponse'
+            type: array
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get price tiers for organizer
+      tags:
+      - Price Tiers
   /roles:
     get:
       consumes:
@@ -2919,6 +3387,227 @@ paths:
       summary: Ban a subscriber
       tags:
       - Subscriptions
+  /ticket-types:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new TicketType.
+      parameters:
+      - description: TicketType details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateTicketTypeInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: TicketType created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks create permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new TicketType
+      tags:
+      - TicketType Group
+  /ticket-types/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a specific ticket type (cannot delete default or in-use
+        ticket types)
+      parameters:
+      - description: Ticket Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ticket type deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid ticket type ID or cannot delete default ticket type
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks delete permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Ticket type not found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Ticket type is in use
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a ticket type
+      tags:
+      - TicketType Group
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific ticket type
+      parameters:
+      - description: Ticket Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: id,name,description,price_modifier,benefits,max_tickets_per_user,status,is_default,sales_start,sales_end,quantity_available,min_tickets_per_user
+        description: Comma-separated list of fields to include in response
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ticket type details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid ticket type ID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Ticket type not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get a single ticket type
+      tags:
+      - TicketType Group
+  /ticket-types/event/{event_id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all ticket types for a specific event
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: string
+      - default: id,name,price_modifier,status,is_default,sales_start,sales_end
+        description: Comma-separated list of fields to include in response
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of ticket types
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid event ID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get ticket types for an event
+      tags:
+      - TicketType Group
+  /ticket-types/organization:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all ticket types belonging to the user's organization
+      parameters:
+      - description: Comma-separated list of fields to include in response
+        example: name,description,price_modifier,status
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of ticket types
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read permission
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all ticket types for an organization
+      tags:
+      - TicketType Group
   /users/{identifier}:
     get:
       consumes:
@@ -3058,6 +3747,85 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update user email
+      tags:
+      - Users
+  /users/me/image:
+    delete:
+      description: Removes the profile image for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile image deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: No profile image to delete
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission to delete profile image
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error while deleting profile image
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a user's profile image
+      tags:
+      - Users
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a new profile image for the authenticated user
+      parameters:
+      - description: Image file to upload
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile image added successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid profile image request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission to modify profile image
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error while adding profile image
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Add or update a user's profile image
       tags:
       - Users
   /users/me/location:

@@ -1,37 +1,92 @@
 package tickets_controller
 
 import (
-	"strconv"
+	"ticket-zetu-api/modules/tickets/price_tires/dto"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func (c *PriceTierController) GetAllPriceTiers(ctx *fiber.Ctx) error {
+// UpdatePriceTier godoc
+// @Summary Update a price tier
+// @Description Update an existing price tier
+// @Tags Price Tiers
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Price Tier ID"
+// @Param input body dto.UpdatePriceTierRequest true "Price tier update data"
+// @Success 200 {object} map[string]interface{} "Price tier updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body"
+// @Failure 403 {object} map[string]interface{} "User lacks permission"
+// @Failure 404 {object} map[string]interface{} "Price tier not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /price-tiers/{id} [put]
+func (c *PriceTierController) UpdatePriceTier(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	fields := ctx.Query("fields", "id,name,percentage_increase,status,is_default")
-	page := ctx.Query("page", "1")    // Default to page 1
-	limit := ctx.Query("limit", "10") // Default to limit 10
+	id := ctx.Params("id")
 
-	// Validate page and limit
-	pageInt, err := strconv.Atoi(page)
-	if err != nil || pageInt <= 0 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid page parameter"), fiber.StatusBadRequest)
+	var input dto.UpdatePriceTierRequest
+	if err := ctx.BodyParser(&input); err != nil {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
 	}
 
-	limitInt, err := strconv.Atoi(limit)
-	if err != nil || limitInt <= 0 {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid limit parameter"), fiber.StatusBadRequest)
+	if err := c.validator.Struct(input); err != nil {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 	}
 
-	priceTiers, err := c.service.GetAllPriceTiers(userID, fields, pageInt, limitInt)
+	priceTier, err := c.service.UpdatePriceTier(userID, id, input)
 	if err != nil {
 		switch err.Error() {
-		case "user lacks read:price_tiers permission":
+		case "user lacks update:price_tiers permission":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
+		case "price tier not found":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
+		case "invalid price tier ID format":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 		default:
 			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 		}
 	}
 
-	return c.logHandler.LogSuccess(ctx, priceTiers, "All price tiers retrieved successfully", true)
+	return c.logHandler.LogSuccess(ctx, priceTier, "Price tier updated successfully", true)
+}
+
+// DeletePriceTier godoc
+// @Summary Delete a price tier
+// @Description Delete an existing price tier
+// @Tags Price Tiers
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Price Tier ID"
+// @Success 200 {object} map[string]interface{} "Price tier deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid price tier ID or cannot delete default price tier"
+// @Failure 403 {object} map[string]interface{} "User lacks permission"
+// @Failure 404 {object} map[string]interface{} "Price tier not found"
+// @Failure 409 {object} map[string]interface{} "Price tier is in use"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /price-tiers/{id} [delete]
+func (c *PriceTierController) DeletePriceTier(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("user_id").(string)
+	id := ctx.Params("id")
+
+	err := c.service.DeletePriceTier(userID, id)
+	if err != nil {
+		switch err.Error() {
+		case "user lacks delete:price_tiers permission":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
+		case "price tier not found":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
+		case "invalid price tier ID format":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		case "cannot delete default price tier":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		case "price tier is in use by events":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusConflict, err.Error()), fiber.StatusConflict)
+		default:
+			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
+		}
+	}
+
+	return c.logHandler.LogSuccess(ctx, nil, "Price tier deleted successfully", true)
 }

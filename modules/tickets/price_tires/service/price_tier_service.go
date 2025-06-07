@@ -6,38 +6,22 @@ import (
 	"ticket-zetu-api/modules/events/models/events"
 	organizers "ticket-zetu-api/modules/organizers/models"
 	"ticket-zetu-api/modules/tickets/models/tickets"
-	"ticket-zetu-api/modules/users/authorization/service"
+	"ticket-zetu-api/modules/tickets/price_tires/dto"
+	authorization_service "ticket-zetu-api/modules/users/authorization/service"
 	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-type PriceTierResponse struct {
-	ID                 string               `json:"id"`
-	OrganizerID        string               `json:"organizer_id"`
-	Name               string               `json:"name"`
-	Description        string               `json:"description"`
-	PercentageIncrease float64              `json:"percentage_increase"`
-	Status             string               `json:"status"`
-	IsDefault          bool                 `json:"is_default"`
-	EffectiveFrom      time.Time            `json:"effective_from"`
-	EffectiveTo        *time.Time           `json:"effective_to"`
-	MinTickets         int                  `json:"min_tickets"`
-	MaxTickets         *int                 `json:"max_tickets"`
-	CreatedAt          time.Time            `json:"created_at"`
-	UpdatedAt          time.Time            `json:"updated_at"`
-	Organizer          organizers.Organizer `json:"organizer,omitempty"`
-}
-
 type PriceTierService interface {
-	CreatePriceTier(userID, name, description string, percentageIncrease float64, status string, isDefault bool, effectiveFrom time.Time, effectiveTo *time.Time, minTickets int, maxTickets *int) (*tickets.PriceTier, error)
-	UpdatePriceTier(userID, id, name, description string, percentageIncrease float64, status string, isDefault *bool, effectiveFrom time.Time, effectiveTo *time.Time, minTickets int, maxTickets *int) (*tickets.PriceTier, error)
+	CreatePriceTier(userID string, input dto.CreatePriceTierRequest) (*tickets.PriceTier, error)
+	UpdatePriceTier(userID, id string, input dto.UpdatePriceTierRequest) (*tickets.PriceTier, error)
 	DeletePriceTier(userID, id string) error
-	GetPriceTier(userID, id, fields string) (*PriceTierResponse, error)
-	GetPriceTiers(userID, fields string) ([]PriceTierResponse, error) // Removed organizerID parameter
+	GetPriceTier(userID, id, fields string) (*dto.GetPriceTierResponse, error)
+	GetPriceTiers(userID, fields string) ([]dto.GetPriceTierResponse, error)
+	GetAllPriceTiers(userID, fields string, page, limit int) ([]dto.GetPriceTierResponse, error)
 	HasPermission(userID, permission string) (bool, error)
-	GetAllPriceTiers(userID, fields string, page, limit int) ([]PriceTierResponse, error)
 }
 
 type priceTierService struct {
@@ -63,6 +47,29 @@ func (s *priceTierService) HasPermission(userID, permission string) (bool, error
 	return hasPerm, nil
 }
 
+func (s *priceTierService) toDTO(pt *tickets.PriceTier) *dto.GetPriceTierResponse {
+	if pt == nil {
+		return nil
+	}
+
+	return &dto.GetPriceTierResponse{
+		ID:            pt.ID,
+		OrganizerID:   pt.OrganizerID,
+		Name:          pt.Name,
+		Description:   pt.Description,
+		BasePrice:     pt.BasePrice,
+		Status:        string(pt.Status),
+		IsDefault:     pt.IsDefault,
+		EffectiveFrom: pt.EffectiveFrom,
+		EffectiveTo:   pt.EffectiveTo,
+		MinTickets:    pt.MinTickets,
+		MaxTickets:    pt.MaxTickets,
+		Version:       pt.Version,
+		CreatedAt:     pt.CreatedAt,
+		UpdatedAt:     pt.UpdatedAt,
+	}
+}
+
 func (s *priceTierService) getUserOrganizer(userID string) (*organizers.Organizer, error) {
 	var organizer organizers.Organizer
 	if err := s.db.Where("created_by = ? AND deleted_at IS NULL", userID).First(&organizer).Error; err != nil {
@@ -79,6 +86,7 @@ var validPriceTierFields = map[string]bool{
 	"organizer_id":        true,
 	"name":                true,
 	"description":         true,
+	"base_price":          true,
 	"percentage_increase": true,
 	"status":              true,
 	"is_default":          true,
@@ -90,14 +98,13 @@ var validPriceTierFields = map[string]bool{
 	"updated_at":          true,
 }
 
-func (s *priceTierService) CreatePriceTier(userID, name, description string, percentageIncrease float64, status string, isDefault bool, effectiveFrom time.Time, effectiveTo *time.Time, minTickets int, maxTickets *int) (*tickets.PriceTier, error) {
-	// Check permissions
-	_, err := s.HasPermission(userID, "create:price_tiers")
-	// if err != nil || !hasPerm {
-	// 	return nil, errors.New("user lacks create:price_tiers permission")
-	// }
+func (s *priceTierService) CreatePriceTier(userID string, input dto.CreatePriceTierRequest) (*tickets.PriceTier, error) {
+	hasPerm, err := s.HasPermission(userID, "create:price_tiers")
+	if err != nil || !hasPerm {
+		return nil, errors.New("user lacks create:price_tiers permission")
+	}
 
-	// Get user's organizer automatically
+	// Get user's organizer
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {
 		return nil, err
@@ -108,26 +115,29 @@ func (s *priceTierService) CreatePriceTier(userID, name, description string, per
 		return nil, errors.New("organizer is not active")
 	}
 
-	// Set default status if not provided
-	if status == "" {
-		status = string(tickets.PriceTierActive)
+	// If this is being set as default, unset any existing default for this organizer
+	if input.IsDefault {
+		if err := s.db.Model(&tickets.PriceTier{}).
+			Where("organizer_id = ? AND is_default = ?", organizer.ID, true).
+			Update("is_default", false).Error; err != nil {
+			return nil, err
+		}
 	}
 
-	// Create new price tier
 	priceTier := &tickets.PriceTier{
-		ID:                 uuid.New().String(),
-		OrganizerID:        organizer.ID,
-		Name:               name,
-		Description:        description,
-		PercentageIncrease: percentageIncrease,
-		Status:             tickets.PriceTierStatus(status),
-		IsDefault:          isDefault,
-		EffectiveFrom:      effectiveFrom,
-		EffectiveTo:        effectiveTo,
-		MinTickets:         minTickets,
-		MaxTickets:         maxTickets,
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Now(),
+		ID:            uuid.New().String(),
+		OrganizerID:   organizer.ID,
+		Name:          input.Name,
+		Description:   input.Description,
+		BasePrice:     input.BasePrice,
+		Status:        tickets.PriceTierStatus("active"),
+		IsDefault:     input.IsDefault,
+		EffectiveFrom: input.EffectiveFrom,
+		EffectiveTo:   input.EffectiveTo,
+		MinTickets:    input.MinTickets,
+		MaxTickets:    input.MaxTickets,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	if err := s.db.Create(priceTier).Error; err != nil {
@@ -137,7 +147,7 @@ func (s *priceTierService) CreatePriceTier(userID, name, description string, per
 	return priceTier, nil
 }
 
-func (s *priceTierService) UpdatePriceTier(userID, id, name, description string, percentageIncrease float64, status string, isDefault *bool, effectiveFrom time.Time, effectiveTo *time.Time, minTickets int, maxTickets *int) (*tickets.PriceTier, error) {
+func (s *priceTierService) UpdatePriceTier(userID, id string, input dto.UpdatePriceTierRequest) (*tickets.PriceTier, error) {
 	hasPerm, err := s.HasPermission(userID, "update:price_tiers")
 	if err != nil || !hasPerm {
 		return nil, errors.New("user lacks update:price_tiers permission")
@@ -148,7 +158,7 @@ func (s *priceTierService) UpdatePriceTier(userID, id, name, description string,
 		return nil, errors.New("invalid price tier ID format")
 	}
 
-	// Get user's organizer automatically
+	// Get user's organizer
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {
 		return nil, err
@@ -162,34 +172,47 @@ func (s *priceTierService) UpdatePriceTier(userID, id, name, description string,
 		return nil, err
 	}
 
-	// Update fields
-	if name != "" {
-		priceTier.Name = name
-	}
-	if description != "" {
-		priceTier.Description = description
+	// If this is being set as default, unset any existing default for this organizer
+	if input.IsDefault != nil && *input.IsDefault {
+		if err := s.db.Model(&tickets.PriceTier{}).
+			Where("organizer_id = ? AND is_default = ? AND id != ?", organizer.ID, true, id).
+			Update("is_default", false).Error; err != nil {
+			return nil, err
+		}
 	}
 
-	if status != "" {
-		priceTier.Status = tickets.PriceTierStatus(status)
+	// Update fields
+	if input.Name != nil {
+		priceTier.Name = *input.Name
 	}
-	if isDefault != nil {
-		priceTier.IsDefault = *isDefault
+	if input.Description != nil {
+		priceTier.Description = *input.Description
 	}
-	if !effectiveFrom.IsZero() {
-		priceTier.EffectiveFrom = effectiveFrom
+	if input.BasePrice != nil {
+		priceTier.BasePrice = *input.BasePrice
 	}
-	if effectiveTo != nil {
-		priceTier.EffectiveTo = effectiveTo
+
+	if input.Status != nil {
+		priceTier.Status = tickets.PriceTierStatus(*input.Status)
 	}
-	if minTickets >= 0 {
-		priceTier.MinTickets = minTickets
+	if input.IsDefault != nil {
+		priceTier.IsDefault = *input.IsDefault
 	}
-	if maxTickets != nil {
-		priceTier.MaxTickets = maxTickets
+	if input.EffectiveFrom != nil {
+		priceTier.EffectiveFrom = *input.EffectiveFrom
+	}
+	if input.EffectiveTo != nil {
+		priceTier.EffectiveTo = input.EffectiveTo
+	}
+	if input.MinTickets != nil {
+		priceTier.MinTickets = *input.MinTickets
+	}
+	if input.MaxTickets != nil {
+		priceTier.MaxTickets = input.MaxTickets
 	}
 
 	priceTier.UpdatedAt = time.Now()
+	priceTier.Version++
 
 	if err := s.db.Save(&priceTier).Error; err != nil {
 		return nil, err
@@ -209,7 +232,7 @@ func (s *priceTierService) DeletePriceTier(userID, id string) error {
 		return errors.New("invalid price tier ID format")
 	}
 
-	// Get user's organizer automatically
+	// Get user's organizer
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {
 		return err
@@ -244,7 +267,7 @@ func (s *priceTierService) DeletePriceTier(userID, id string) error {
 	return nil
 }
 
-func (s *priceTierService) GetPriceTier(userID, id, fields string) (*PriceTierResponse, error) {
+func (s *priceTierService) GetPriceTier(userID, id, fields string) (*dto.GetPriceTierResponse, error) {
 	hasPerm, err := s.HasPermission(userID, "read:price_tiers")
 	if err != nil || !hasPerm {
 		return nil, errors.New("user lacks read:price_tiers permission")
@@ -255,15 +278,14 @@ func (s *priceTierService) GetPriceTier(userID, id, fields string) (*PriceTierRe
 		return nil, errors.New("invalid price tier ID format")
 	}
 
-	// Get user's organizer automatically
+	// Get user's organizer
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {
 		return nil, err
 	}
 
 	var priceTier tickets.PriceTier
-	query := s.db.Preload("Organizer").
-		Where("id = ? AND organizer_id = ?", id, organizer.ID)
+	query := s.db.Where("id = ? AND organizer_id = ?", id, organizer.ID)
 
 	if fields != "" {
 		selectedFields := []string{}
@@ -285,41 +307,23 @@ func (s *priceTierService) GetPriceTier(userID, id, fields string) (*PriceTierRe
 		return nil, err
 	}
 
-	response := &PriceTierResponse{
-		ID:                 priceTier.ID,
-		OrganizerID:        priceTier.OrganizerID,
-		Name:               priceTier.Name,
-		Description:        priceTier.Description,
-		PercentageIncrease: priceTier.PercentageIncrease,
-		Status:             string(priceTier.Status),
-		IsDefault:          priceTier.IsDefault,
-		EffectiveFrom:      priceTier.EffectiveFrom,
-		EffectiveTo:        priceTier.EffectiveTo,
-		MinTickets:         priceTier.MinTickets,
-		MaxTickets:         priceTier.MaxTickets,
-		CreatedAt:          priceTier.CreatedAt,
-		UpdatedAt:          priceTier.UpdatedAt,
-		Organizer:          priceTier.Organizer,
-	}
-
-	return response, nil
+	return s.toDTO(&priceTier), nil
 }
 
-func (s *priceTierService) GetPriceTiers(userID, fields string) ([]PriceTierResponse, error) {
-	hasPerm, err := s.HasPermission(userID, "read:price_tiers")
-	if err != nil || !hasPerm {
-		return nil, errors.New("user lacks read:price_tiers permission")
-	}
+func (s *priceTierService) GetPriceTiers(userID, fields string) ([]dto.GetPriceTierResponse, error) {
+	_, err := s.HasPermission(userID, "read:price_tiers")
+	// if err != nil || !hasPerm {
+	// 	return nil, errors.New("user lacks read:price_tiers permission")
+	// }
 
-	// Get user's organizer automatically
+	// Get user's organizer
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {
 		return nil, err
 	}
 
 	var priceTiers []tickets.PriceTier
-	query := s.db.Preload("Organizer").
-		Where("organizer_id = ?", organizer.ID)
+	query := s.db.Where("organizer_id = ?", organizer.ID)
 
 	if fields != "" {
 		selectedFields := []string{}
@@ -338,38 +342,25 @@ func (s *priceTierService) GetPriceTiers(userID, fields string) ([]PriceTierResp
 		return nil, err
 	}
 
-	responses := make([]PriceTierResponse, len(priceTiers))
-	for i, pt := range priceTiers {
-		responses[i] = PriceTierResponse{
-			ID:                 pt.ID,
-			OrganizerID:        pt.OrganizerID,
-			Name:               pt.Name,
-			Description:        pt.Description,
-			PercentageIncrease: pt.PercentageIncrease,
-			Status:             string(pt.Status),
-			IsDefault:          pt.IsDefault,
-			EffectiveFrom:      pt.EffectiveFrom,
-			EffectiveTo:        pt.EffectiveTo,
-			MinTickets:         pt.MinTickets,
-			MaxTickets:         pt.MaxTickets,
-			CreatedAt:          pt.CreatedAt,
-			UpdatedAt:          pt.UpdatedAt,
-			Organizer:          pt.Organizer,
+	responses := make([]dto.GetPriceTierResponse, 0, len(priceTiers))
+	for _, pt := range priceTiers {
+		resp := s.toDTO(&pt)
+		if resp != nil {
+			responses = append(responses, *resp)
 		}
 	}
 
 	return responses, nil
 }
 
-// GetAllPriceTiers returns all price tiers for all organizers, with pagination.
-func (s *priceTierService) GetAllPriceTiers(userID, fields string, page, limit int) ([]PriceTierResponse, error) {
-	hasPerm, err := s.HasPermission(userID, "read:price_tiers")
-	if err != nil || !hasPerm {
-		return nil, errors.New("user lacks read:price_tiers permission")
-	}
+func (s *priceTierService) GetAllPriceTiers(userID, fields string, page, limit int) ([]dto.GetPriceTierResponse, error) {
+	// hasPerm, err := s.HasPermission(userID, "read:price_tiers")
+	// if err != nil || !hasPerm {
+	// 	return nil, errors.New("user lacks read:price_tiers permission")
+	// }
 
 	var priceTiers []tickets.PriceTier
-	query := s.db.Preload("Organizer")
+	query := s.db
 
 	if fields != "" {
 		selectedFields := []string{}
@@ -397,23 +388,11 @@ func (s *priceTierService) GetAllPriceTiers(userID, fields string, page, limit i
 		return nil, err
 	}
 
-	responses := make([]PriceTierResponse, len(priceTiers))
-	for i, pt := range priceTiers {
-		responses[i] = PriceTierResponse{
-			ID:                 pt.ID,
-			OrganizerID:        pt.OrganizerID,
-			Name:               pt.Name,
-			Description:        pt.Description,
-			PercentageIncrease: pt.PercentageIncrease,
-			Status:             string(pt.Status),
-			IsDefault:          pt.IsDefault,
-			EffectiveFrom:      pt.EffectiveFrom,
-			EffectiveTo:        pt.EffectiveTo,
-			MinTickets:         pt.MinTickets,
-			MaxTickets:         pt.MaxTickets,
-			CreatedAt:          pt.CreatedAt,
-			UpdatedAt:          pt.UpdatedAt,
-			Organizer:          pt.Organizer,
+	responses := make([]dto.GetPriceTierResponse, 0, len(priceTiers))
+	for _, pt := range priceTiers {
+		resp := s.toDTO(&pt)
+		if resp != nil {
+			responses = append(responses, *resp)
 		}
 	}
 

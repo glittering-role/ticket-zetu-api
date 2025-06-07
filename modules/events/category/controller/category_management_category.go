@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// CreateCategory godoc
+// UpdateCategory godoc
 // @Summary Update Category
 // @Description Update category.
 // @Tags Category Group

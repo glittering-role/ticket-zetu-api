@@ -22,6 +22,7 @@ func SetupTicketTypeRoutes(router fiber.Router, db *gorm.DB, logHandler *handler
 
 	ticketTypeGroup := router.Group("/ticket-types", authMiddleware)
 	{
+		ticketTypeGroup.Get("/organization", ticketTypeController.GetAllTicketTypesForOrganization)
 		ticketTypeGroup.Get("/event/:event_id", ticketTypeController.GetTicketTypesForEvent)
 		ticketTypeGroup.Get("/:id", ticketTypeController.GetSingleTicketType)
 		ticketTypeGroup.Post("/", ticketTypeController.CreateTicketType)

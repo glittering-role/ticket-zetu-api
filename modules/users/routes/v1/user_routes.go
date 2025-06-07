@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"ticket-zetu-api/cloudinary"
 	"ticket-zetu-api/logs/handler"
 	"ticket-zetu-api/modules/users/members/account"
 	"ticket-zetu-api/modules/users/members/preference"
@@ -11,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func UserRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
+func UserRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, cloudinary *cloudinary.CloudinaryService) {
 	authMiddleware := middleware.IsAuthenticated(db)
 
 	userService := members_service.NewUserService(db)
@@ -19,6 +20,9 @@ func UserRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler
 
 	preferencesService := members_service.NewUserPreferencesService(db)
 	preferencesController := preference.NewUserPreferencesController(preferencesService, logHandler)
+
+	profileImageService := members_service.NewImageService(db, cloudinary)
+	profileImageController := account.NewImageController(profileImageService, logHandler)
 
 	userGroup := router.Group("/users", authMiddleware)
 	{
@@ -34,5 +38,11 @@ func UserRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler
 	{
 		userGroupPr.Get("/preferences", preferencesController.GetUserPreferences)
 		userGroupPr.Post("/preferences", preferencesController.UpdateUserPreferences)
+	}
+
+	userGroupAvt := router.Group("/users/me", authMiddleware)
+	{
+		userGroupAvt.Post("/image", profileImageController.UploadProfileImage)
+		userGroupAvt.Delete("/image", profileImageController.DeleteProfileImage)
 	}
 }
