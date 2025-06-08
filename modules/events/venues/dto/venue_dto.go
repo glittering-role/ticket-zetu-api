@@ -35,3 +35,17 @@ type CreateVenueDto struct {
 	Longitude   float64 `form:"longitude"`
 	Status      string  `form:"status" validate:"oneof=active inactive suspended"`
 }
+
+type UpdateVenueDto struct {
+	Name        string  `form:"name" validate:"required,min=2,max=255"`
+	Description string  `form:"description" validate:"max=1000"`
+	Address     string  `form:"address" validate:"required"`
+	City        string  `form:"city" validate:"required,min=2,max=100"`
+	State       string  `form:"state" validate:"max=100"`
+	Country     string  `form:"country" validate:"required,min=2,max=100"`
+	Capacity    int     `form:"capacity" validate:"gte=0"`
+	ContactInfo string  `form:"contact_info" validate:"max=255"`
+	Latitude    float64 `form:"latitude"`
+	Longitude   float64 `form:"longitude"`
+	Status      string  `form:"status" validate:"oneof=active inactive suspended"`
+}

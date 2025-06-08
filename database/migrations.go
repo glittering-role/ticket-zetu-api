@@ -29,6 +29,9 @@ import (
 
 	VenueImage "ticket-zetu-api/modules/events/models/events"
 
+	Notification "ticket-zetu-api/modules/notifications/models"
+	UserNotification "ticket-zetu-api/modules/notifications/models"
+
 	"gorm.io/gorm"
 )
 
@@ -69,6 +72,10 @@ func Migrate(db *gorm.DB) error {
 		&TicketType.TicketType{},
 		&DiscountCode.DiscountCode{},
 		&Ticket.Ticket{},
+
+		//Notification
+		&Notification.Notification{},
+		&UserNotification.UserNotification{},
 	}
 
 	db = db.Debug()

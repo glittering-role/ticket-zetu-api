@@ -75,6 +75,84 @@ definitions:
     required:
     - name
     type: object
+  dto.CreateEventInput:
+    properties:
+      available_seats:
+        example: 480
+        minimum: 0
+        type: integer
+      description:
+        example: An open-air festival with live performances, food, and fun.
+        type: string
+      end_time:
+        example: "2025-08-15T23:00:00Z"
+        type: string
+      event_type:
+        enum:
+        - online
+        - offline
+        - hybrid
+        example: offline
+        type: string
+      has_tickets:
+        example: true
+        type: boolean
+      is_featured:
+        example: true
+        type: boolean
+      is_free:
+        example: false
+        type: boolean
+      language:
+        example: en
+        type: string
+      min_age:
+        example: 18
+        type: integer
+      start_time:
+        example: "2025-08-15T18:00:00Z"
+        type: string
+      status:
+        description: optional in both
+        example: active
+        type: string
+      subcategory_id:
+        example: c7e1249f-fc03-eb9d-ed90-8c236bd1996d
+        type: string
+      tags:
+        description: match to slice instead of comma-separated string
+        example:
+        - '["music"'
+        - ' "festival"'
+        - ' "live"]'
+        items:
+          type: string
+        type: array
+      timezone:
+        description: No need to validate oneof if internal doesn't enforce it
+        example: Africa/Nairobi
+        type: string
+      title:
+        example: Summer Music Festival
+        maxLength: 100
+        minLength: 3
+        type: string
+      total_seats:
+        example: 500
+        minimum: 1
+        type: integer
+      venue_id:
+        example: a1d3c4e6-89ab-44ce-8e65-123456789abc
+        type: string
+    required:
+    - end_time
+    - event_type
+    - start_time
+    - subcategory_id
+    - title
+    - total_seats
+    - venue_id
+    type: object
   dto.CreatePermissionDto:
     properties:
       description:
@@ -310,6 +388,45 @@ definitions:
         type: string
     required:
     - email
+    type: object
+  dto.UpdateEvent:
+    properties:
+      available_seats:
+        type: integer
+      description:
+        type: string
+      end_time:
+        type: string
+      event_type:
+        type: string
+      has_tickets:
+        type: boolean
+      is_featured:
+        type: boolean
+      is_free:
+        type: boolean
+      language:
+        type: string
+      min_age:
+        type: integer
+      start_time:
+        type: string
+      status:
+        type: string
+      subcategory_id:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      timezone:
+        type: string
+      title:
+        type: string
+      total_seats:
+        type: integer
+      venue_id:
+        type: string
     type: object
   dto.UpdatePermissionDto:
     properties:
@@ -598,39 +715,50 @@ definitions:
         example: johndoe
         type: string
     type: object
-  organizer_dto.CreateOrganizerRequest:
+  organizer_dto.CreateOrganizerData:
     properties:
       balance:
+        example: 10000
         minimum: 0
         type: number
       bank_account_info:
+        example: 'Bank: Equity Bank, Acc No: 1234567890'
         type: string
       commission_rate:
+        example: 15.5
         maximum: 100
         minimum: 0
         type: number
       company_name:
+        example: Event Masters Kenya
         maxLength: 255
         type: string
       contact_person:
+        example: Jane Doe
         maxLength: 255
         minLength: 2
         type: string
       email:
+        example: jane.doe@eventmasters.com
         type: string
       image_url:
+        example: https://example.com/images/organizer-logo.png
         maxLength: 255
         type: string
       name:
+        example: Event Masters Ltd
         maxLength: 255
         minLength: 2
         type: string
       notes:
+        example: Preferred partner with high ticket volumes.
         type: string
       phone:
+        example: "+254712345678"
         maxLength: 50
         type: string
       tax_id:
+        example: KRA12345678A
         maxLength: 100
         type: string
     required:
@@ -1332,6 +1460,343 @@ paths:
       summary: Add an image to a category or subcategory
       tags:
       - Category Images
+  /events:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of events for the authenticated organizer, with
+        optional field selection.
+      parameters:
+      - description: Comma-separated list of fields to include (e.g., id,title,subcategory_id,description,venue_id,total_seats,available_seats,start_time,end_time,price_tier_id,base_price,is_featured,status)
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Events retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read:events permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Retrieve all events for an organizer
+      tags:
+      - Event Group
+    post:
+      consumes:
+      - application/json
+      description: Creates a new event with its details, validates organizer status,
+        subcategory, venue, and handles image associations.
+      parameters:
+      - description: Event details including venue, category, and optional images
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateEventInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission or organizer is inactive, flagged, or
+            banned
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Subcategory or venue not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new Event
+      tags:
+      - Event Group
+  /events/{event_id}/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Adds a single image to an event, with an optional primary flag.
+        If set as primary, demotes existing primary image. Users can upload up to
+        5 images per event, one at a time in separate requests.
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: string
+      - description: Image file (max 10MB, JPEG, PNG, GIF, WEBP, MP4, MPEG, WEBM)
+        in: formData
+        name: image
+        required: true
+        type: file
+      - description: 'Set as primary image (default: false)'
+        in: formData
+        name: is_primary
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Image added successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid form data, file type, file size, ID format, or exceeded
+            image limit
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission or organizer is inactive
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event not found or not owned by organizer
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Add an image to an event
+      tags:
+      - Event Group
+  /events/{event_id}/images/{image_id}:
+    delete:
+      consumes:
+      - multipart/form-data
+      description: Deletes an event image from both database (soft delete) and cloud
+        storage using event and image IDs.
+      parameters:
+      - description: Event ID
+        in: path
+        name: event_id
+        required: true
+        type: string
+      - description: Image ID
+        in: path
+        name: image_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event image deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event or image not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete an event image
+      tags:
+      - Event Group
+  /events/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes an event and its associated resources
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Event deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid event ID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete an event
+      tags:
+      - Event Group
+    get:
+      consumes:
+      - application/json
+      description: Retrieves details of a specific event by ID for the authenticated
+        organizer, with optional field selection.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comma-separated list of fields to include (e.g., id,title,subcategory_id,description,venue_id,total_seats,available_seats,start_time,end_time,price_tier_id,base_price,is_featured,status)
+        in: query
+        name: fields
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid event ID format or invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks read:events permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event or organizer not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Retrieve a single event for an organizer
+      tags:
+      - Event Group
+    put:
+      consumes:
+      - application/json
+      description: Updates an event with the provided details
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Event update details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request payload
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User lacks permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Event, venue or subcategory not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update an existing event
+      tags:
+      - Event Group
   /logs:
     delete:
       consumes:
@@ -1573,7 +2038,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/organizer_dto.CreateOrganizerRequest'
+          $ref: '#/definitions/organizer_dto.CreateOrganizerData'
       produces:
       - application/json
       responses:
@@ -3644,6 +4109,62 @@ paths:
       summary: Get user profile
       tags:
       - Users
+  /users/{user_id}/notifications:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves notifications for the logged-in user, with optional filters
+        for unread only or module.
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: Filter for unread notifications only
+        in: query
+        name: unread_only
+        type: boolean
+      - description: Filter by module (e.g., payments, events)
+        in: query
+        name: module
+        type: string
+      - description: 'Limit (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Offset (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notifications retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user ID or query parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User not authorized to view notifications
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user notifications
+      tags:
+      - Notification Group
   /users/me:
     get:
       consumes:

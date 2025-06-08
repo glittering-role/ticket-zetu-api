@@ -1,98 +1,87 @@
 package controller
 
 import (
-	"time"
+	"strings"
+	"ticket-zetu-api/modules/events/events/dto"
 
 	"github.com/gofiber/fiber/v2"
 )
 
+// UpdateEvent godoc
+// @Summary Update an existing event
+// @Description Updates an event with the provided details
+// @Tags Event Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Event ID"
+// @Param input body dto.UpdateEvent true "Event update details"
+// @Success 200 {object} map[string]interface{} "Event updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request payload"
+// @Failure 403 {object} map[string]interface{} "User lacks permission"
+// @Failure 404 {object} map[string]interface{} "Event, venue or subcategory not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /events/{id} [put]
 func (c *EventController) UpdateEvent(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
 
-	var input struct {
-		Title         string    `form:"title" validate:"required,min=2,max=255"`
-		CategoryID    string    `form:"category_id" validate:"required,uuid"`
-		SubcategoryID string    `form:"subcategory_id" validate:"required,uuid"`
-		Description   string    `form:"description" validate:"max=1000"`
-		VenueID       string    `form:"venue_id" validate:"required,uuid"`
-		TotalSeats    int       `form:"total_seats" validate:"required,gt=0"`
-		BasePrice     float64   `form:"base_price" validate:"required,gte=0"`
-		StartTime     time.Time `form:"start_time" validate:"required"`
-		EndTime       time.Time `form:"end_time" validate:"required,gtfield=StartTime"`
-		PriceTierID   string    `form:"price_tier_id" validate:"required,uuid"`
-		Status        string    `form:"status" validate:"required,oneof=active inactive"`
-		IsFeatured    bool      `form:"is_featured"`
-	}
-
+	// Parse request body into dto.UpdateEvent
+	var input dto.UpdateEvent
 	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
 	}
 
+	// Parse and validate tags from form data
+	tags := ctx.FormValue("tags")
+	if tags != "" {
+		*input.Tags = strings.Split(strings.TrimSpace(tags), ",")
+		for i, tag := range *input.Tags {
+			(*input.Tags)[i] = strings.TrimSpace(tag)
+			if (*input.Tags)[i] == "" {
+				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid tag format: empty tags are not allowed"), fiber.StatusBadRequest)
+			}
+		}
+	}
+
+	// Validate input
 	if err := c.validator.Struct(input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 	}
 
-	var imageURLs []string
-	form, err := ctx.MultipartForm()
-	if err == nil {
-		files := form.File["images"]
-		for _, file := range files {
-			if file.Size > 10*1024*1024 {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "File size exceeds 10MB limit"), fiber.StatusBadRequest)
-			}
-			if !isValidFileType(file.Header.Get("Content-Type")) {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid file type. Only images are allowed"), fiber.StatusBadRequest)
-			}
-
-			f, err := file.Open()
-			if err != nil {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, "Failed to open file"), fiber.StatusInternalServerError)
-			}
-			defer f.Close()
-
-			url, err := c.cloudinary.UploadFile(ctx.Context(), f, "event_images")
-			if err != nil {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, "Failed to upload file to Cloudinary"), fiber.StatusInternalServerError)
-			}
-			imageURLs = append(imageURLs, url)
-		}
-	}
-
-	event, err := c.service.UpdateEvent(
-		userID,
-		id,
-		input.Title,
-		input.Description,
-		input.VenueID,
-		input.CategoryID,
-		input.TotalSeats,
-		input.BasePrice,
-		input.StartTime,
-		input.EndTime,
-		input.IsFeatured,
-		input.Status,
-		imageURLs,
-	)
+	event, err := c.service.UpdateEvent(input, userID, id)
 	if err != nil {
 		switch err.Error() {
-		case "userID lacks update:events permission":
+		case "user lacks update:events permission":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)
-		case "event not found":
+		case "event not found or not owned by organizer":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
-		case "organizer not found":
+		case "organizer not found", "venue not found", "subcategory not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
-		case "venue not found":
-			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
-		case "price tier not found":
+		case "invalid event ID format", "invalid subcategory ID format", "invalid venue ID format":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 		default:
-			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, err.Error()), fiber.StatusInternalServerError)
 		}
 	}
+
 	return c.logHandler.LogSuccess(ctx, event, "Event updated successfully", true)
 }
 
+// DeleteEvent godoc
+// @Summary Delete an event
+// @Description Deletes an event and its associated resources
+// @Tags Event Group
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path string true "Event ID"
+// @Success 204 {object} map[string]interface{} "Event deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid event ID"
+// @Failure 403 {object} map[string]interface{} "User lacks permission"
+// @Failure 404 {object} map[string]interface{} "Event not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /events/{id} [delete]
 func (c *EventController) DeleteEvent(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")

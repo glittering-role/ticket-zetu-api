@@ -12,7 +12,7 @@ import (
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param input body organizer_dto.CreateOrganizerRequest true "Organizer details"
+// @Param input body organizer_dto.CreateOrganizerData true "Organizer details"
 // @Success 200 {object} map[string]interface{} "Organizer created successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body"
 // @Failure 403 {object} map[string]interface{} "User lacks create permission"

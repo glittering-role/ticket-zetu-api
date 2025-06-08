@@ -1,46 +1,45 @@
 package service
 
 import (
+	"errors"
 	"ticket-zetu-api/modules/events/models/events"
-
-	"time"
+	venue_dto "ticket-zetu-api/modules/events/venues/dto"
 )
 
-func (s *venueService) CreateVenue(userID, name, description, address, city, state, country string, capacity int, contactInfo string, latitude, longitude float64) (*events.Venue, error) {
-	_, err := s.HasPermission(userID, "create:venues")
+func (s *venueService) CreateVenue(userID string, dto venue_dto.CreateVenueDto) (*venue_dto.CreateVenueDto, error) {
+	// Check permissions
+	hasPerm, err := s.HasPermission(userID, "create:venues")
 	if err != nil {
 		return nil, err
 	}
-	// if !hasPerm {
-	// 	return nil, errors.New("user lacks create:venues permission")
-	// }
+	if !hasPerm {
+		return nil, errors.New("user lacks create:venues permission")
+	}
 
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Create the venue
 	venue := events.Venue{
-		Name:        name,
-		Description: description,
-		Address:     address,
-		City:        city,
-		State:       state,
-		Country:     country,
-		Capacity:    capacity,
-		ContactInfo: contactInfo,
-		Latitude:    latitude,
-		Longitude:   longitude,
 		OrganizerID: organizer.ID,
-		Status:      "active",
-		Version:     1,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		Name:        dto.Name,
+		Description: dto.Description,
+		Address:     dto.Address,
+		City:        dto.City,
+		State:       dto.State,
+		Country:     dto.Country,
+		Capacity:    dto.Capacity,
+		ContactInfo: dto.ContactInfo,
+		Latitude:    dto.Latitude,
+		Longitude:   dto.Longitude,
+		Status:      dto.Status,
 	}
 
 	if err := s.db.Create(&venue).Error; err != nil {
 		return nil, err
 	}
 
-	return &venue, nil
+	return &dto, nil
 }

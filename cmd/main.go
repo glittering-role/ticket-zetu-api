@@ -26,6 +26,8 @@ import (
 	roles "ticket-zetu-api/modules/users/routes/v1"
 	users "ticket-zetu-api/modules/users/routes/v1"
 
+	notifications "ticket-zetu-api/modules/notifications/routes/v1"
+
 	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -106,6 +108,7 @@ func main() {
 	events.SetupEventsRoutes(api, database.DB, logHandler, cloudinaryService)
 	price_tier.SetupPriceTierRoutes(api, database.DB, logHandler)
 	ticket_type.SetupTicketTypeRoutes(api, database.DB, logHandler)
+	notifications.SetupNotificationRoutes(api, database.DB, logHandler)
 
 	// Graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)

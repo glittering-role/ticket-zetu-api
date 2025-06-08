@@ -54,19 +54,24 @@ func (c *VenueController) CreateVenue(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Description must be 1000 characters or less"), fiber.StatusBadRequest)
 	}
 
+	createVenue := venue_dto.CreateVenueDto{
+		Name:        input.Name,
+		Description: input.Description,
+		Address:     input.Address,
+		City:        input.City,
+		State:       input.State,
+		Country:     input.Country,
+		Capacity:    input.Capacity,
+		ContactInfo: input.ContactInfo,
+		Latitude:    input.Latitude,
+		Longitude:   input.Longitude,
+	}
+
 	_, err := c.service.CreateVenue(
 		userID,
-		input.Name,
-		input.Description,
-		input.Address,
-		input.City,
-		input.State,
-		input.Country,
-		input.Capacity,
-		input.ContactInfo,
-		input.Latitude,
-		input.Longitude,
+		createVenue,
 	)
+
 	if err != nil {
 		if err.Error() == "user lacks create:venues permission" {
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, err.Error()), fiber.StatusForbidden)

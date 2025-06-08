@@ -3,16 +3,16 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"ticket-zetu-api/modules/events/models/events"
-
-	"time"
+	venue_dto "ticket-zetu-api/modules/events/venues/dto"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-func (s *venueService) UpdateVenue(userID, id, name, description, address, city, state, country string, capacity int, contactInfo string, latitude, longitude float64, status string, imageURLs []string) (*events.Venue, error) {
+func (s *venueService) UpdateVenue(userID, id string, dto venue_dto.UpdateVenueDto) (*venue_dto.UpdateVenueDto, error) {
 	hasPerm, err := s.HasPermission(userID, "update:venues")
 	if err != nil {
 		return nil, err
@@ -38,17 +38,18 @@ func (s *venueService) UpdateVenue(userID, id, name, description, address, city,
 		return nil, err
 	}
 
-	venue.Name = name
-	venue.Description = description
-	venue.Address = address
-	venue.City = city
-	venue.State = state
-	venue.Country = country
-	venue.Capacity = capacity
-	venue.ContactInfo = contactInfo
-	venue.Latitude = latitude
-	venue.Longitude = longitude
-	venue.Status = status
+	// Update venue fields from DTO
+	venue.Name = dto.Name
+	venue.Description = dto.Description
+	venue.Address = dto.Address
+	venue.City = dto.City
+	venue.State = dto.State
+	venue.Country = dto.Country
+	venue.Capacity = dto.Capacity
+	venue.ContactInfo = dto.ContactInfo
+	venue.Latitude = dto.Latitude
+	venue.Longitude = dto.Longitude
+	venue.Status = dto.Status
 	venue.Version++
 	venue.UpdatedAt = time.Now()
 
@@ -56,33 +57,8 @@ func (s *venueService) UpdateVenue(userID, id, name, description, address, city,
 		return nil, err
 	}
 
-	if len(imageURLs) > 0 {
-		var existingImages []events.VenueImage
-		if err := s.db.Where("venue_id = ? AND deleted_at IS NULL", venue.ID).Find(&existingImages).Error; err != nil {
-			return nil, err
-		}
-		for _, img := range existingImages {
-			if err := s.cloudinary.DeleteFile(context.Background(), img.ImageURL); err != nil {
-				return nil, err
-			}
-		}
-		if err := s.db.Where("venue_id = ?", venue.ID).Delete(&events.VenueImage{}).Error; err != nil {
-			return nil, err
-		}
-		for i, url := range imageURLs {
-			venueImage := events.VenueImage{
-				VenueID:   venue.ID,
-				ImageURL:  url,
-				IsPrimary: i == 0,
-				CreatedAt: time.Now(),
-			}
-			if err := s.db.Create(&venueImage).Error; err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return &venue, nil
+	// Return the DTO with updated values
+	return &dto, nil
 }
 
 func (s *venueService) DeleteVenue(userID, id string) error {
@@ -125,7 +101,9 @@ func (s *venueService) DeleteVenue(userID, id string) error {
 		}
 	}
 
-	if err := s.db.Delete(&venue).Error; err != nil {
+	// Soft delete the venue
+	venue.DeletedAt = gorm.DeletedAt{Time: time.Now(), Valid: true}
+	if err := s.db.Save(&venue).Error; err != nil {
 		return err
 	}
 

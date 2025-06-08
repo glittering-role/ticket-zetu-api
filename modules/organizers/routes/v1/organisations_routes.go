@@ -3,6 +3,7 @@ package routes
 import (
 	"ticket-zetu-api/cloudinary"
 	"ticket-zetu-api/logs/handler"
+	notification_service "ticket-zetu-api/modules/notifications/service"
 	organizers "ticket-zetu-api/modules/organizers/controllers"
 	organizers_services "ticket-zetu-api/modules/organizers/services"
 	"ticket-zetu-api/modules/users/authorization/service"
@@ -25,7 +26,8 @@ func OrganizerRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHa
 	organizationImageController := organizers.NewOrganizationImageController(organizationImageService, logHandler)
 
 	// Subscription Service and Controller
-	subscriptionService := organizers_services.NewSubscriptionService(db, authService)
+	notificationService := notification_service.NewNotificationService(db, authService)
+	subscriptionService := organizers_services.NewSubscriptionService(db, authService, notificationService)
 	subscriptionController := organizers.NewSubscriptionController(subscriptionService, logHandler)
 
 	organizerGroup := router.Group("/organizers", authMiddleware)

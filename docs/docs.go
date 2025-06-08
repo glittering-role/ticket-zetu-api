@@ -886,6 +886,498 @@ const docTemplate = `{
                 }
             }
         },
+        "/events": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves a list of events for the authenticated organizer, with optional field selection.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Event Group"
+                ],
+                "summary": "Retrieve all events for an organizer",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of fields to include (e.g., id,title,subcategory_id,description,venue_id,total_seats,available_seats,start_time,end_time,price_tier_id,base_price,is_featured,status)",
+                        "name": "fields",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Events retrieved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "User lacks read:events permission",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Organizer not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates a new event with its details, validates organizer status, subcategory, venue, and handles image associations.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Event Group"
+                ],
+                "summary": "Create a new Event",
+                "parameters": [
+                    {
+                        "description": "Event details including venue, category, and optional images",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateEventInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "User lacks permission or organizer is inactive, flagged, or banned",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Subcategory or venue not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{event_id}/images": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Adds a single image to an event, with an optional primary flag. If set as primary, demotes existing primary image. Users can upload up to 5 images per event, one at a time in separate requests.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Event Group"
+                ],
+                "summary": "Add an image to an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Image file (max 10MB, JPEG, PNG, GIF, WEBP, MP4, MPEG, WEBM)",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Set as primary image (default: false)",
+                        "name": "is_primary",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Image added successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid form data, file type, file size, ID format, or exceeded image limit",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "User lacks permission or organizer is inactive",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Event not found or not owned by organizer",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{event_id}/images/{image_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deletes an event image from both database (soft delete) and cloud storage using event and image IDs.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Event Group"
+                ],
+                "summary": "Delete an event image",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Image ID",
+                        "name": "image_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event image deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "User lacks permission",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Event or image not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves details of a specific event by ID for the authenticated organizer, with optional field selection.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Event Group"
+                ],
+                "summary": "Retrieve a single event for an organizer",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated list of fields to include (e.g., id,title,subcategory_id,description,venue_id,total_seats,available_seats,start_time,end_time,price_tier_id,base_price,is_featured,status)",
+                        "name": "fields",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event retrieved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid event ID format or invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "User lacks read:events permission",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Event or organizer not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Updates an event with the provided details",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Event Group"
+                ],
+                "summary": "Update an existing event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Event update details",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateEvent"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request payload",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "User lacks permission",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Event, venue or subcategory not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deletes an event and its associated resources",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Event Group"
+                ],
+                "summary": "Delete an event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Event deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid event ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "User lacks permission",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Event not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/logs": {
             "get": {
                 "description": "Retrieve logs with optional filters",
@@ -1253,7 +1745,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/organizer_dto.CreateOrganizerRequest"
+                            "$ref": "#/definitions/organizer_dto.CreateOrganizerData"
                         }
                     }
                 ],
@@ -4854,6 +5346,89 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/{user_id}/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves notifications for the logged-in user, with optional filters for unread only or module.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Notification Group"
+                ],
+                "summary": "Get user notifications",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter for unread notifications only",
+                        "name": "unread_only",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by module (e.g., payments, events)",
+                        "name": "module",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit (default: 10)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset (default: 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notifications retrieved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID or query parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "User not authorized to view notifications",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/venues": {
             "get": {
                 "security": [
@@ -5504,6 +6079,107 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreateEventInput": {
+            "type": "object",
+            "required": [
+                "end_time",
+                "event_type",
+                "start_time",
+                "subcategory_id",
+                "title",
+                "total_seats",
+                "venue_id"
+            ],
+            "properties": {
+                "available_seats": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 480
+                },
+                "description": {
+                    "type": "string",
+                    "example": "An open-air festival with live performances, food, and fun."
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "2025-08-15T23:00:00Z"
+                },
+                "event_type": {
+                    "type": "string",
+                    "enum": [
+                        "online",
+                        "offline",
+                        "hybrid"
+                    ],
+                    "example": "offline"
+                },
+                "has_tickets": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "is_featured": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "is_free": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "language": {
+                    "type": "string",
+                    "example": "en"
+                },
+                "min_age": {
+                    "type": "integer",
+                    "example": 18
+                },
+                "start_time": {
+                    "type": "string",
+                    "example": "2025-08-15T18:00:00Z"
+                },
+                "status": {
+                    "description": "optional in both",
+                    "type": "string",
+                    "example": "active"
+                },
+                "subcategory_id": {
+                    "type": "string",
+                    "example": "c7e1249f-fc03-eb9d-ed90-8c236bd1996d"
+                },
+                "tags": {
+                    "description": "match to slice instead of comma-separated string",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"music\"",
+                        " \"festival\"",
+                        " \"live\"]"
+                    ]
+                },
+                "timezone": {
+                    "description": "No need to validate oneof if internal doesn't enforce it",
+                    "type": "string",
+                    "example": "Africa/Nairobi"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 3,
+                    "example": "Summer Music Festival"
+                },
+                "total_seats": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 500
+                },
+                "venue_id": {
+                    "type": "string",
+                    "example": "a1d3c4e6-89ab-44ce-8e65-123456789abc"
+                }
+            }
+        },
         "dto.CreatePermissionDto": {
             "type": "object",
             "required": [
@@ -5839,6 +6515,65 @@ const docTemplate = `{
                 "email": {
                     "type": "string",
                     "maxLength": 255
+                }
+            }
+        },
+        "dto.UpdateEvent": {
+            "type": "object",
+            "properties": {
+                "available_seats": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string"
+                },
+                "event_type": {
+                    "type": "string"
+                },
+                "has_tickets": {
+                    "type": "boolean"
+                },
+                "is_featured": {
+                    "type": "boolean"
+                },
+                "is_free": {
+                    "type": "boolean"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "min_age": {
+                    "type": "integer"
+                },
+                "start_time": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subcategory_id": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "timezone": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "total_seats": {
+                    "type": "integer"
+                },
+                "venue_id": {
+                    "type": "string"
                 }
             }
         },
@@ -6249,7 +6984,7 @@ const docTemplate = `{
                 }
             }
         },
-        "organizer_dto.CreateOrganizerRequest": {
+        "organizer_dto.CreateOrganizerData": {
             "type": "object",
             "required": [
                 "contact_person",
@@ -6259,47 +6994,58 @@ const docTemplate = `{
             "properties": {
                 "balance": {
                     "type": "number",
-                    "minimum": 0
+                    "minimum": 0,
+                    "example": 10000
                 },
                 "bank_account_info": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Bank: Equity Bank, Acc No: 1234567890"
                 },
                 "commission_rate": {
                     "type": "number",
                     "maximum": 100,
-                    "minimum": 0
+                    "minimum": 0,
+                    "example": 15.5
                 },
                 "company_name": {
                     "type": "string",
-                    "maxLength": 255
+                    "maxLength": 255,
+                    "example": "Event Masters Kenya"
                 },
                 "contact_person": {
                     "type": "string",
                     "maxLength": 255,
-                    "minLength": 2
+                    "minLength": 2,
+                    "example": "Jane Doe"
                 },
                 "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "jane.doe@eventmasters.com"
                 },
                 "image_url": {
                     "type": "string",
-                    "maxLength": 255
+                    "maxLength": 255,
+                    "example": "https://example.com/images/organizer-logo.png"
                 },
                 "name": {
                     "type": "string",
                     "maxLength": 255,
-                    "minLength": 2
+                    "minLength": 2,
+                    "example": "Event Masters Ltd"
                 },
                 "notes": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Preferred partner with high ticket volumes."
                 },
                 "phone": {
                     "type": "string",
-                    "maxLength": 50
+                    "maxLength": 50,
+                    "example": "+254712345678"
                 },
                 "tax_id": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "example": "KRA12345678A"
                 }
             }
         },

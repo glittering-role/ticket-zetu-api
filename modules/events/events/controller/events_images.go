@@ -4,9 +4,25 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// AddEventImage godoc
+// @Summary Add an image to an event
+// @Description Adds a single image to an event, with an optional primary flag. If set as primary, demotes existing primary image. Users can upload up to 5 images per event, one at a time in separate requests.
+// @Tags Event Group
+// @Accept multipart/form-data
+// @Produce json
+// @Security ApiKeyAuth
+// @Param event_id path string true "Event ID"
+// @Param image formData file true "Image file (max 10MB, JPEG, PNG, GIF, WEBP, MP4, MPEG, WEBM)"
+// @Param is_primary formData boolean false "Set as primary image (default: false)"
+// @Success 200 {object} map[string]interface{} "Image added successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid form data, file type, file size, ID format, or exceeded image limit"
+// @Failure 403 {object} map[string]interface{} "User lacks permission or organizer is inactive"
+// @Failure 404 {object} map[string]interface{} "Event not found or not owned by organizer"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /events/{event_id}/images [post]
 func (c *EventController) AddEventImage(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	eventID := ctx.Params("id")
+	eventID := ctx.Params("event_id")
 
 	form, err := ctx.MultipartForm()
 	if err != nil {
@@ -23,7 +39,7 @@ func (c *EventController) AddEventImage(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "File size exceeds 10MB limit"), fiber.StatusBadRequest)
 	}
 	if !isValidFileType(file.Header.Get("Content-Type")) {
-		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid file type. Only images are allowed"), fiber.StatusBadRequest)
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid file type. Only images and videos are allowed"), fiber.StatusBadRequest)
 	}
 
 	f, err := file.Open()
@@ -48,13 +64,32 @@ func (c *EventController) AddEventImage(ctx *fiber.Ctx) error {
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
 		case "organizer not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		case "maximum 5 images allowed per event":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		case "invalid event ID format":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 		default:
-			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, err.Error()), fiber.StatusInternalServerError)
 		}
 	}
 	return c.logHandler.LogSuccess(ctx, image, "Event image added successfully", true)
 }
 
+// DeleteEventImage godoc
+// @Summary Delete an event image
+// @Description Deletes an event image from both database (soft delete) and cloud storage using event and image IDs.
+// @Tags Event Group
+// @Accept multipart/form-data
+// @Produce json
+// @Security ApiKeyAuth
+// @Param event_id path string true "Event ID"
+// @Param image_id path string true "Image ID"
+// @Success 200 {object} map[string]interface{} "Event image deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid ID format"
+// @Failure 403 {object} map[string]interface{} "User lacks permission"
+// @Failure 404 {object} map[string]interface{} "Event or image not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /events/{event_id}/images/{image_id} [delete]
 func (c *EventController) DeleteEventImage(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	eventID := ctx.Params("event_id")
@@ -71,8 +106,10 @@ func (c *EventController) DeleteEventImage(ctx *fiber.Ctx) error {
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusNotFound, err.Error()), fiber.StatusNotFound)
 		case "organizer not found":
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		case "invalid event ID format", "invalid image ID format":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 		default:
-			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, err.Error()), fiber.StatusInternalServerError)
 		}
 	}
 	return c.logHandler.LogSuccess(ctx, nil, "Event image deleted successfully", true)

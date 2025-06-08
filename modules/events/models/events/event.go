@@ -3,7 +3,6 @@ package events
 import (
 	"errors"
 	"ticket-zetu-api/modules/events/models/categories"
-
 	"time"
 
 	"github.com/google/uuid"
@@ -17,37 +16,54 @@ const (
 	EventInactive EventStatus = "inactive"
 )
 
-type Event struct {
-	ID             string                 `gorm:"type:char(36);primaryKey" json:"id"`
-	Title          string                 `gorm:"size:255;not null;index" json:"title"`
-	SubcategoryID  string                 `gorm:"not null;index" json:"subcategory_id"`
-	Subcategory    categories.Subcategory `gorm:"foreignKey:SubcategoryID"`
-	Description    string                 `gorm:"type:text" json:"description"`
-	VenueID        string                 `gorm:"type:char(36);index" json:"venue_id"`
-	TotalSeats     int                    `gorm:"not null" json:"total_seats"`
-	AvailableSeats int                    `gorm:"not null" json:"available_seats"`
-	StartTime      time.Time              `gorm:"not null;index" json:"start_time"`
-	EndTime        time.Time              `gorm:"not null" json:"end_time"`
-	OrganizerID    string                 `gorm:"type:char(36);not null;index" json:"-"`
-	BasePrice      float64                `gorm:"type:numeric(10,2);not null;check:base_price >= 0" json:"base_price"`
-	IsFeatured     bool                   `gorm:"default:false;index" json:"is_featured"`
-	Status         EventStatus            `gorm:"size:20;not null;default:'active';index" json:"status"`
-	CreatedAt      time.Time              `gorm:"autoCreateTime" json:"-"`
-	UpdatedAt      time.Time              `gorm:"autoUpdateTime" json:"-"`
-	DeletedAt      gorm.DeletedAt         `gorm:"index" json:"deleted_at,omitempty"`
-	Version        int                    `gorm:"default:1" json:"-"`
+type EventType string
 
-	// Relationships
-	Venue       Venue        `gorm:"foreignKey:VenueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" json:"venue"`
+const (
+	EventTypeOnline  EventType = "online"
+	EventTypeOffline EventType = "offline"
+	EventTypeHybrid  EventType = "hybrid"
+)
+
+type Event struct {
+	ID            string                 `gorm:"type:char(36);primaryKey" json:"id"`
+	Title         string                 `gorm:"size:255;not null;index" json:"title"`
+	Slug          string                 `gorm:"size:255;uniqueIndex" json:"slug"`
+	Description   string                 `gorm:"type:text" json:"description"`
+	SubcategoryID string                 `gorm:"not null;index" json:"subcategory_id"`
+	Subcategory   categories.Subcategory `gorm:"foreignKey:SubcategoryID"`
+	VenueID       string                 `gorm:"type:char(36);index" json:"venue_id"`
+	Venue         Venue                  `gorm:"foreignKey:VenueID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;" json:"venue"`
+
+	StartTime time.Time `gorm:"not null;index" json:"start_time"`
+	EndTime   time.Time `gorm:"not null;index" json:"end_time"`
+	Timezone  string    `gorm:"size:100" json:"timezone,omitempty"`
+	Language  string    `gorm:"size:50" json:"language,omitempty"`
+
+	OrganizerID    string    `gorm:"type:char(36);not null;index" json:"-"`
+	EventType      EventType `gorm:"size:20;default:'offline'" json:"event_type"`
+	MinAge         int       `gorm:"not null;default:0" json:"min_age"`
+	TotalSeats     int       `gorm:"not null" json:"total_seats"`
+	AvailableSeats int       `gorm:"not null" json:"available_seats"`
+
+	IsFree     bool        `gorm:"default:false" json:"is_free"`
+	HasTickets bool        `gorm:"default:true" json:"has_tickets"`
+	IsFeatured bool        `gorm:"default:false;index" json:"is_featured"`
+	Status     EventStatus `gorm:"size:20;not null;default:'active';index" json:"status"`
+	Tags       []string    `gorm:"type:text[]" json:"tags,omitempty"`
+
+	PublishedAt *time.Time `gorm:"index" json:"published_at,omitempty"`
+
 	EventImages []EventImage `gorm:"foreignKey:EventID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"event_images"`
+
+	CreatedAt time.Time      `gorm:"autoCreateTime" json:"-"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	Version   int            `gorm:"default:1" json:"-"`
 }
 
 func (e *Event) BeforeCreate(tx *gorm.DB) (err error) {
 	if e.ID == "" {
 		e.ID = uuid.New().String()
-	}
-	if e.BasePrice < 0 {
-		return errors.New("base_price cannot be negative")
 	}
 	if e.TotalSeats <= 0 {
 		return errors.New("total_seats must be positive")
@@ -62,9 +78,6 @@ func (e *Event) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (e *Event) BeforeUpdate(tx *gorm.DB) (err error) {
-	if e.BasePrice < 0 {
-		return errors.New("base_price cannot be negative")
-	}
 	if e.TotalSeats <= 0 {
 		return errors.New("total_seats must be positive")
 	}
@@ -74,7 +87,6 @@ func (e *Event) BeforeUpdate(tx *gorm.DB) (err error) {
 	if _, err := uuid.Parse(e.OrganizerID); err != nil {
 		return errors.New("invalid organizer_id format")
 	}
-
 	return nil
 }
 
@@ -88,7 +100,6 @@ type EventImage struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	Version   int            `gorm:"default:1" json:"version"`
 
-	// Relationship
 	Event Event `gorm:"foreignKey:EventID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
 }
 

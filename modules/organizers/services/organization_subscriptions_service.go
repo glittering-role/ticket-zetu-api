@@ -2,11 +2,16 @@ package organizers_services
 
 import (
 	"errors"
+	"fmt"
+
+	//"fmt"
 	"time"
 
+	notification_service "ticket-zetu-api/modules/notifications/service"
 	organizer_dto "ticket-zetu-api/modules/organizers/dto"
 	organizers "ticket-zetu-api/modules/organizers/models"
-	"ticket-zetu-api/modules/users/authorization/service"
+	authorization_service "ticket-zetu-api/modules/users/authorization/service"
+	"ticket-zetu-api/modules/users/models/members"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -25,12 +30,18 @@ type SubscriptionService interface {
 type subscriptionService struct {
 	db                   *gorm.DB
 	authorizationService authorization_service.PermissionService
+	notificationService  notification_service.NotificationService
 }
 
-func NewSubscriptionService(db *gorm.DB, authService authorization_service.PermissionService) SubscriptionService {
+func NewSubscriptionService(
+	db *gorm.DB,
+	authService authorization_service.PermissionService,
+	notificationService notification_service.NotificationService,
+) SubscriptionService {
 	return &subscriptionService{
 		db:                   db,
 		authorizationService: authService,
+		notificationService:  notificationService,
 	}
 }
 
@@ -106,18 +117,29 @@ func (s *subscriptionService) SubscribeToOrganization(UserID, organizerID string
 	}
 
 	var result *organizer_dto.SubscriptionInfo
+	var organizer organizers.Organizer
+	var subscriber members.User
+
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		// Check organizer exists and accepts subscriptions with lock
-		var organizer organizers.Organizer
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Preload("CreatedByUser").
 			Where("id = ? AND is_accepting_subscriptions = ? AND deleted_at IS NULL", organizerID, true).
 			First(&organizer).Error; err != nil {
 			return errors.New("organizer not found or not accepting subscriptions")
 		}
 
-		// Try to create new subscription first (optimistic approach)
+		// Fetch subscriber
+		if err := tx.Where("id = ? AND deleted_at IS NULL", UserID).First(&subscriber).Error; err != nil {
+
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return errors.New("subscriber not found")
+			}
+			return err
+		}
+
+		// Try to create new subscription
 		subscription := organizers.OrganizationSubscription{
-			ID:                  uuid.New().String(),
 			OrganizerID:         organizerID,
 			SubscriberID:        UserID,
 			ReceiveEventUpdates: true,
@@ -143,10 +165,10 @@ func (s *subscriptionService) SubscribeToOrganization(UserID, organizerID string
 		var existingSubscription organizers.OrganizationSubscription
 		if err := tx.Where("organizer_id = ? AND subscriber_id = ?", organizerID, UserID).
 			First(&existingSubscription).Error; err != nil {
-			return err // Return original create error
+			return createErr
 		}
 
-		if existingSubscription.UnsubscribedAt.Valid == false && existingSubscription.IsActive {
+		if !existingSubscription.UnsubscribedAt.Valid && existingSubscription.IsActive {
 			return errors.New("already subscribed to this organizer")
 		}
 
@@ -176,6 +198,48 @@ func (s *subscriptionService) SubscribeToOrganization(UserID, organizerID string
 		result = s.toSubscriptionInfo(&existingSubscription)
 		return nil
 	})
+
+	if err == nil && result != nil {
+		// Send notifications after successful subscription
+		metadata := map[string]interface{}{
+			"organizer_id":        organizerID,
+			"organizer_name":      organizer.Name,
+			"subscriber_username": subscriber.Username,
+		}
+
+		// Notify subscriber
+		notifyErr := s.notificationService.TriggerNotification(
+			"organizers",
+			"subscription",
+			"Subscribed to "+organizer.Name,
+			fmt.Sprintf("You have successfully subscribed to %s. You'll receive updates based on your preferences.", organizer.Name),
+			UserID,
+			organizerID,
+			[]string{UserID},
+			metadata,
+		)
+		if notifyErr != nil {
+			// log.Printf("Failed to send subscriber notification: %v", notifyErr)
+		}
+
+		// Notify organizer owner
+		if organizer.CreatedBy != "" {
+			metadata["action"] = "new_subscriber"
+			notifyErr = s.notificationService.TriggerNotification(
+				"organizers",
+				"new_subscriber",
+				"New Subscriber to "+organizer.Name,
+				fmt.Sprintf("%s has subscribed to your organization, %s.", subscriber.Username, organizer.Name),
+				UserID,
+				organizerID,
+				[]string{organizer.CreatedBy},
+				metadata,
+			)
+			if notifyErr != nil {
+				// log.Printf("Failed to send owner notification: %v", notifyErr)
+			}
+		}
+	}
 
 	return result, err
 }
