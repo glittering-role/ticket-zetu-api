@@ -16,13 +16,13 @@ import (
 
 // SignUpRequest defines the structure for signup requests
 type SignUpRequest struct {
-	Username    string `json:"username" validate:"required,min=3,max=50,alphanum"`
-	FirstName   string `json:"first_name" validate:"required,min=2,max=100"`
-	LastName    string `json:"last_name" validate:"required,min=2,max=100"`
-	Email       string `json:"email" validate:"required,email,max=255"`
-	Phone       string `json:"phone" validate:"required,min=10,max=20"`
-	Password    string `json:"password" validate:"required,min=8"`
-	DateOfBirth string `json:"date_of_birth" validate:"omitempty,datetime=2006-01-02"`
+	Username    string `json:"username" example:"johndoe99" validate:"required,min=3,max=50,alphanum"`
+	FirstName   string `json:"first_name" example:"John" validate:"required,min=2,max=100"`
+	LastName    string `json:"last_name" example:"Doe" validate:"required,min=2,max=100"`
+	Email       string `json:"email" example:"john.doe@example.com" validate:"required,email,max=255"`
+	Phone       string `json:"phone" example:"+12345678901" validate:"required,min=10,max=20"`
+	Password    string `json:"password" example:"P@ssw0rd!" validate:"required,min=8"`
+	DateOfBirth string `json:"date_of_birth,omitempty" example:"1990-05-20" validate:"omitempty,datetime=2006-01-02"`
 }
 
 // SignUp godoc

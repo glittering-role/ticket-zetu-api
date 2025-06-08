@@ -20,6 +20,7 @@ func SetupNotificationRoutes(api fiber.Router, db *gorm.DB, logHandler *handler.
 	users := api.Group("/users")
 	{
 		users.Get("/:user_id/notifications", notificationController.GetUserNotifications)
-
+		users.Delete("/:user_id/notifications", notificationController.DeleteUserNotifications)
+		users.Patch("/:user_id/notifications/read", notificationController.MarkNotificationsAsRead)
 	}
 }

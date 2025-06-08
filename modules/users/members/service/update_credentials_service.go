@@ -55,7 +55,7 @@ func (s *userService) UpdatePhone(id string, phoneDto *dto.UpdatePhoneDto, updat
 		return nil, err
 	}
 
-	return toUserProfileResponseDto(&updatedUser, true), nil
+	return toUserProfileResponseDto(&updatedUser, true, nil), nil
 }
 
 func (s *userService) UpdateUserEmail(id string, emailDto *dto.UpdateEmailDto, updaterID string) (*dto.UserProfileResponseDto, error) {
@@ -131,5 +131,5 @@ func (s *userService) UpdateUserEmail(id string, emailDto *dto.UpdateEmailDto, u
 		return nil, err
 	}
 
-	return toUserProfileResponseDto(&updatedUser, true), nil
+	return toUserProfileResponseDto(&updatedUser, true, nil), nil
 }

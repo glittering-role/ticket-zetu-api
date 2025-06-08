@@ -21,7 +21,7 @@ type CreateEventInput struct {
 	IsFree     bool   `json:"is_free" example:"false"`
 	HasTickets bool   `json:"has_tickets" example:"true"`
 	IsFeatured bool   `json:"is_featured" example:"true"`
-	Status     string `json:"status,omitempty" example:"active"` // optional in both
+	Status     string `json:"status,omitempty" example:"active"`
 
-	Tags []string `json:"tags,omitempty" example:"[\"music\", \"festival\", \"live\"]"` // match to slice instead of comma-separated string
+	Tags []string `json:"tags,omitempty" example:"[\"music\", \"festival\", \"live\"]"`
 }

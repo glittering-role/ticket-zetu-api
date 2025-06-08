@@ -2,20 +2,22 @@ package dto
 
 // UserProfileResponseDto defines the response structure for user profile data
 type UserProfileResponseDto struct {
-	ID             string           `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	Username       string           `json:"username" example:"johndoe"`
-	FirstName      string           `json:"first_name" example:"John"`
-	LastName       string           `json:"last_name" example:"Doe"`
-	AvatarURL      string           `json:"avatar_url,omitempty" example:"https://example.com/avatar.jpg"`
-	Email          string           `json:"email,omitempty" example:"john.doe@example.com"`
-	Phone          string           `json:"phone,omitempty" example:"+1234567890"`
-	DateOfBirth    *string          `json:"date_of_birth,omitempty" example:"1990-01-01"`
-	Gender         string           `json:"gender,omitempty" example:"male"`
-	RoleName       string           `json:"role_name,omitempty" example:"Admin"`
-	Location       string           `json:"location,omitempty" example:"New York, NY, US"`
-	LocationDetail *UserLocationDto `json:"location_detail,omitempty"`
-	CreatedAt      string           `json:"created_at" example:"2025-06-05T10:00:00Z"`
-	UpdatedAt      string           `json:"updated_at" example:"2025-10-01T12:00:00Z"`
+	ID             string                `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Username       string                `json:"username" example:"johndoe"`
+	FirstName      string                `json:"first_name" example:"John"`
+	LastName       string                `json:"last_name" example:"Doe"`
+	AvatarURL      string                `json:"avatar_url,omitempty" example:"https://example.com/avatar.jpg"`
+	Email          string                `json:"email,omitempty" example:"john.doe@example.com"`
+	Phone          string                `json:"phone,omitempty" example:"+1234567890"`
+	DateOfBirth    *string               `json:"date_of_birth,omitempty" example:"1990-01-01"`
+	Gender         string                `json:"gender,omitempty" example:"male"`
+	RoleName       string                `json:"role_name,omitempty" example:"Admin"`
+	Location       string                `json:"location,omitempty" example:"New York, NY, US"`
+	LocationDetail *UserLocationDto      `json:"location_detail,omitempty"`
+	ArtistProfile  *ReadArtistProfileDTO `json:"artist_profile,omitempty"`
+
+	CreatedAt string `json:"created_at" example:"2025-06-05T10:00:00Z"`
+	UpdatedAt string `json:"updated_at" example:"2025-10-01T12:00:00Z"`
 }
 
 // UserLocationDto defines detailed location data for user profiles

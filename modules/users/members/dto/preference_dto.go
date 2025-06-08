@@ -35,3 +35,16 @@ type UpdateUserPreferencesDto struct {
 	Theme          *string `json:"theme" validate:"omitempty,oneof=light dark"`
 	Timezone       *string `json:"timezone" validate:"omitempty,timezone"`
 }
+
+type UpdateUserPreferencesData struct {
+	ShowEmail      bool   `json:"show_email" example:"true"`
+	ShowPhone      bool   `json:"show_phone" example:"false"`
+	ShowLocation   bool   `json:"show_location" example:"true"`
+	ShowGender     bool   `json:"show_gender" example:"false"`
+	ShowRole       bool   `json:"show_role" example:"true"`
+	ShowProfile    bool   `json:"show_profile" example:"true"`
+	AllowFollowing bool   `json:"allow_following" example:"true"`
+	Language       string `json:"language,omitempty" example:"en" validate:"omitempty,len=2"`
+	Theme          string `json:"theme,omitempty" example:"dark" validate:"omitempty,oneof=light dark"`
+	Timezone       string `json:"timezone,omitempty" example:"Africa/Nairobi"` // optional, validate if needed
+}

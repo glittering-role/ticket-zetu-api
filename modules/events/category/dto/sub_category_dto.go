@@ -15,3 +15,9 @@ type SubcategoryDTO struct {
 	CategoryName  string  `json:"category_name"`
 	CategoryImage string  `json:"category_image"`
 }
+
+type CreateSubcategoryDto struct {
+	CategoryID  string `json:"category_id" example:"7d9eeb25-5b88-4c51-a3de-45a4dfd5f0f2" validate:"required,uuid"`
+	Name        string `json:"name" example:"Live Concerts" validate:"required,min=2,max=50"`
+	Description string `json:"description,omitempty" example:"Events involving live musical performances" validate:"omitempty,max=255"`
+}

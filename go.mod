@@ -38,6 +38,7 @@ require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/arsmn/fiber-swagger/v2 v2.31.1
 	github.com/cloudinary/cloudinary-go/v2 v2.10.0
+	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/gofiber/fiber/v2 v2.52.8
 	github.com/google/uuid v1.6.0

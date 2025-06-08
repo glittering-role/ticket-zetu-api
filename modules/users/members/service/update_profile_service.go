@@ -75,7 +75,7 @@ func (s *userService) UpdateUserDetails(id string, userDto *dto.UpdateUserDto, u
 		return nil, err
 	}
 
-	return toUserProfileResponseDto(&updatedUser, true), nil
+	return toUserProfileResponseDto(&updatedUser, true, nil), nil
 }
 
 func (s *userService) UpdateUserLocation(id string, locationDto *dto.UserLocationUpdateDto, updaterID string) (*dto.UserProfileResponseDto, error) {
@@ -178,5 +178,5 @@ func (s *userService) UpdateUserLocation(id string, locationDto *dto.UserLocatio
 		return nil, err
 	}
 
-	return toUserProfileResponseDto(&updatedUser, true), nil
+	return toUserProfileResponseDto(&updatedUser, true, nil), nil
 }

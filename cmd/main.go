@@ -22,6 +22,7 @@ import (
 	price_tier "ticket-zetu-api/modules/tickets/routes/v1"
 	ticket_type "ticket-zetu-api/modules/tickets/routes/v1"
 
+	artist "ticket-zetu-api/modules/users/routes/v1"
 	auth "ticket-zetu-api/modules/users/routes/v1"
 	roles "ticket-zetu-api/modules/users/routes/v1"
 	users "ticket-zetu-api/modules/users/routes/v1"
@@ -109,6 +110,7 @@ func main() {
 	price_tier.SetupPriceTierRoutes(api, database.DB, logHandler)
 	ticket_type.SetupTicketTypeRoutes(api, database.DB, logHandler)
 	notifications.SetupNotificationRoutes(api, database.DB, logHandler)
+	artist.ArtistRoutes(api, database.DB, logHandler)
 
 	// Graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)

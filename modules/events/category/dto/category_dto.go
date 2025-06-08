@@ -15,8 +15,8 @@ type CategoryDTO struct {
 }
 
 type CreateCategoryDto struct {
-	Name        string `json:"name" validate:"required,min=2,max=50"`
-	Description string `json:"description,omitempty"`
+	Name        string `json:"name" example:"Music" validate:"required,min=2,max=50"`
+	Description string `json:"description,omitempty" example:"All music-related events and content" validate:"omitempty,max=255"`
 }
 
 type ToggleCategoryStatusInput struct {

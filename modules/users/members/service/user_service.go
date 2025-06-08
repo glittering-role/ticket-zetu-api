@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"ticket-zetu-api/modules/users/members/dto"
+	"ticket-zetu-api/modules/users/models/artist"
 	"ticket-zetu-api/modules/users/models/members"
 	"time"
 
@@ -26,14 +27,63 @@ type userService struct {
 
 // NewUserService initializes the user service
 func NewUserService(db *gorm.DB) UserService {
+	v := validator.New()
 	return &userService{
 		db:        db,
-		validator: validator.New(),
+		validator: v,
 	}
 }
 
+// toSafeArtistProfileDto filters sensitive fields from artist profile for non-owners
+func toSafeArtistProfileDto(artistProfile *artist.ArtistProfile, preferences *members.UserPreferences) *dto.ReadArtistProfileDTO {
+	safeDto := &dto.ReadArtistProfileDTO{
+		ID:           artistProfile.ID,
+		StageName:    artistProfile.StageName,
+		Type:         string(artistProfile.Type),
+		Bio:          artistProfile.Bio,
+		Website:      artistProfile.Website,
+		Genres:       artistProfile.Genres,
+		Skills:       artistProfile.Skills,
+		SpotifyURL:   artistProfile.SpotifyURL,
+		YouTubeURL:   artistProfile.YouTubeURL,
+		Instagram:    artistProfile.Instagram,
+		TikTok:       artistProfile.TikTok,
+		Twitter:      artistProfile.Twitter,
+		Reddit:       artistProfile.Reddit,
+		Snapchat:     artistProfile.Snapchat,
+		Patreon:      artistProfile.Patreon,
+		SoundCloud:   artistProfile.SoundCloud,
+		Behance:      artistProfile.Behance,
+		Dribbble:     artistProfile.Dribbble,
+		Vimeo:        artistProfile.Vimeo,
+		Goodreads:    artistProfile.Goodreads,
+		LinkedIn:     artistProfile.LinkedIn,
+		Pinterest:    artistProfile.Pinterest,
+		Twitch:       artistProfile.Twitch,
+		DeviantArt:   artistProfile.DeviantArt,
+		PortfolioURL: artistProfile.PortfolioURL,
+	}
+
+	if preferences != nil && preferences.ID != uuid.Nil {
+		if preferences.ShouldShow("artist_contact_email") {
+			safeDto.ContactEmail = artistProfile.ContactEmail
+		}
+		if preferences.ShouldShow("artist_representation") {
+			safeDto.Representation = artistProfile.Representation
+		}
+		if preferences.ShouldShow("artist_availability") {
+			safeDto.Availability = artistProfile.Availability
+		}
+		if preferences.ShouldShow("artist_collaboration") {
+			safeDto.Collaboration = artistProfile.Collaboration
+		}
+	}
+
+	return safeDto
+}
+
 // toUserProfileResponseDto converts a members.User to dto.UserProfileResponseDto
-func toUserProfileResponseDto(user *members.User, isOwner bool) *dto.UserProfileResponseDto {
+func toUserProfileResponseDto(user *members.User, isOwner bool, artistProfile *artist.ArtistProfile) *dto.UserProfileResponseDto {
 	response := &dto.UserProfileResponseDto{
 		ID:        user.ID,
 		Username:  user.Username,
@@ -42,6 +92,56 @@ func toUserProfileResponseDto(user *members.User, isOwner bool) *dto.UserProfile
 		AvatarURL: user.AvatarURL,
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
+	}
+
+	if artistProfile != nil {
+		if isOwner {
+			// Owner sees full artist profile
+			response.ArtistProfile = &dto.ReadArtistProfileDTO{
+				ID:             artistProfile.ID,
+				UserID:         artistProfile.UserID,
+				StageName:      artistProfile.StageName,
+				Type:           string(artistProfile.Type),
+				Bio:            artistProfile.Bio,
+				Website:        artistProfile.Website,
+				Location:       artistProfile.Location,
+				Collaboration:  artistProfile.Collaboration,
+				SpotifyURL:     artistProfile.SpotifyURL,
+				YouTubeURL:     artistProfile.YouTubeURL,
+				Instagram:      artistProfile.Instagram,
+				TikTok:         artistProfile.TikTok,
+				Twitter:        artistProfile.Twitter,
+				Reddit:         artistProfile.Reddit,
+				Snapchat:       artistProfile.Snapchat,
+				Patreon:        artistProfile.Patreon,
+				SoundCloud:     artistProfile.SoundCloud,
+				Behance:        artistProfile.Behance,
+				Dribbble:       artistProfile.Dribbble,
+				Vimeo:          artistProfile.Vimeo,
+				Goodreads:      artistProfile.Goodreads,
+				LinkedIn:       artistProfile.LinkedIn,
+				Pinterest:      artistProfile.Pinterest,
+				Twitch:         artistProfile.Twitch,
+				DeviantArt:     artistProfile.DeviantArt,
+				PortfolioURL:   artistProfile.PortfolioURL,
+				Genres:         artistProfile.Genres,
+				Skills:         artistProfile.Skills,
+				Availability:   artistProfile.Availability,
+				ContactEmail:   artistProfile.ContactEmail,
+				Representation: artistProfile.Representation,
+				CreatedAt:      artistProfile.CreatedAt,
+				UpdatedAt:      artistProfile.UpdatedAt,
+			}
+			if !artistProfile.DeletedAt.Time.IsZero() {
+				deletedAt := artistProfile.DeletedAt.Time
+				response.ArtistProfile.DeletedAt = &deletedAt
+			}
+		} else {
+			// Non-owner sees safe artist profile
+			if user.Preferences.ID != uuid.Nil && user.Preferences.ShowProfile {
+				response.ArtistProfile = toSafeArtistProfileDto(artistProfile, &user.Preferences)
+			}
+		}
 	}
 
 	if isOwner {
@@ -126,6 +226,7 @@ func (s *userService) GetUserProfile(identifier string, requesterID string) (*dt
 		Preload("Preferences").
 		Preload("Location").
 		Preload("Role").
+		Preload("ArtistProfile", "deleted_at IS NULL").
 		Where("deleted_at IS NULL")
 
 	if _, err := uuid.Parse(identifier); err == nil {
@@ -142,7 +243,12 @@ func (s *userService) GetUserProfile(identifier string, requesterID string) (*dt
 	}
 
 	isOwner := user.ID == requesterID
-	return toUserProfileResponseDto(&user, isOwner), nil
+	var artistProfile *artist.ArtistProfile
+	if user.ArtistProfile.ID != "" {
+		artistProfile = &user.ArtistProfile
+	}
+
+	return toUserProfileResponseDto(&user, isOwner, artistProfile), nil
 }
 
 // checkUniqueField checks if a value for a given field is unique among users (excluding the given user ID)

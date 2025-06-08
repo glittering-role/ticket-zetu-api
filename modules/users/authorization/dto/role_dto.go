@@ -18,10 +18,10 @@ type RoleResponseDto struct {
 
 // CreateRoleDto defines the structure for creating a role
 type CreateRoleDto struct {
-	RoleName     string `json:"role_name" validate:"required,max=100"`
-	Description  string `json:"description" validate:"max=255"`
-	Level        int64  `json:"level" validate:"gte=0"`
-	IsSystemRole bool   `json:"is_system_role" validate:"boolean"`
+	RoleName     string `json:"role_name" example:"event_manager" validate:"required,min=3,max=100"`
+	Description  string `json:"description,omitempty" example:"Role with permissions to manage events" validate:"omitempty,max=255"`
+	Level        int64  `json:"level" example:"2" validate:"required,gte=0"`
+	IsSystemRole bool   `json:"is_system_role" example:"false" validate:"boolean"`
 }
 
 // UpdateRoleDto defines the structure for updating a role

@@ -2,9 +2,9 @@ package dto
 
 // CreatePermissionDto defines the structure for creating a permission
 type CreatePermissionDto struct {
-	PermissionName string `json:"permission_name" validate:"required"`
-	Description    string `json:"description,omitempty"`
-	Scope          string `json:"scope,omitempty"`
+	PermissionName string `json:"permission_name" example:"create:event" validate:"required,min=3,max=100"`
+	Description    string `json:"description,omitempty" example:"Allows a user to create events" validate:"omitempty,max=255"`
+	Scope          string `json:"scope,omitempty" example:"events" validate:"omitempty,min=2,max=100"`
 }
 
 // UpdatePermissionDto defines the structure for updating a permission

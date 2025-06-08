@@ -27,26 +27,33 @@ definitions:
   authentication.SignUpRequest:
     properties:
       date_of_birth:
+        example: "1990-05-20"
         type: string
       email:
+        example: john.doe@example.com
         maxLength: 255
         type: string
       first_name:
+        example: John
         maxLength: 100
         minLength: 2
         type: string
       last_name:
+        example: Doe
         maxLength: 100
         minLength: 2
         type: string
       password:
+        example: P@ssw0rd!
         minLength: 8
         type: string
       phone:
+        example: "+12345678901"
         maxLength: 20
         minLength: 10
         type: string
       username:
+        example: johndoe99
         maxLength: 50
         minLength: 3
         type: string
@@ -64,11 +71,135 @@ definitions:
       message:
         type: string
     type: object
+  dto.CreateArtistProfileDTO:
+    properties:
+      availability:
+        example: Weekends and evenings
+        maxLength: 100
+        type: string
+      behance_url:
+        example: https://behance.net/djwave
+        maxLength: 255
+        type: string
+      bio:
+        example: Emerging EDM artist known for high-energy live shows.
+        maxLength: 65535
+        type: string
+      contact_email:
+        example: contact@djwave.com
+        maxLength: 255
+        type: string
+      deviantart_url:
+        example: https://deviantart.com/djwave
+        maxLength: 255
+        type: string
+      dribbble_url:
+        example: https://dribbble.com/djwave
+        maxLength: 255
+        type: string
+      genres:
+        example: EDM, Techno
+        maxLength: 65535
+        type: string
+      goodreads_url:
+        example: https://goodreads.com/djwave
+        maxLength: 255
+        type: string
+      instagram_url:
+        example: https://instagram.com/djwave
+        maxLength: 255
+        type: string
+      linkedin_url:
+        example: https://linkedin.com/in/djwave
+        maxLength: 255
+        type: string
+      location:
+        example: Berlin, Germany
+        maxLength: 100
+        type: string
+      open_to_collaboration:
+        example: true
+        type: boolean
+      patreon_url:
+        example: https://patreon.com/djwave
+        maxLength: 255
+        type: string
+      pinterest_url:
+        example: https://pinterest.com/djwave
+        maxLength: 255
+        type: string
+      portfolio_url:
+        example: https://djwave.com/portfolio
+        maxLength: 255
+        type: string
+      reddit_url:
+        example: https://reddit.com/u/djwave
+        maxLength: 255
+        type: string
+      representation:
+        example: Wave Talent Agency
+        maxLength: 255
+        type: string
+      skills:
+        example: DJing, Music Production
+        maxLength: 65535
+        type: string
+      snapchat_url:
+        example: https://snapchat.com/add/djwave
+        maxLength: 255
+        type: string
+      soundcloud_url:
+        example: https://soundcloud.com/djwave
+        maxLength: 255
+        type: string
+      spotify_url:
+        example: https://spotify.com/artist/123
+        maxLength: 255
+        type: string
+      stage_name:
+        example: DJ Wave
+        maxLength: 100
+        type: string
+      tiktok_url:
+        example: https://tiktok.com/@djwave
+        maxLength: 255
+        type: string
+      twitch_url:
+        example: https://twitch.tv/djwave
+        maxLength: 255
+        type: string
+      twitter_url:
+        example: https://twitter.com/djwave
+        maxLength: 255
+        type: string
+      type:
+        example: musician
+        maxLength: 50
+        type: string
+      vimeo_url:
+        example: https://vimeo.com/djwave
+        maxLength: 255
+        type: string
+      website:
+        example: https://djwave.com
+        maxLength: 255
+        type: string
+      youtube_url:
+        example: https://youtube.com/channel/abc
+        maxLength: 255
+        type: string
+    required:
+    - stage_name
+    - type
+    type: object
   dto.CreateCategoryDto:
     properties:
       description:
+        example: All music-related events and content
+        maxLength: 255
         type: string
       name:
+        example: Music
         maxLength: 50
         minLength: 2
         type: string
@@ -113,14 +244,12 @@ definitions:
         example: "2025-08-15T18:00:00Z"
         type: string
       status:
-        description: optional in both
         example: active
         type: string
       subcategory_id:
         example: c7e1249f-fc03-eb9d-ed90-8c236bd1996d
         type: string
       tags:
-        description: match to slice instead of comma-separated string
         example:
         - '["music"'
         - ' "festival"'
@@ -156,41 +285,59 @@ definitions:
   dto.CreatePermissionDto:
     properties:
       description:
+        example: Allows a user to create events
+        maxLength: 255
         type: string
       permission_name:
+        example: create:event
+        maxLength: 100
+        minLength: 3
         type: string
       scope:
+        example: events
+        maxLength: 100
+        minLength: 2
         type: string
     required:
     - permission_name
     type: object
-  dto.CreatePriceTierRequest:
+  dto.CreatePriceTierData:
     properties:
       base_price:
+        example: 50
         minimum: 0
         type: number
       description:
+        example: Discounted price for early purchasers
         maxLength: 1000
         type: string
       effective_from:
+        example: "2025-07-01T00:00:00Z"
         type: string
       effective_to:
+        example: "2025-07-15T23:59:59Z"
         type: string
       is_default:
+        example: false
         type: boolean
       max_tickets:
+        example: 100
         minimum: 0
         type: integer
       min_tickets:
+        example: 0
         minimum: 0
         type: integer
       name:
+        example: Early Bird
         maxLength: 50
         minLength: 2
         type: string
       organizer_id:
+        example: d5f9a7e3-3e4b-4c4d-8a44-1bdfcdb930f1
         type: string
       percentage_increase:
+        example: 10
         minimum: 0
         type: number
     required:
@@ -203,50 +350,70 @@ definitions:
   dto.CreateRoleDto:
     properties:
       description:
+        example: Role with permissions to manage events
         maxLength: 255
         type: string
       is_system_role:
+        example: false
         type: boolean
       level:
+        example: 2
         minimum: 0
         type: integer
       role_name:
+        example: event_manager
         maxLength: 100
+        minLength: 3
         type: string
     required:
+    - level
     - role_name
     type: object
-  dto.CreateTicketTypeInput:
+  dto.CreateTicketTypeInputData:
     properties:
       benefits:
+        example: Free drinks, front row seats
         type: string
       description:
+        example: Access to VIP lounge and priority entry
         type: string
       event_id:
+        example: a1d3c4e6-89ab-44ce-8e65-123456789abc
         type: string
       is_default:
+        example: false
         type: boolean
       max_tickets_per_user:
+        example: 5
         minimum: 1
         type: integer
       min_tickets_per_user:
+        example: 1
         minimum: 1
         type: integer
       name:
+        example: VIP Ticket
+        maxLength: 100
+        minLength: 2
         type: string
       price_modifier:
+        example: 1.5
         type: number
       quantity_available:
+        example: 100
         type: integer
       sales_end:
+        example: "2025-08-01T23:59:59Z"
         type: string
       sales_start:
+        example: "2025-07-01T09:00:00Z"
         type: string
       status:
         enum:
         - active
         - inactive
         - archived
+        example: active
         type: string
     required:
     - event_id
@@ -323,6 +490,125 @@ definitions:
       updated_at:
         type: string
     type: object
+  dto.ReadArtistProfileDTO:
+    properties:
+      availability:
+        example: Weekends and evenings
+        type: string
+      behance_url:
+        example: https://behance.net/djwave
+        type: string
+      bio:
+        example: Emerging EDM artist known for high-energy live shows.
+        type: string
+      contact_email:
+        example: contact@djwave.com
+        type: string
+      created_at:
+        example: "2025-06-08T23:46:39Z"
+        type: string
+      deleted_at:
+        example: "null"
+        type: string
+      deviantart_url:
+        example: https://deviantart.com/djwave
+        type: string
+      dribbble_url:
+        example: https://dribbble.com/djwave
+        type: string
+      genres:
+        example: EDM, Techno
+        type: string
+      genres_array:
+        example:
+        - '["EDM"'
+        - '"Techno"]'
+        items:
+          type: string
+        type: array
+      goodreads_url:
+        example: https://goodreads.com/djwave
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174001
+        type: string
+      instagram_url:
+        example: https://instagram.com/djwave
+        type: string
+      linkedin_url:
+        example: https://linkedin.com/in/djwave
+        type: string
+      location:
+        example: Berlin, Germany
+        type: string
+      open_to_collaboration:
+        example: true
+        type: boolean
+      patreon_url:
+        example: https://patreon.com/djwave
+        type: string
+      pinterest_url:
+        example: https://pinterest.com/djwave
+        type: string
+      portfolio_url:
+        example: https://djwave.com/portfolio
+        type: string
+      reddit_url:
+        example: https://reddit.com/u/djwave
+        type: string
+      representation:
+        example: Wave Talent Agency
+        type: string
+      skills:
+        example: DJing, Music Production
+        type: string
+      skills_array:
+        example:
+        - '["DJing"'
+        - '"Music Production"]'
+        items:
+          type: string
+        type: array
+      snapchat_url:
+        example: https://snapchat.com/add/djwave
+        type: string
+      soundcloud_url:
+        example: https://soundcloud.com/djwave
+        type: string
+      spotify_url:
+        example: https://spotify.com/artist/123
+        type: string
+      stage_name:
+        example: DJ Wave
+        type: string
+      tiktok_url:
+        example: https://tiktok.com/@djwave
+        type: string
+      twitch_url:
+        example: https://twitch.tv/djwave
+        type: string
+      twitter_url:
+        example: https://twitter.com/djwave
+        type: string
+      type:
+        example: musician
+        type: string
+      updated_at:
+        example: "2025-06-08T23:46:39Z"
+        type: string
+      user_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      vimeo_url:
+        example: https://vimeo.com/djwave
+        type: string
+      website:
+        example: https://djwave.com
+        type: string
+      youtube_url:
+        example: https://youtube.com/channel/abc
+        type: string
+    type: object
   dto.RoleAssignmentDto:
     properties:
       role_id:
@@ -380,6 +666,124 @@ definitions:
         type: boolean
     required:
     - is_active
+    type: object
+  dto.UpdateArtistProfileDTO:
+    properties:
+      availability:
+        example: Full-time
+        maxLength: 100
+        type: string
+      behance_url:
+        example: https://behance.net/djwaveupdated
+        maxLength: 255
+        type: string
+      bio:
+        example: Updated bio with new achievements.
+        maxLength: 65535
+        type: string
+      contact_email:
+        example: updated@djwave.com
+        maxLength: 255
+        type: string
+      deviantart_url:
+        example: https://deviantart.com/djwaveupdated
+        maxLength: 255
+        type: string
+      dribbble_url:
+        example: https://dribbble.com/djwaveupdated
+        maxLength: 255
+        type: string
+      genres:
+        example: House, Trance
+        maxLength: 65535
+        type: string
+      goodreads_url:
+        example: https://goodreads.com/djwaveupdated
+        maxLength: 255
+        type: string
+      instagram_url:
+        example: https://instagram.com/djwaveupdated
+        maxLength: 255
+        type: string
+      linkedin_url:
+        example: https://linkedin.com/in/djwaveupdated
+        maxLength: 255
+        type: string
+      location:
+        example: London, UK
+        maxLength: 100
+        type: string
+      open_to_collaboration:
+        example: false
+        type: boolean
+      patreon_url:
+        example: https://patreon.com/djwaveupdated
+        maxLength: 255
+        type: string
+      pinterest_url:
+        example: https://pinterest.com/djwaveupdated
+        maxLength: 255
+        type: string
+      portfolio_url:
+        example: https://djwaveupdated.com/portfolio
+        maxLength: 255
+        type: string
+      reddit_url:
+        example: https://reddit.com/u/djwaveupdated
+        maxLength: 255
+        type: string
+      representation:
+        example: Updated Talent Agency
+        maxLength: 255
+        type: string
+      skills:
+        example: Mixing, Mastering
+        maxLength: 65535
+        type: string
+      snapchat_url:
+        example: https://snapchat.com/add/djwaveupdated
+        maxLength: 255
+        type: string
+      soundcloud_url:
+        example: https://soundcloud.com/djwaveupdated
+        maxLength: 255
+        type: string
+      spotify_url:
+        example: https://spotify.com/artist/456
+        maxLength: 255
+        type: string
+      stage_name:
+        example: DJ Wave Updated
+        maxLength: 100
+        type: string
+      tiktok_url:
+        example: https://tiktok.com/@djwaveupdated
+        maxLength: 255
+        type: string
+      twitch_url:
+        example: https://twitch.tv/djwaveupdated
+        maxLength: 255
+        type: string
+      twitter_url:
+        example: https://twitter.com/djwaveupdated
+        maxLength: 255
+        type: string
+      type:
+        example: producer
+        maxLength: 50
+        type: string
+      vimeo_url:
+        example: https://vimeo.com/djwaveupdated
+        maxLength: 255
+        type: string
+      website:
+        example: https://djwaveupdated.com
+        maxLength: 255
+        type: string
+      youtube_url:
+        example: https://youtube.com/channel/def
+        maxLength: 255
+        type: string
     type: object
   dto.UpdateEmailDto:
     properties:
@@ -673,6 +1077,8 @@ definitions:
     type: object
   dto.UserProfileResponseDto:
     properties:
+      artist_profile:
+        $ref: '#/definitions/dto.ReadArtistProfileDTO'
       avatar_url:
         example: https://example.com/avatar.jpg
         type: string
@@ -882,6 +1288,166 @@ info:
   title: Ticket Zetu API
   version: "1.0"
 paths:
+  /artist-profile:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes the authenticated user's artist profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Artist profile deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Artist profile not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete artist profile
+      tags:
+      - Artist Profiles
+    get:
+      consumes:
+      - application/json
+      description: Retrieves an artist profile by ID or UserID.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Artist profile retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid identifier
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'Unauthorized: user ID not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Artist profile not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get an artist profile
+      tags:
+      - Artist Profiles
+    patch:
+      consumes:
+      - application/json
+      description: Updates the authenticated user's artist profile
+      parameters:
+      - description: Artist profile details to update
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateArtistProfileDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Artist profile updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Artist profile not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update artist profile
+      tags:
+      - Artist Profiles
+    post:
+      consumes:
+      - application/json
+      description: Creates a new artist profile for the authenticated user. Fields
+        like genres, skills, and featured_works can be a single string or an array
+        of strings.
+      parameters:
+      - description: Artist profile details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateArtistProfileDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Artist profile created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or validation failed
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 'Unauthorized: user ID not found'
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: 'Unauthorized: can only create profile for self'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new artist profile
+      tags:
+      - Artist Profiles
   /auth/check-username:
     get:
       consumes:
@@ -2831,7 +3397,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/dto.CreatePriceTierRequest'
+          $ref: '#/definitions/dto.CreatePriceTierData'
       produces:
       - application/json
       responses:
@@ -3863,7 +4429,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/dto.CreateTicketTypeInput'
+          $ref: '#/definitions/dto.CreateTicketTypeInputData'
       produces:
       - application/json
       responses:
@@ -4110,6 +4676,49 @@ paths:
       tags:
       - Users
   /users/{user_id}/notifications:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes all notifications for the logged-in user or those before
+        a specified date.
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: Delete notifications before this date (YYYY-MM-DD)
+        in: query
+        name: before_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notifications deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user ID or date format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User not authorized to delete notifications
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Delete user notifications
+      tags:
+      - Notification Group
     get:
       consumes:
       - application/json
@@ -4163,6 +4772,50 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get user notifications
+      tags:
+      - Notification Group
+  /users/{user_id}/notifications/read:
+    patch:
+      consumes:
+      - application/json
+      description: Marks one notification or all unread notifications as read for
+        the logged-in user.
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: Notification ID (optional, omit for all)
+        in: query
+        name: notification_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notifications marked as read successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid ID format
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: User not authorized to update notifications
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Mark notifications as read
       tags:
       - Notification Group
   /users/me:

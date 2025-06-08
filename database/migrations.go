@@ -32,6 +32,8 @@ import (
 	Notification "ticket-zetu-api/modules/notifications/models"
 	UserNotification "ticket-zetu-api/modules/notifications/models"
 
+	ArtistProfile "ticket-zetu-api/modules/users/models/artist"
+
 	"gorm.io/gorm"
 )
 
@@ -76,6 +78,9 @@ func Migrate(db *gorm.DB) error {
 		//Notification
 		&Notification.Notification{},
 		&UserNotification.UserNotification{},
+
+		//ArtistProfile
+		&ArtistProfile.ArtistProfile{},
 	}
 
 	db = db.Debug()

@@ -2,8 +2,9 @@ package notification_controllers
 
 import (
 	"strconv"
-
 	"ticket-zetu-api/logs/handler"
+	"time"
+
 	"ticket-zetu-api/modules/notifications/service"
 
 	"github.com/go-playground/validator/v10"
@@ -79,4 +80,99 @@ func (c *NotificationController) GetUserNotifications(ctx *fiber.Ctx) error {
 	}
 
 	return c.logHandler.LogSuccess(ctx, response, "Notifications retrieved successfully", true)
+}
+
+// Add to NotificationController struct (no changes needed, just for context)
+// type NotificationController struct {
+// 	service    service.NotificationService
+// 	logHandler *handler.LogHandler
+// 	validator  *validator.Validate
+// }
+
+// DeleteUserNotifications godoc
+// @Summary Delete user notifications
+// @Description Deletes all notifications for the logged-in user or those before a specified date.
+// @Tags Notification Group
+// @Accept application/json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param user_id path string true "User ID"
+// @Param before_date query string false "Delete notifications before this date (YYYY-MM-DD)"
+// @Success 200 {object} map[string]interface{} "Notifications deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid user ID or date format"
+// @Failure 403 {object} map[string]interface{} "User not authorized to delete notifications"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /users/{user_id}/notifications [delete]
+func (c *NotificationController) DeleteUserNotifications(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("user_id").(string)
+	targetUserID := ctx.Params("user_id")
+
+	// Ensure user can only delete their own notifications
+	if userID != targetUserID {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, "user not authorized to delete notifications"), fiber.StatusForbidden)
+	}
+
+	// Parse before_date query parameter
+	var beforeDate *time.Time
+	if dateStr := ctx.Query("before_date"); dateStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "invalid date format, use YYYY-MM-DD"), fiber.StatusBadRequest)
+		}
+		beforeDate = &parsedDate
+	}
+
+	// Delete notifications
+	if err := c.service.DeleteUserNotifications(userID, beforeDate); err != nil {
+		switch err.Error() {
+		case "invalid user ID format":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		default:
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, err.Error()), fiber.StatusInternalServerError)
+		}
+	}
+
+	return c.logHandler.LogSuccess(ctx, nil, "Notifications deleted successfully", true)
+}
+
+// MarkNotificationsAsRead godoc
+// @Summary Mark notifications as read
+// @Description Marks one notification or all unread notifications as read for the logged-in user.
+// @Tags Notification Group
+// @Accept application/json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param user_id path string true "User ID"
+// @Param notification_id query string false "Notification ID (optional, omit for all)"
+// @Success 200 {object} map[string]interface{} "Notifications marked as read successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid ID format"
+// @Failure 403 {object} map[string]interface{} "User not authorized to update notifications"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /users/{user_id}/notifications/read [patch]
+func (c *NotificationController) MarkNotificationsAsRead(ctx *fiber.Ctx) error {
+	userID := ctx.Locals("user_id").(string)
+	targetUserID := ctx.Params("user_id")
+
+	// Ensure user can only update their own notifications
+	if userID != targetUserID {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusForbidden, "user not authorized to update notifications"), fiber.StatusForbidden)
+	}
+
+	// Parse notification_id query parameter
+	var notificationID *string
+	if idStr := ctx.Query("notification_id"); idStr != "" {
+		notificationID = &idStr
+	}
+
+	// Mark notifications as read
+	if err := c.service.MarkNotificationsAsRead(userID, notificationID); err != nil {
+		switch err.Error() {
+		case "invalid user ID format", "invalid notification ID format":
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
+		default:
+			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, err.Error()), fiber.StatusInternalServerError)
+		}
+	}
+
+	return c.logHandler.LogSuccess(ctx, nil, "Notifications marked as read successfully", true)
 }

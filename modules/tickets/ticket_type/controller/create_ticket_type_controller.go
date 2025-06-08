@@ -12,7 +12,7 @@ import (
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param input body dto.CreateTicketTypeInput true "TicketType details"
+// @Param input body dto.CreateTicketTypeInputData true "TicketType details"
 // @Success 200 {object} map[string]interface{} "TicketType created successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body"
 // @Failure 403 {object} map[string]interface{} "User lacks create permission"

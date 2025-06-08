@@ -45,3 +45,16 @@ type GetPriceTierResponse struct {
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
 }
+
+type CreatePriceTierData struct {
+	OrganizerID        string     `json:"organizer_id" example:"d5f9a7e3-3e4b-4c4d-8a44-1bdfcdb930f1" validate:"required,uuid"`
+	Name               string     `json:"name" example:"Early Bird" validate:"required,min=2,max=50"`
+	Description        string     `json:"description,omitempty" example:"Discounted price for early purchasers" validate:"omitempty,max=1000"`
+	BasePrice          float64    `json:"base_price" example:"50.00" validate:"required,gte=0"`
+	PercentageIncrease float64    `json:"percentage_increase" example:"10.0" validate:"required,gte=0"`
+	IsDefault          bool       `json:"is_default" example:"false"`
+	EffectiveFrom      time.Time  `json:"effective_from" example:"2025-07-01T00:00:00Z" validate:"required"`
+	EffectiveTo        *time.Time `json:"effective_to,omitempty" example:"2025-07-15T23:59:59Z" validate:"omitempty,gtfield=EffectiveFrom"`
+	MinTickets         int        `json:"min_tickets" example:"0" validate:"gte=0"`
+	MaxTickets         *int       `json:"max_tickets,omitempty" example:"100" validate:"omitempty,gte=0"`
+}

@@ -2,6 +2,7 @@ package category
 
 import (
 	"ticket-zetu-api/logs/handler"
+	"ticket-zetu-api/modules/events/category/dto"
 	"ticket-zetu-api/modules/events/category/services"
 
 	"github.com/gofiber/fiber/v2"
@@ -39,11 +40,7 @@ func NewSubcategoryController(service services.SubcategoryService, logHandler *h
 // @Router /subcategories [post]
 func (c *SubcategoryController) CreateSubcategory(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	var input struct {
-		CategoryID  string `json:"category_id" validate:"required"`
-		Name        string `json:"name" validate:"required,min=2,max=50"`
-		Description string `json:"description,omitempty"`
-	}
+	var input dto.CreateSubcategoryDto
 
 	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)

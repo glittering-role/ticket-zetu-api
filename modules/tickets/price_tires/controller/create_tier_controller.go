@@ -13,7 +13,7 @@ import (
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param input body dto.CreatePriceTierRequest true "Price tier data"
+// @Param input body dto.CreatePriceTierData true "Price tier data"
 // @Success 200 {object} map[string]interface{}  "Price tier created successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body"
 // @Failure 403 {object} map[string]interface{} "User lacks permission"
