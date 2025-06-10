@@ -28,19 +28,19 @@ const (
 
 // Notification represents a notification event
 type Notification struct {
-	ID        string           `gorm:"type:char(36);primaryKey" json:"id"`
-	Type      NotificationType `gorm:"type:varchar(50);not null;index" json:"type"`
-	Title     string           `gorm:"type:varchar(100);not null" json:"title"`
-	Content   string           `gorm:"type:text;not null" json:"content"`
-	SenderID  string           `gorm:"type:char(36);index" json:"sender_id,omitempty"`
-	Sender    members.User     `gorm:"foreignKey:SenderID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"sender,omitempty"`
-	RelatedID string           `gorm:"type:char(36);index" json:"related_id,omitempty"`
-	Module    string           `gorm:"type:varchar(50);index" json:"module,omitempty"`
-	Metadata  string           `gorm:"type:jsonb" json:"metadata,omitempty"`
-	IsSystem  bool             `gorm:"default:false;index" json:"is_system"`
-	CreatedAt time.Time        `gorm:"autoCreateTime;index" json:"created_at"`
-	UpdatedAt time.Time        `gorm:"autoUpdateTime" json:"updated_at"`
-	DeletedAt gorm.DeletedAt   `gorm:"index" json:"deleted_at,omitempty"`
+	ID        string                 `gorm:"type:char(36);primaryKey" json:"id"`
+	Type      NotificationType       `gorm:"type:varchar(50);not null;index" json:"type"`
+	Title     string                 `gorm:"type:varchar(100);not null" json:"title"`
+	Content   string                 `gorm:"type:text;not null" json:"content"`
+	SenderID  string                 `gorm:"type:char(36);index" json:"sender_id,omitempty"`
+	Sender    members.User           `gorm:"foreignKey:SenderID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"sender,omitempty"`
+	RelatedID string                 `gorm:"type:char(36);index" json:"related_id,omitempty"`
+	Module    string                 `gorm:"type:varchar(50);index" json:"module,omitempty"`
+	Metadata  map[string]interface{} `gorm:"type:json" json:"metadata,omitempty"`
+	IsSystem  bool                   `gorm:"default:false;index" json:"is_system"`
+	CreatedAt time.Time              `gorm:"autoCreateTime;index" json:"created_at"`
+	UpdatedAt time.Time              `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt gorm.DeletedAt         `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (n *Notification) BeforeCreate(tx *gorm.DB) (err error) {

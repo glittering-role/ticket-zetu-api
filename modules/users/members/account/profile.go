@@ -123,7 +123,7 @@ func (c *UserController) UpdateDetails(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "invalid request body"), fiber.StatusBadRequest)
 	}
 
-	profile, err := c.service.UpdateUserDetails(userID, &userDto, userID)
+	_, err := c.service.UpdateUserDetails(userID, &userDto, userID)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "validation failed") || strings.HasPrefix(err.Error(), "invalid") {
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
@@ -134,5 +134,5 @@ func (c *UserController) UpdateDetails(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 	}
 
-	return c.logHandler.LogSuccess(ctx, profile, "User details updated successfully", true)
+	return c.logHandler.LogSuccess(ctx, nil, "User details updated successfully", true)
 }

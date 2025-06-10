@@ -11,59 +11,15 @@ definitions:
           type: string
         type: array
     type: object
-  authentication.LoginRequest:
+  authentication.VerifyEmailRequest:
     properties:
-      password:
-        minLength: 8
+      token:
         type: string
-      remember_me:
-        type: boolean
-      username_or_email:
+      user_id:
         type: string
     required:
-    - password
-    - username_or_email
-    type: object
-  authentication.SignUpRequest:
-    properties:
-      date_of_birth:
-        example: "1990-05-20"
-        type: string
-      email:
-        example: john.doe@example.com
-        maxLength: 255
-        type: string
-      first_name:
-        example: John
-        maxLength: 100
-        minLength: 2
-        type: string
-      last_name:
-        example: Doe
-        maxLength: 100
-        minLength: 2
-        type: string
-      password:
-        example: P@ssw0rd!
-        minLength: 8
-        type: string
-      phone:
-        example: "+12345678901"
-        maxLength: 20
-        minLength: 10
-        type: string
-      username:
-        example: johndoe99
-        maxLength: 50
-        minLength: 3
-        type: string
-    required:
-    - email
-    - first_name
-    - last_name
-    - password
-    - phone
-    - username
+    - token
+    - user_id
     type: object
   authorization.SuccessResponse:
     properties:
@@ -457,6 +413,19 @@ definitions:
       version:
         type: integer
     type: object
+  dto.LoginRequest:
+    properties:
+      password:
+        minLength: 8
+        type: string
+      remember_me:
+        type: boolean
+      username_or_email:
+        type: string
+    required:
+    - password
+    - username_or_email
+    type: object
   dto.PermissionAssignmentDto:
     properties:
       permission_id:
@@ -609,6 +578,16 @@ definitions:
         example: https://youtube.com/channel/abc
         type: string
     type: object
+  dto.ResetPasswordRequest:
+    properties:
+      username_or_email:
+        example: johndoe99 or john.doe@example.com
+        maxLength: 255
+        minLength: 3
+        type: string
+    required:
+    - username_or_email
+    type: object
   dto.RoleAssignmentDto:
     properties:
       role_id:
@@ -659,6 +638,62 @@ definitions:
       version:
         example: 1
         type: integer
+    type: object
+  dto.SetNewPasswordRequest:
+    properties:
+      new_password:
+        example: NewP@ssw0rd123
+        minLength: 8
+        type: string
+      reset_token:
+        example: abc123xyz
+        maxLength: 64
+        minLength: 32
+        type: string
+    required:
+    - new_password
+    - reset_token
+    type: object
+  dto.SignUpRequest:
+    properties:
+      date_of_birth:
+        example: "1990-01-15"
+        type: string
+      email:
+        example: john.doe@example.com
+        maxLength: 255
+        type: string
+      first_name:
+        example: John
+        maxLength: 100
+        minLength: 2
+        type: string
+      last_name:
+        example: Doe
+        maxLength: 100
+        minLength: 2
+        type: string
+      password:
+        example: P@ssw0rd123
+        minLength: 8
+        type: string
+      phone:
+        example: "+12345678901"
+        maxLength: 20
+        minLength: 10
+        type: string
+      username:
+        example: johndoe99
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    - phone
+    - username
     type: object
   dto.ToggleCategoryStatusInput:
     properties:
@@ -788,6 +823,7 @@ definitions:
   dto.UpdateEmailDto:
     properties:
       email:
+        example: user@example.com
         maxLength: 255
         type: string
     required:
@@ -846,6 +882,7 @@ definitions:
   dto.UpdatePhoneDto:
     properties:
       phone:
+        example: "+1234567890"
         maxLength: 20
         type: string
     required:
@@ -952,16 +989,21 @@ definitions:
   dto.UpdateUserDto:
     properties:
       avatar_url:
+        example: https://cdn.example.com/avatars/alice.jpg
         type: string
       date_of_birth:
+        example: "1990-04-15"
         type: string
       first_name:
+        example: Alice
         maxLength: 100
         type: string
       gender:
+        example: Female
         maxLength: 50
         type: string
       last_name:
+        example: Johnson
         maxLength: 100
         type: string
     type: object
@@ -970,6 +1012,8 @@ definitions:
       allow_following:
         type: boolean
       language:
+        example: en
+        maxLength: 10
         type: string
       show_email:
         type: boolean
@@ -987,8 +1031,11 @@ definitions:
         enum:
         - light
         - dark
+        example: dark
         type: string
       timezone:
+        example: Africa/Nairobi
+        maxLength: 100
         type: string
     type: object
   dto.UserLocationDto:
@@ -1021,26 +1068,34 @@ definitions:
   dto.UserLocationUpdateDto:
     properties:
       city:
+        example: Nairobi
         maxLength: 100
         type: string
       continent:
+        example: Africa
         maxLength: 50
         type: string
       country:
+        example: Kenya
         maxLength: 100
         type: string
       last_active:
+        example: "2025-06-10T14:30:00+03:00"
         type: string
       state:
+        example: Nairobi
         maxLength: 100
         type: string
       state_name:
+        example: Nairobi County
         maxLength: 100
         type: string
       timezone:
+        example: Africa/Nairobi
         maxLength: 50
         type: string
       zip:
+        example: "00100"
         maxLength: 20
         type: string
     type: object
@@ -1100,6 +1155,9 @@ definitions:
       id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
+      is_verified:
+        example: true
+        type: boolean
       last_name:
         example: Doe
         type: string
@@ -1512,7 +1570,99 @@ paths:
       summary: Terminate user session
       tags:
       - Authentication
-  /auth/sign-in:
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Updates the user's password using a valid reset token
+      parameters:
+      - description: Reset token and new password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SetNewPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid or expired reset token
+          schema:
+            additionalProperties: true
+            type: object
+        "423":
+          description: Account locked
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Set a new password
+      tags:
+      - Authentication
+  /auth/reset-password-request:
+    post:
+      consumes:
+      - application/json
+      description: Sends a password reset link to the user's email based on username
+        or email
+      parameters:
+      - description: Username or email for password reset
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset email sent
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties: true
+            type: object
+        "423":
+          description: Account locked
+          schema:
+            additionalProperties: true
+            type: object
+        "429":
+          description: Too many requests
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Request a password reset
+      tags:
+      - Authentication
+  /auth/signin:
     post:
       consumes:
       - application/json
@@ -1523,7 +1673,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/authentication.LoginRequest'
+          $ref: '#/definitions/dto.LoginRequest'
       produces:
       - application/json
       responses:
@@ -1542,8 +1692,18 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "403":
+          description: Email not verified
+          schema:
+            additionalProperties: true
+            type: object
         "423":
           description: Account locked
+          schema:
+            additionalProperties: true
+            type: object
+        "429":
+          description: Too many resend attempts
           schema:
             additionalProperties: true
             type: object
@@ -1555,28 +1715,28 @@ paths:
       summary: Authenticate a user
       tags:
       - Authentication
-  /auth/sign-up:
+  /auth/signup:
     post:
       consumes:
       - application/json
-      description: Creates a new user account
+      description: Creates a new user account and sends a verification email
       parameters:
-      - description: Signup data
+      - description: Signup request
         in: body
-        name: request
+        name: signup
         required: true
         schema:
-          $ref: '#/definitions/authentication.SignUpRequest'
+          $ref: '#/definitions/dto.SignUpRequest'
       produces:
       - application/json
       responses:
-        "201":
+        "200":
           description: Account created successfully
           schema:
             additionalProperties: true
             type: object
         "400":
-          description: Validation error
+          description: Invalid request
           schema:
             additionalProperties: true
             type: object
@@ -1585,7 +1745,45 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Register a new user
+      summary: Sign up a new user
+      tags:
+      - Authentication
+  /auth/verify-email:
+    post:
+      consumes:
+      - application/json
+      description: Verifies a user's email address using the verification code
+      parameters:
+      - description: Verification request
+        in: body
+        name: verifyEmailRequest
+        required: true
+        schema:
+          $ref: '#/definitions/authentication.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email verified successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid or expired token
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Verify user email
       tags:
       - Authentication
   /categories:

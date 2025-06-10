@@ -70,3 +70,8 @@ dev: swagger
 .PHONY: dev-custom
 dev-custom: swagger
 	$(REFLEX_CMD) -c reflex.conf
+
+# Manually run the role seeder
+.PHONY: seed-roles
+seed-roles:
+	$(GO_RUN) cmd/seeders/seed_roles.go

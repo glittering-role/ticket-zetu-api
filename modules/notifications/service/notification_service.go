@@ -1,7 +1,6 @@
 package notification_service
 
 import (
-	"encoding/json"
 	"errors"
 	"sync"
 	"ticket-zetu-api/modules/notifications/dto"
@@ -50,11 +49,6 @@ func (s *notificationService) SendNotification(dto *dto.CreateNotificationDTO) e
 		return errors.New("validation failed: " + err.Error())
 	}
 
-	metadataJSON, err := json.Marshal(dto.Metadata)
-	if err != nil {
-		return errors.New("invalid metadata format")
-	}
-
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		notification := notifications.Notification{
 			ID:        uuid.New().String(),
@@ -64,7 +58,7 @@ func (s *notificationService) SendNotification(dto *dto.CreateNotificationDTO) e
 			SenderID:  dto.SenderID,
 			RelatedID: dto.RelatedID,
 			Module:    dto.Module,
-			Metadata:  string(metadataJSON),
+			Metadata:  dto.Metadata,
 			IsSystem:  dto.Type == notifications.NotificationTypeSystem,
 		}
 

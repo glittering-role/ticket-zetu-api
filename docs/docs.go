@@ -356,7 +356,140 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/sign-in": {
+        "/auth/reset-password": {
+            "post": {
+                "description": "Updates the user's password using a valid reset token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Set a new password",
+                "parameters": [
+                    {
+                        "description": "Reset token and new password",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SetNewPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired reset token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "423": {
+                        "description": "Account locked",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password-request": {
+            "post": {
+                "description": "Sends a password reset link to the user's email based on username or email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Request a password reset",
+                "parameters": [
+                    {
+                        "description": "Username or email for password reset",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset email sent",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "423": {
+                        "description": "Account locked",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "429": {
+                        "description": "Too many requests",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/signin": {
             "post": {
                 "description": "Logs in a user and returns session tokens",
                 "consumes": [
@@ -376,7 +509,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/authentication.LoginRequest"
+                            "$ref": "#/definitions/dto.LoginRequest"
                         }
                     }
                 ],
@@ -402,8 +535,22 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     },
+                    "403": {
+                        "description": "Email not verified",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
                     "423": {
                         "description": "Account locked",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "429": {
+                        "description": "Too many resend attempts",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -419,9 +566,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/sign-up": {
+        "/auth/signup": {
             "post": {
-                "description": "Creates a new user account",
+                "description": "Creates a new user account and sends a verification email",
                 "consumes": [
                     "application/json"
                 ],
@@ -431,20 +578,20 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Register a new user",
+                "summary": "Sign up a new user",
                 "parameters": [
                     {
-                        "description": "Signup data",
-                        "name": "request",
+                        "description": "Signup request",
+                        "name": "signup",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/authentication.SignUpRequest"
+                            "$ref": "#/definitions/dto.SignUpRequest"
                         }
                     }
                 ],
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "Account created successfully",
                         "schema": {
                             "type": "object",
@@ -452,7 +599,63 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Validation error",
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify-email": {
+            "post": {
+                "description": "Verifies a user's email address using the verification code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Verify user email",
+                "parameters": [
+                    {
+                        "description": "Verification request",
+                        "name": "verifyEmailRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/authentication.VerifyEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email verified successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired token",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -6356,73 +6559,18 @@ const docTemplate = `{
                 }
             }
         },
-        "authentication.LoginRequest": {
+        "authentication.VerifyEmailRequest": {
             "type": "object",
             "required": [
-                "password",
-                "username_or_email"
+                "token",
+                "user_id"
             ],
             "properties": {
-                "password": {
-                    "type": "string",
-                    "minLength": 8
-                },
-                "remember_me": {
-                    "type": "boolean"
-                },
-                "username_or_email": {
+                "token": {
                     "type": "string"
-                }
-            }
-        },
-        "authentication.SignUpRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "first_name",
-                "last_name",
-                "password",
-                "phone",
-                "username"
-            ],
-            "properties": {
-                "date_of_birth": {
-                    "type": "string",
-                    "example": "1990-05-20"
                 },
-                "email": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "example": "john.doe@example.com"
-                },
-                "first_name": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 2,
-                    "example": "John"
-                },
-                "last_name": {
-                    "type": "string",
-                    "maxLength": 100,
-                    "minLength": 2,
-                    "example": "Doe"
-                },
-                "password": {
-                    "type": "string",
-                    "minLength": 8,
-                    "example": "P@ssw0rd!"
-                },
-                "phone": {
-                    "type": "string",
-                    "maxLength": 20,
-                    "minLength": 10,
-                    "example": "+12345678901"
-                },
-                "username": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 3,
-                    "example": "johndoe99"
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
@@ -6940,6 +7088,25 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.LoginRequest": {
+            "type": "object",
+            "required": [
+                "password",
+                "username_or_email"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "remember_me": {
+                    "type": "boolean"
+                },
+                "username_or_email": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.PermissionAssignmentDto": {
             "type": "object",
             "required": [
@@ -7150,6 +7317,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "username_or_email"
+            ],
+            "properties": {
+                "username_or_email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 3,
+                    "example": "johndoe99 or john.doe@example.com"
+                }
+            }
+        },
         "dto.RoleAssignmentDto": {
             "type": "object",
             "required": [
@@ -7217,6 +7398,77 @@ const docTemplate = `{
                 "version": {
                     "type": "integer",
                     "example": 1
+                }
+            }
+        },
+        "dto.SetNewPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "reset_token"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "example": "NewP@ssw0rd123"
+                },
+                "reset_token": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 32,
+                    "example": "abc123xyz"
+                }
+            }
+        },
+        "dto.SignUpRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "first_name",
+                "last_name",
+                "password",
+                "phone",
+                "username"
+            ],
+            "properties": {
+                "date_of_birth": {
+                    "type": "string",
+                    "example": "1990-01-15"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "john.doe@example.com"
+                },
+                "first_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2,
+                    "example": "John"
+                },
+                "last_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2,
+                    "example": "Doe"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "example": "P@ssw0rd123"
+                },
+                "phone": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 10,
+                    "example": "+12345678901"
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3,
+                    "example": "johndoe99"
                 }
             }
         },
@@ -7388,7 +7640,8 @@ const docTemplate = `{
             "properties": {
                 "email": {
                     "type": "string",
-                    "maxLength": 255
+                    "maxLength": 255,
+                    "example": "user@example.com"
                 }
             }
         },
@@ -7476,7 +7729,8 @@ const docTemplate = `{
             "properties": {
                 "phone": {
                     "type": "string",
-                    "maxLength": 20
+                    "maxLength": 20,
+                    "example": "+1234567890"
                 }
             }
         },
@@ -7620,22 +7874,27 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "avatar_url": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "https://cdn.example.com/avatars/alice.jpg"
                 },
                 "date_of_birth": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "1990-04-15"
                 },
                 "first_name": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "example": "Alice"
                 },
                 "gender": {
                     "type": "string",
-                    "maxLength": 50
+                    "maxLength": 50,
+                    "example": "Female"
                 },
                 "last_name": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "example": "Johnson"
                 }
             }
         },
@@ -7646,7 +7905,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "language": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 10,
+                    "example": "en"
                 },
                 "show_email": {
                     "type": "boolean"
@@ -7671,10 +7932,13 @@ const docTemplate = `{
                     "enum": [
                         "light",
                         "dark"
-                    ]
+                    ],
+                    "example": "dark"
                 },
                 "timezone": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "Africa/Nairobi"
                 }
             }
         },
@@ -7720,34 +7984,42 @@ const docTemplate = `{
             "properties": {
                 "city": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "example": "Nairobi"
                 },
                 "continent": {
                     "type": "string",
-                    "maxLength": 50
+                    "maxLength": 50,
+                    "example": "Africa"
                 },
                 "country": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "example": "Kenya"
                 },
                 "last_active": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "2025-06-10T14:30:00+03:00"
                 },
                 "state": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "example": "Nairobi"
                 },
                 "state_name": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "example": "Nairobi County"
                 },
                 "timezone": {
                     "type": "string",
-                    "maxLength": 50
+                    "maxLength": 50,
+                    "example": "Africa/Nairobi"
                 },
                 "zip": {
                     "type": "string",
-                    "maxLength": 20
+                    "maxLength": 20,
+                    "example": "00100"
                 }
             }
         },
@@ -7831,6 +8103,10 @@ const docTemplate = `{
                 "id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "is_verified": {
+                    "type": "boolean",
+                    "example": true
                 },
                 "last_name": {
                     "type": "string",

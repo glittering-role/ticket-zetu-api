@@ -13,6 +13,9 @@ import (
 	"ticket-zetu-api/logs/handler"
 	logs "ticket-zetu-api/logs/routes/v1"
 	"ticket-zetu-api/logs/service"
+	"ticket-zetu-api/mail"
+	mail_service "ticket-zetu-api/modules/users/authentication/mail"
+	"ticket-zetu-api/queue"
 
 	categories "ticket-zetu-api/modules/events/routes/v1/category"
 	events "ticket-zetu-api/modules/events/routes/v1/events"
@@ -29,11 +32,12 @@ import (
 
 	notifications "ticket-zetu-api/modules/notifications/routes/v1"
 
+	_ "ticket-zetu-api/docs" // Import the generated docs package for Swagger
+
 	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
-	_ "ticket-zetu-api/docs" // Import the generated docs package for Swagger
 )
 
 // @title Ticket Zetu API
@@ -61,6 +65,10 @@ func main() {
 	database.InitDB()
 	defer database.CloseDB()
 
+	//Initiate jobs
+	jobQueue := queue.NewJobQueue(5)
+	defer jobQueue.Close()
+
 	// Run migrations
 	if err := database.Migrate(database.DB); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
@@ -70,6 +78,15 @@ func main() {
 	logService := service.NewLogService(database.DB, 100, 5*time.Second, appConfig.Env)
 	defer logService.Shutdown()
 	logHandler := &handler.LogHandler{Service: logService}
+
+	//Mail
+	emailConfig, err := mail.NewConfig(logHandler)
+	if err != nil {
+		log.Fatalf("Failed to initialize email config: %v", err)
+	}
+
+	emailService := mail_service.NewEmailService(emailConfig, logHandler, 5)
+	defer emailService.Shutdown()
 
 	// Initialize Fiber app
 	app := fiber.New()
@@ -101,7 +118,7 @@ func main() {
 	// Register all module routes
 	logs.SetupRoutes(api, logService, logHandler)
 	roles.AuthorizationRoutes(api, database.DB, logHandler)
-	auth.SetupAuthRoutes(api, database.DB, logHandler)
+	auth.SetupAuthRoutes(api, database.DB, logHandler, emailService)
 	users.UserRoutes(api, database.DB, logHandler, cloudinaryService)
 	categories.CategoryRoutes(api, database.DB, logHandler, cloudinaryService)
 	organization.OrganizerRoutes(api, database.DB, logHandler, cloudinaryService)

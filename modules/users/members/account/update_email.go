@@ -37,7 +37,7 @@ func (c *UserController) UpdateEmail(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "invalid request body"), fiber.StatusBadRequest)
 	}
 
-	profile, err := c.service.UpdateUserEmail(userID, &emailDto, userID)
+	_, err := c.service.UpdateUserEmail(userID, &emailDto, userID)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "validation failed") || strings.HasPrefix(err.Error(), "invalid") || strings.Contains(err.Error(), "failed to send") {
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
@@ -51,5 +51,5 @@ func (c *UserController) UpdateEmail(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 	}
 
-	return c.logHandler.LogSuccess(ctx, profile, "Email updated successfully, verification required", true)
+	return c.logHandler.LogSuccess(ctx, nil, "Email updated successfully, verification required", true)
 }

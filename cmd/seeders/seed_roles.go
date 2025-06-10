@@ -7,7 +7,7 @@ import (
 
 	"ticket-zetu-api/config"
 	"ticket-zetu-api/database"
-	"ticket-zetu-api/modules/users/models/authorization"
+	model "ticket-zetu-api/modules/users/models/authorization"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -17,9 +17,9 @@ func SeedRoles(db *gorm.DB) error {
 	roles := []model.Role{
 		{
 			ID:             uuid.New().String(),
-			RoleName:       "admin",
-			Description:    "Administrator with full access",
-			Level:          10,
+			RoleName:       "superadmin",
+			Description:    "Super Administrator with full system access",
+			Level:          100,
 			Status:         model.RoleActive,
 			IsSystemRole:   true,
 			NumberOfUsers:  0,
@@ -31,9 +31,65 @@ func SeedRoles(db *gorm.DB) error {
 		},
 		{
 			ID:             uuid.New().String(),
+			RoleName:       "admin",
+			Description:    "Administrator with full access",
+			Level:          50,
+			Status:         model.RoleActive,
+			IsSystemRole:   true,
+			NumberOfUsers:  0,
+			CreatedBy:      "system",
+			LastModifiedBy: "system",
+			CreatedAt:      time.Now(),
+			UpdatedAt:      time.Now(),
+			Version:        1,
+		},
+		{
+			ID:             uuid.New().String(),
+			RoleName:       "artist",
+			Description:    "Artist with special permissions for content creation",
+			Level:          40,
+			Status:         model.RoleActive,
+			IsSystemRole:   false,
+			NumberOfUsers:  0,
+			CreatedBy:      "system",
+			LastModifiedBy: "system",
+			CreatedAt:      time.Now(),
+			UpdatedAt:      time.Now(),
+			Version:        1,
+		},
+		{
+			ID:             uuid.New().String(),
+			RoleName:       "ticket_curator",
+			Description:    "Can favorite and organize tickets in special collections",
+			Level:          30,
+			Status:         model.RoleActive,
+			IsSystemRole:   false,
+			NumberOfUsers:  0,
+			CreatedBy:      "system",
+			LastModifiedBy: "system",
+			CreatedAt:      time.Now(),
+			UpdatedAt:      time.Now(),
+			Version:        1,
+		},
+		{
+			ID:             uuid.New().String(),
+			RoleName:       "ticket_follower",
+			Description:    "Can follow and favorite tickets",
+			Level:          20,
+			Status:         model.RoleActive,
+			IsSystemRole:   false,
+			NumberOfUsers:  0,
+			CreatedBy:      "system",
+			LastModifiedBy: "system",
+			CreatedAt:      time.Now(),
+			UpdatedAt:      time.Now(),
+			Version:        1,
+		},
+		{
+			ID:             uuid.New().String(),
 			RoleName:       "user",
 			Description:    "Standard user with basic access",
-			Level:          5,
+			Level:          10,
 			Status:         model.RoleActive,
 			IsSystemRole:   false,
 			NumberOfUsers:  0,

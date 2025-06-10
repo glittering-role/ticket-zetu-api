@@ -1,70 +1,96 @@
 package auth_service
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
 
+	"ticket-zetu-api/logs/handler"
+	"ticket-zetu-api/modules/users/authentication/dto"
+	"ticket-zetu-api/modules/users/authentication/mail"
 	"ticket-zetu-api/modules/users/models/members"
 
-	"github.com/google/uuid"
+	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
 
 type UserService interface {
-	CreateUser(tx *gorm.DB, user *members.User, encodedHashedPassword string, prefs *members.UserPreferences, session *members.UserSession) error
+	SignUp(ctx context.Context, req dto.SignUpRequest, userID, encodedHash string) (*members.User, error)
+	Authenticate(ctx context.Context, c *fiber.Ctx, usernameOrEmail, encodedHash string, rememberMe bool, ipAddress, userAgent string) (*members.User, *members.UserSession, error)
 	ValidateUserExists(username, email string) error
 	CreateSession(tx *gorm.DB, session *members.UserSession) error
+	VerifyEmailCode(tx *gorm.DB, userID, code string) error
+	UpdateVerificationCode(ctx context.Context, userID, verificationCode string) error
+	RequestPasswordReset(ctx context.Context, c *fiber.Ctx, usernameOrEmail string) error
+	SetNewPassword(ctx context.Context, c *fiber.Ctx, resetToken, newPassword string) error
 }
 
 type userService struct {
-	db *gorm.DB
+	db           *gorm.DB
+	logHandler   *handler.LogHandler
+	emailService mail_service.EmailService
 }
 
-func NewUserService(db *gorm.DB) UserService {
-	return &userService{db: db}
+func NewUserService(db *gorm.DB, logHandler *handler.LogHandler, emailService mail_service.EmailService) UserService {
+	return &userService{
+		db:           db,
+		logHandler:   logHandler,
+		emailService: emailService,
+	}
 }
 
-func (s *userService) CreateUser(
-	tx *gorm.DB,
-	user *members.User,
-	encodedHashedPassword string,
-	prefs *members.UserPreferences,
-	session *members.UserSession,
-) error {
-	// Attempt to create the user
-	if err := tx.Create(user).Error; err != nil {
-		if isDuplicateKeyError(err) {
-			return getDuplicateKeyMessage(err)
-		}
+func (s *userService) UpdateVerificationCode(ctx context.Context, userID, verificationCode string) error {
+	tx := s.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return errors.New("failed to start transaction")
+	}
+
+	if err := tx.Model(&members.UserSecurityAttributes{}).
+		Where("user_id = ?", userID).
+		Updates(map[string]interface{}{
+			"email_verification_token": verificationCode,
+			"email_token_expiry":       time.Now().Add(24 * time.Hour),
+		}).Error; err != nil {
+		tx.Rollback()
 		return err
 	}
 
-	// Create related security attributes
-	securityAttrs := members.UserSecurityAttributes{
-		UserID:           uuid.MustParse(user.ID),
-		Password:         encodedHashedPassword,
-		AuthType:         members.AuthTypePassword,
-		TwoFactorEnabled: false,
-		CreatedAt:        time.Now(),
-		UpdatedAt:        time.Now(),
-	}
-	if err := tx.Create(&securityAttrs).Error; err != nil {
-		return err
+	if err := tx.Commit().Error; err != nil {
+		return errors.New("failed to commit transaction")
 	}
 
-	// Create user preferences (optional)
-	if prefs != nil {
-		if err := tx.Create(prefs).Error; err != nil {
-			return err
+	return nil
+}
+
+func (s *userService) VerifyEmailCode(tx *gorm.DB, userID, code string) error {
+	var securityAttrs members.UserSecurityAttributes
+	if err := tx.Where("user_id = ? AND is_deleted = ?", userID, false).First(&securityAttrs).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("user not found or account is deleted")
 		}
+		return errors.New("failed to fetch user security attributes: " + err.Error())
 	}
 
-	// Create session (optional)
-	if session != nil {
-		if err := tx.Create(session).Error; err != nil {
-			return err
-		}
+	if securityAttrs.EmailVerificationToken != code {
+		return errors.New("invalid verification code")
+	}
+
+	if securityAttrs.EmailTokenExpiry != nil && securityAttrs.EmailTokenExpiry.Before(time.Now()) {
+		return errors.New("verification code has expired")
+	}
+
+	verifiedAt := time.Now()
+	if err := tx.Model(&members.UserSecurityAttributes{}).
+		Where("user_id = ?", userID).
+		Updates(map[string]interface{}{
+			"email_verified":           true,
+			"email_verified_at":        verifiedAt,
+			"email_verification_token": "",
+			"email_token_expiry":       nil,
+			"updated_at":               verifiedAt,
+		}).Error; err != nil {
+		return errors.New("failed to update email verification status: " + err.Error())
 	}
 
 	return nil
@@ -88,19 +114,10 @@ func (s *userService) ValidateUserExists(username, email string) error {
 	return nil
 }
 
-func (s *userService) CreateSession(tx *gorm.DB, session *members.UserSession) error {
-	if session == nil {
-		return errors.New("session data is required")
-	}
-	return tx.Create(session).Error
-}
-
-// isDuplicateKeyError checks for MySQL duplicate entry error 1062.
 func isDuplicateKeyError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "Error 1062")
 }
 
-// getDuplicateKeyMessage extracts a user-friendly message based on the constraint.
 func getDuplicateKeyMessage(err error) error {
 	msg := err.Error()
 
@@ -114,4 +131,8 @@ func getDuplicateKeyMessage(err error) error {
 	default:
 		return errors.New("duplicate entry")
 	}
+}
+
+func isUserOver16(dob time.Time) bool {
+	return time.Since(dob).Hours()/24/365 >= 16
 }

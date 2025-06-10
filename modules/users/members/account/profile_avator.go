@@ -57,7 +57,7 @@ func (c *ImageController) UploadProfileImage(ctx *fiber.Ctx) error {
 	}
 	defer f.Close()
 
-	url, err := c.service.UploadProfileImage(ctx.Context(), userID, f, file.Header.Get("Content-Type"))
+	_, err = c.service.UploadProfileImage(ctx.Context(), userID, f, file.Header.Get("Content-Type"))
 	if err != nil {
 		switch err.Error() {
 		case "invalid user ID format":
@@ -73,7 +73,7 @@ func (c *ImageController) UploadProfileImage(ctx *fiber.Ctx) error {
 		}
 	}
 
-	return c.logHandler.LogSuccess(ctx, map[string]string{"avatar_url": url}, "Profile image uploaded successfully", true)
+	return c.logHandler.LogSuccess(ctx, nil, "Profile image uploaded successfully", true)
 }
 
 // DeleteProfileImage godoc

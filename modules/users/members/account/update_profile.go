@@ -36,7 +36,7 @@ func (c *UserController) UpdateLocation(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "invalid request body"), fiber.StatusBadRequest)
 	}
 
-	profile, err := c.service.UpdateUserLocation(userID, &locationDto, userID)
+	_, err := c.service.UpdateUserLocation(userID, &locationDto, userID)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "validation failed") || strings.HasPrefix(err.Error(), "invalid") {
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
@@ -47,5 +47,5 @@ func (c *UserController) UpdateLocation(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 	}
 
-	return c.logHandler.LogSuccess(ctx, profile, "User location updated successfully", true)
+	return c.logHandler.LogSuccess(ctx, nil, "User location updated successfully", true)
 }

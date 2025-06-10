@@ -2,26 +2,31 @@ package routes
 
 import (
 	"ticket-zetu-api/logs/handler"
-
-	"gorm.io/gorm"
-	"ticket-zetu-api/modules/users/authentication/controllers"
-	"ticket-zetu-api/modules/users/authentication/service"
-	"ticket-zetu-api/modules/users/authentication/utils"
+	authentication "ticket-zetu-api/modules/users/authentication/controllers"
+	mail_service "ticket-zetu-api/modules/users/authentication/mail"
+	auth_service "ticket-zetu-api/modules/users/authentication/service"
+	auth_utils "ticket-zetu-api/modules/users/authentication/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
-func SetupAuthRoutes(api fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
-	userService := auth_service.NewUserService(db)
-	authController := authentication.NewAuthController(db, logHandler, userService)
+func SetupAuthRoutes(api fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, emailService mail_service.EmailService) {
+	userService := auth_service.NewUserService(db, logHandler, emailService)
+	authController, err := authentication.NewAuthController(db, emailService, userService, logHandler)
+	if err != nil {
+		panic(err)
+	}
 	userNameCheck := auth_utils.CheckUsernameAvailability(db, logHandler)
 
 	auth := api.Group("/auth")
 	{
-
-		auth.Post("/sign-up", authController.SignUp)
-		auth.Post("/sign-in", authController.SignIn)
+		auth.Post("/signup", authController.SignUp)
+		auth.Post("/signin", authController.SignIn)
 		auth.Get("/check-username", userNameCheck.CheckUsername)
 		auth.Post("/logout", authController.Logout)
+		auth.Post("/verify-email", authController.VerifyEmail)
+		auth.Post("/reset-password-request", authController.RequestPasswordReset)
+		auth.Post("/reset-password", authController.SetNewPassword)
 	}
 }

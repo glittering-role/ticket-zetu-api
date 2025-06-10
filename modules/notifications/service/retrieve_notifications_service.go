@@ -1,7 +1,6 @@
 package notification_service
 
 import (
-	"encoding/json"
 	"errors"
 	"ticket-zetu-api/modules/notifications/dto"
 	"ticket-zetu-api/modules/notifications/models"
@@ -55,8 +54,8 @@ func (s *notificationService) GetUserNotifications(userID string, unreadOnly boo
 	responseDTOs := make([]dto.UserNotificationResponseDTO, len(userNotifications))
 	for i, un := range userNotifications {
 		var metadata map[string]interface{}
-		if un.Notification.Metadata != "" {
-			_ = json.Unmarshal([]byte(un.Notification.Metadata), &metadata)
+		if un.Notification.Metadata != nil {
+			metadata = un.Notification.Metadata
 		}
 
 		var sender *dto.SenderDTO

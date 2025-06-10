@@ -31,6 +31,7 @@ require (
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
@@ -38,7 +39,6 @@ require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/arsmn/fiber-swagger/v2 v2.31.1
 	github.com/cloudinary/cloudinary-go/v2 v2.10.0
-	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/gofiber/fiber/v2 v2.52.8
 	github.com/google/uuid v1.6.0
@@ -52,6 +52,7 @@ require (
 	github.com/valyala/fasthttp v1.62.0 // indirect
 	golang.org/x/crypto v0.38.0
 	golang.org/x/sys v0.33.0 // indirect
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.26.1
 )

@@ -17,6 +17,7 @@ const (
 type UserSecurityAttributes struct {
 	ID                       uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	UserID                   uuid.UUID      `gorm:"type:char(36);uniqueIndex" json:"user_id"`
+	User                     User           `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE" json:"-"`
 	Password                 string         `gorm:"type:text" json:"-"`
 	AuthType                 AuthType       `gorm:"type:varchar(20);default:'password'" json:"auth_type"`
 	PendingEmail             string         `gorm:"type:varchar(255)" json:"-"`
@@ -24,6 +25,8 @@ type UserSecurityAttributes struct {
 	PasswordResetTokenExpiry *time.Time     `gorm:"type:timestamp" json:"-"`
 	EmailVerificationToken   string         `gorm:"type:text" json:"-"`
 	EmailTokenExpiry         *time.Time     `gorm:"type:timestamp" json:"-"`
+	EmailVerified            bool           `gorm:"default:false" json:"email_verified"`
+	EmailVerifiedAt          *time.Time     `gorm:"type:timestamp" json:"email_verified_at,omitempty"`
 	TwoFactorEnabled         bool           `gorm:"default:false" json:"two_factor_enabled"`
 	TwoFactorSecret          string         `gorm:"type:text" json:"-"`
 	FailedLoginAttempts      int            `gorm:"default:0" json:"failed_login_attempts"`
@@ -32,9 +35,6 @@ type UserSecurityAttributes struct {
 	CreatedAt                time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt                time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt                gorm.DeletedAt `gorm:"index" json:"-"`
-
-	// Relationships
-	User User `gorm:"foreignKey:UserID;references:ID" json:"-"`
 }
 
 func (a *UserSecurityAttributes) BeforeCreate(tx *gorm.DB) (err error) {

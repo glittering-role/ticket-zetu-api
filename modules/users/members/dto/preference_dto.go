@@ -31,20 +31,7 @@ type UpdateUserPreferencesDto struct {
 	ShowRole       *bool   `json:"show_role" validate:"omitempty"`
 	ShowProfile    *bool   `json:"show_profile" validate:"omitempty"`
 	AllowFollowing *bool   `json:"allow_following" validate:"omitempty"`
-	Language       *string `json:"language" validate:"omitempty,len=2"`
-	Theme          *string `json:"theme" validate:"omitempty,oneof=light dark"`
-	Timezone       *string `json:"timezone" validate:"omitempty,timezone"`
-}
-
-type UpdateUserPreferencesData struct {
-	ShowEmail      bool   `json:"show_email" example:"true"`
-	ShowPhone      bool   `json:"show_phone" example:"false"`
-	ShowLocation   bool   `json:"show_location" example:"true"`
-	ShowGender     bool   `json:"show_gender" example:"false"`
-	ShowRole       bool   `json:"show_role" example:"true"`
-	ShowProfile    bool   `json:"show_profile" example:"true"`
-	AllowFollowing bool   `json:"allow_following" example:"true"`
-	Language       string `json:"language,omitempty" example:"en" validate:"omitempty,len=2"`
-	Theme          string `json:"theme,omitempty" example:"dark" validate:"omitempty,oneof=light dark"`
-	Timezone       string `json:"timezone,omitempty" example:"Africa/Nairobi"` // optional, validate if needed
+	Language       *string `json:"language" validate:"omitempty,max=10" example:"en"`
+	Theme          *string `json:"theme" validate:"omitempty,oneof=light dark" example:"dark"`
+	Timezone       *string `json:"timezone" validate:"omitempty,max=100" example:"Africa/Nairobi"`
 }

@@ -49,14 +49,14 @@ type Event struct {
 	HasTickets bool        `gorm:"default:true" json:"has_tickets"`
 	IsFeatured bool        `gorm:"default:false;index" json:"is_featured"`
 	Status     EventStatus `gorm:"size:20;not null;default:'active';index" json:"status"`
-	Tags       []string    `gorm:"type:text[]" json:"tags,omitempty"`
+	Tags       []string    `gorm:"type:json" json:"tags,omitempty"`
 
 	PublishedAt *time.Time `gorm:"index" json:"published_at,omitempty"`
 
 	EventImages []EventImage `gorm:"foreignKey:EventID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"event_images"`
 
-	CreatedAt time.Time      `gorm:"autoCreateTime" json:"-"`
-	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"-"`
+	CreatedAt time.Time      `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	Version   int            `gorm:"default:1" json:"-"`
 }

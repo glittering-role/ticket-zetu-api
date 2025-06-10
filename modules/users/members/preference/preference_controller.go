@@ -83,7 +83,7 @@ func (c *UserPreferencesController) UpdateUserPreferences(ctx *fiber.Ctx) error 
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "invalid request body"), fiber.StatusBadRequest)
 	}
 
-	preferences, err := c.service.UpdateUserPreferences(userID, &preferencesDto)
+	_, err := c.service.UpdateUserPreferences(userID, &preferencesDto)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "invalid") || strings.HasPrefix(err.Error(), "validation") || strings.HasPrefix(err.Error(), "no updates") {
 			return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
@@ -91,5 +91,5 @@ func (c *UserPreferencesController) UpdateUserPreferences(ctx *fiber.Ctx) error 
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, err.Error()), fiber.StatusInternalServerError)
 	}
 
-	return c.logHandler.LogSuccess(ctx, preferences, "User preferences updated successfully", true)
+	return c.logHandler.LogSuccess(ctx, nil, "User preferences updated successfully", true)
 }
