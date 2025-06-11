@@ -2,7 +2,7 @@ package authentication
 
 import (
 	"encoding/base64"
-	"fmt"
+	"errors"
 	"ticket-zetu-api/modules/users/authentication/dto"
 
 	"github.com/gofiber/fiber/v2"
@@ -24,7 +24,7 @@ import (
 func (ac *AuthController) SignUp(c *fiber.Ctx) error {
 	var req dto.SignUpRequest
 	if err := c.BodyParser(&req); err != nil {
-		return ac.logHandler.LogError(c, fmt.Errorf("invalid request payload: %w", err), fiber.StatusBadRequest)
+		return ac.logHandler.LogError(c, errors.New("invalid request payload"), fiber.StatusBadRequest)
 	}
 
 	userID := uuid.New().String()
@@ -36,13 +36,15 @@ func (ac *AuthController) SignUp(c *fiber.Ctx) error {
 		return ac.logHandler.LogError(c, err, fiber.StatusBadRequest)
 	}
 
-	verificationCode, err := ac.emailService.GenerateAndSendVerificationCode(c, user.Email, user.Username, user.ID)
+	verificationCode, err := ac.emailService.GenerateAndSendVerificationCode(c, req.Email, user.Username, user.ID)
 	if err != nil {
-		return ac.logHandler.LogError(c, fmt.Errorf("failed to send verification code: %v", err), fiber.StatusInternalServerError)
+		ac.logHandler.LogError(c, errors.New("failed to send verification code"), fiber.StatusInternalServerError)
+		return err
 	}
 
 	if err := ac.userService.UpdateVerificationCode(c.Context(), user.ID, verificationCode); err != nil {
-		return ac.logHandler.LogError(c, fmt.Errorf("failed to store verification code: %v", err), fiber.StatusInternalServerError)
+		ac.logHandler.LogError(c, errors.New("failed to store verification code"), fiber.StatusInternalServerError)
+		return err
 	}
 
 	return ac.logHandler.LogSuccess(c, fiber.Map{

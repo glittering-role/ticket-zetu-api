@@ -2,7 +2,7 @@ package dto
 
 // SignUpRequest defines the structure for signup requests
 type SignUpRequest struct {
-	Username    string `json:"username" example:"johndoe99" validate:"required,min=3,max=50,alphanum"`
+	Username    string `json:"username" example:"john_doe99" validate:"required,min=6,max=50,regexp=^[a-zA-Z0-9_]+$"`
 	FirstName   string `json:"first_name" example:"John" validate:"required,min=2,max=100"`
 	LastName    string `json:"last_name" example:"Doe" validate:"required,min=2,max=100"`
 	Email       string `json:"email" example:"john.doe@example.com" validate:"required,email,max=255"`

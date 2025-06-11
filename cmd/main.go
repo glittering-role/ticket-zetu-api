@@ -32,7 +32,7 @@ import (
 
 	notifications "ticket-zetu-api/modules/notifications/routes/v1"
 
-	_ "ticket-zetu-api/docs" // Import the generated docs package for Swagger
+	_ "ticket-zetu-api/docs"
 
 	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/gofiber/fiber/v2"
@@ -110,7 +110,7 @@ func main() {
 		},
 	}))
 
-	app.Get("/swagger/*", swagger.New()) // default
+	app.Get("/swagger/*", swagger.New())
 
 	// Create API group
 	api := app.Group("/api/v1")
@@ -119,7 +119,7 @@ func main() {
 	logs.SetupRoutes(api, logService, logHandler)
 	roles.AuthorizationRoutes(api, database.DB, logHandler)
 	auth.SetupAuthRoutes(api, database.DB, logHandler, emailService)
-	users.UserRoutes(api, database.DB, logHandler, cloudinaryService)
+	users.UserRoutes(api, database.DB, logHandler, cloudinaryService, emailService)
 	categories.CategoryRoutes(api, database.DB, logHandler, cloudinaryService)
 	organization.OrganizerRoutes(api, database.DB, logHandler, cloudinaryService)
 	venue.VenueRoutes(api, database.DB, logHandler, cloudinaryService)

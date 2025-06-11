@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"errors"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -49,7 +50,5 @@ func (ac *AuthController) VerifyEmail(c *fiber.Ctx) error {
 		return ac.logHandler.LogError(c, errors.New("failed to commit transaction"), fiber.StatusInternalServerError)
 	}
 
-	return ac.logHandler.LogSuccess(c, fiber.Map{
-		"message": "Email verified successfully",
-	}, "Email verified successfully", false)
+	return ac.logHandler.LogSuccess(c, nil, "Email verified successfully", false)
 }

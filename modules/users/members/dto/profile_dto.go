@@ -1,6 +1,5 @@
 package dto
 
-// UserProfileResponseDto defines the response structure for user profile data
 type UserProfileResponseDto struct {
 	ID             string                `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Username       string                `json:"username" example:"johndoe"`
@@ -20,7 +19,6 @@ type UserProfileResponseDto struct {
 	UpdatedAt      string                `json:"updated_at" example:"2025-10-01T12:00:00Z"`
 }
 
-// UserLocationDto defines detailed location data for user profiles
 type UserLocationDto struct {
 	Country    string  `json:"country,omitempty" example:"US"`
 	State      string  `json:"state,omitempty" example:"NY"`
@@ -32,7 +30,6 @@ type UserLocationDto struct {
 	LastActive *string `json:"last_active,omitempty" example:"2025-06-05T08:00:00Z"`
 }
 
-// UpdateUserDto defines the input structure for updating user details
 type UpdateUserDto struct {
 	FirstName   *string `json:"first_name" validate:"omitempty,max=100" example:"Alice"`
 	LastName    *string `json:"last_name" validate:"omitempty,max=100" example:"Johnson"`
@@ -41,17 +38,23 @@ type UpdateUserDto struct {
 	Gender      *string `json:"gender" validate:"omitempty,max=50" example:"Female"`
 }
 
-// UpdatePhoneDto defines the input structure for updating phone number
 type UpdatePhoneDto struct {
 	Phone string `json:"phone" validate:"required,max=20" example:"+1234567890"`
 }
 
-// UpdateEmailDto defines the input structure for updating email
 type UpdateEmailDto struct {
 	Email string `json:"email" validate:"required,email,max=255" example:"user@example.com"`
 }
 
-// UserLocationUpdateDto defines the input structure for updating user location
+type UpdateUsernameDto struct {
+	Username string `json:"username" validate:"required,min=3,max=50"`
+}
+
+type NewPasswordDto struct {
+	NewPassword     string `json:"newPassword" validate:"required,min=8,max=128"`
+	ConfirmPassword string `json:"confirmPassword" validate:"required,eqfield=NewPassword"`
+}
+
 type UserLocationUpdateDto struct {
 	Country    *string `json:"country,omitempty" validate:"omitempty,max=100" example:"Kenya"`
 	State      *string `json:"state,omitempty" validate:"omitempty,max=100" example:"Nairobi"`

@@ -3,6 +3,8 @@ package auth_service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"ticket-zetu-api/modules/users/authentication/dto"
@@ -13,7 +15,69 @@ import (
 	"gorm.io/gorm"
 )
 
+// UsernameExistsError is a custom error type for username conflicts
+type UsernameExistsError struct {
+	Message string
+}
+
+func (e *UsernameExistsError) Error() string {
+	return e.Message
+}
+
+// EmailExistsError is a custom error type for email conflicts
+type EmailExistsError struct {
+	Message string
+}
+
+func (e *EmailExistsError) Error() string {
+	return e.Message
+}
+
+func normalizeEmail(e string) string {
+	return strings.ToLower(strings.TrimSpace(e))
+}
+
+func (s *userService) ValidateUserExists(username, email string) error {
+	normalizedEmail := normalizeEmail(email)
+
+	// 1) Username
+	if err := s.db.Where("username = ?", username).First(&members.User{}).Error; err == nil {
+		return &UsernameExistsError{"username already exists"}
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("username check failed: %w", err)
+	}
+
+	// 2) Confirmed email
+	if err := s.db.
+		Where("LOWER(email) = ?", normalizedEmail).
+		First(&members.User{}).
+		Error; err == nil {
+		return &EmailExistsError{"email already exists"}
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("email check failed: %w", err)
+	}
+
+	// 3) Pending email
+	if err := s.db.
+		Where("LOWER(pending_email) = ?", normalizedEmail).
+		First(&members.UserSecurityAttributes{}).
+		Error; err == nil {
+		return &EmailExistsError{"email is already pending verification"}
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("pending email check failed: %w", err)
+	}
+
+	return nil
+}
+
+// isUserOver16 checks if the user is at least 16 years old
+func isUserOver16(dob time.Time) bool {
+	return time.Since(dob).Hours()/24/365 >= 16
+}
+
+// SignUp handles user registration
 func (s *userService) SignUp(ctx context.Context, req dto.SignUpRequest, userID, encodedHash string) (*members.User, error) {
+	// Parse and validate date of birth
 	var dob *time.Time
 	if req.DateOfBirth != "" {
 		parsedDob, err := time.Parse("2006-01-02", req.DateOfBirth)
@@ -26,18 +90,21 @@ func (s *userService) SignUp(ctx context.Context, req dto.SignUpRequest, userID,
 		dob = &parsedDob
 	}
 
+	// Validate username and email availability
+	if err := s.ValidateUserExists(req.Username, req.Email); err != nil {
+		return nil, err
+	}
+
+	// Get default guest role
 	var role authorization.Role
 	if err := s.db.Where("role_name = ?", "guest").First(&role).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("default guest role not found")
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get guest role: %w", err)
 	}
 
-	if err := s.ValidateUserExists(req.Username, req.Email); err != nil {
-		return nil, err
-	}
-
+	// Prepare user object
 	user := &members.User{
 		ID:          userID,
 		Username:    req.Username,
@@ -49,6 +116,7 @@ func (s *userService) SignUp(ctx context.Context, req dto.SignUpRequest, userID,
 		RoleID:      role.ID,
 	}
 
+	// Prepare user preferences
 	prefs := &members.UserPreferences{
 		UserID:   uuid.MustParse(user.ID),
 		Language: "en",
@@ -56,21 +124,9 @@ func (s *userService) SignUp(ctx context.Context, req dto.SignUpRequest, userID,
 		Timezone: "UTC",
 	}
 
-	tx := s.db.WithContext(ctx).Begin()
-	if tx.Error != nil {
-		return nil, errors.New("failed to start transaction")
-	}
-
-	if err := tx.Create(user).Error; err != nil {
-		tx.Rollback()
-		if isDuplicateKeyError(err) {
-			return nil, getDuplicateKeyMessage(err)
-		}
-		return nil, err
-	}
-
+	// Prepare security attributes
 	expiry := time.Now().Add(24 * time.Hour)
-	securityAttrs := members.UserSecurityAttributes{
+	securityAttrs := &members.UserSecurityAttributes{
 		UserID:           uuid.MustParse(user.ID),
 		Password:         encodedHash,
 		AuthType:         members.AuthTypePassword,
@@ -80,16 +136,37 @@ func (s *userService) SignUp(ctx context.Context, req dto.SignUpRequest, userID,
 		UpdatedAt:        time.Now(),
 	}
 
-	if err := tx.Create(&securityAttrs).Error; err != nil {
+	// Start database transaction
+	tx := s.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return nil, errors.New("failed to start transaction")
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Create user and related records
+	if err := tx.Create(user).Error; err != nil {
 		tx.Rollback()
-		return nil, err
+		if isDuplicateKeyError(err) {
+			return nil, getDuplicateKeyMessage(err)
+		}
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	if err := tx.Create(securityAttrs).Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to create security attributes: %w", err)
 	}
 
 	if err := tx.Create(prefs).Error; err != nil {
 		tx.Rollback()
-		return nil, err
+		return nil, fmt.Errorf("failed to create user preferences: %w", err)
 	}
 
+	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		return nil, errors.New("failed to commit transaction")
 	}

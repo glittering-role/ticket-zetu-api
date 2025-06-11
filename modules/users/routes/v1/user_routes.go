@@ -3,6 +3,8 @@ package routes
 import (
 	"ticket-zetu-api/cloudinary"
 	"ticket-zetu-api/logs/handler"
+	mail_service "ticket-zetu-api/modules/users/authentication/mail"
+	auth_utils "ticket-zetu-api/modules/users/authentication/utils"
 	"ticket-zetu-api/modules/users/members/account"
 	"ticket-zetu-api/modules/users/members/preference"
 	members_service "ticket-zetu-api/modules/users/members/service"
@@ -12,10 +14,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func UserRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, cloudinary *cloudinary.CloudinaryService) {
+func UserRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, cloudinary *cloudinary.CloudinaryService, emailService mail_service.EmailService) {
 	authMiddleware := middleware.IsAuthenticated(db)
+	userNameCheck := auth_utils.NewUsernameCheck(db, logHandler)
 
-	userService := members_service.NewUserService(db)
+	userService := members_service.NewUserService(db, emailService, userNameCheck)
 	userController := account.NewUserController(userService, logHandler)
 
 	preferencesService := members_service.NewUserPreferencesService(db)
@@ -32,6 +35,8 @@ func UserRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler
 		userGroup.Post("/me/location", userController.UpdateLocation)
 		userGroup.Post("/me/phone", userController.UpdatePhone)
 		userGroup.Post("/me/email", userController.UpdateEmail)
+		userGroup.Post("/me/username", userController.UpdateUsername)
+		userGroup.Post("/me/password", userController.SetNewPassword)
 	}
 
 	userGroupPr := router.Group("/users/me", authMiddleware)

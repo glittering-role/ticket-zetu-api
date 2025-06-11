@@ -63,57 +63,6 @@ func (s *userService) UpdateVerificationCode(ctx context.Context, userID, verifi
 	return nil
 }
 
-func (s *userService) VerifyEmailCode(tx *gorm.DB, userID, code string) error {
-	var securityAttrs members.UserSecurityAttributes
-	if err := tx.Where("user_id = ? AND is_deleted = ?", userID, false).First(&securityAttrs).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("user not found or account is deleted")
-		}
-		return errors.New("failed to fetch user security attributes: " + err.Error())
-	}
-
-	if securityAttrs.EmailVerificationToken != code {
-		return errors.New("invalid verification code")
-	}
-
-	if securityAttrs.EmailTokenExpiry != nil && securityAttrs.EmailTokenExpiry.Before(time.Now()) {
-		return errors.New("verification code has expired")
-	}
-
-	verifiedAt := time.Now()
-	if err := tx.Model(&members.UserSecurityAttributes{}).
-		Where("user_id = ?", userID).
-		Updates(map[string]interface{}{
-			"email_verified":           true,
-			"email_verified_at":        verifiedAt,
-			"email_verification_token": "",
-			"email_token_expiry":       nil,
-			"updated_at":               verifiedAt,
-		}).Error; err != nil {
-		return errors.New("failed to update email verification status: " + err.Error())
-	}
-
-	return nil
-}
-
-func (s *userService) ValidateUserExists(username, email string) error {
-	var user members.User
-
-	if err := s.db.Where("username = ?", username).First(&user).Error; err == nil {
-		return errors.New("username already exists")
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return errors.New("failed to check username existence")
-	}
-
-	if err := s.db.Where("email = ?", email).First(&user).Error; err == nil {
-		return errors.New("email already exists")
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return errors.New("failed to check email existence")
-	}
-
-	return nil
-}
-
 func isDuplicateKeyError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "Error 1062")
 }
@@ -131,8 +80,4 @@ func getDuplicateKeyMessage(err error) error {
 	default:
 		return errors.New("duplicate entry")
 	}
-}
-
-func isUserOver16(dob time.Time) bool {
-	return time.Since(dob).Hours()/24/365 >= 16
 }

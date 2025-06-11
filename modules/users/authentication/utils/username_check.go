@@ -28,7 +28,7 @@ type UsernameCacheEntry struct {
 	ExpiresAt time.Time
 }
 
-func CheckUsernameAvailability(db *gorm.DB, logHandler *handler.LogHandler) *UsernameCheck {
+func NewUsernameCheck(db *gorm.DB, logHandler *handler.LogHandler) *UsernameCheck {
 	return &UsernameCheck{
 		db:          db,
 		logHandler:  logHandler,
@@ -71,7 +71,6 @@ var (
 // @Failure 429 {object} map[string]interface{} "Too many requests"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Router /auth/check-username [get]
-// CheckUsername handles username availability checks
 func (uc *UsernameCheck) CheckUsername(ctx *fiber.Ctx) error {
 	// Rate limiting by IP
 	ip := ctx.IP()
@@ -125,6 +124,54 @@ func (uc *UsernameCheck) CheckUsername(ctx *fiber.Ctx) error {
 	uc.cacheMutex.Unlock()
 
 	return uc.logHandler.LogSuccess(ctx, response, "Username check completed", false)
+}
+
+// ValidateAndCheckUsername validates a username and checks its availability, returning suggestions if taken
+func (uc *UsernameCheck) ValidateAndCheckUsername(username string) (bool, []string, error) {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return false, nil, errors.New("username is required")
+	}
+
+	// Check cache first
+	uc.cacheMutex.RLock()
+	if cached, exists := uc.cache[username]; exists && time.Now().Before(cached.ExpiresAt) {
+		uc.cacheMutex.RUnlock()
+		return cached.Response.Available, cached.Response.Suggestions, nil
+	}
+	uc.cacheMutex.RUnlock()
+
+	// Validate against international standards
+	if err := validateInternationalUsername(username); err != nil {
+		return false, nil, err
+	}
+
+	// Check username availability
+	var user members.User
+	err := uc.db.Where("username = ?", username).First(&user).Error
+	available := true
+	suggestions := []string{}
+
+	if err == nil {
+		available = false
+		suggestions = uc.generateUsernameSuggestions(username)
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil, errors.New("failed to check username availability")
+	}
+
+	// Cache the result
+	uc.cacheMutex.Lock()
+	uc.cache[username] = UsernameCacheEntry{
+		Response: UsernameCheckResponse{
+			Available:   available,
+			Message:     "Username check completed",
+			Suggestions: suggestions,
+		},
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	}
+	uc.cacheMutex.Unlock()
+
+	return available, suggestions, nil
 }
 
 func validateInternationalUsername(username string) error {

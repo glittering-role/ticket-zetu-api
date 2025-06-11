@@ -1,10 +1,10 @@
 package authentication
 
 import (
-	"fmt"
+	"errors"
+	"ticket-zetu-api/modules/users/authentication/dto"
 
 	"github.com/gofiber/fiber/v2"
-	"ticket-zetu-api/modules/users/authentication/dto"
 )
 
 // RequestPasswordReset godoc
@@ -24,7 +24,7 @@ import (
 func (ac *AuthController) RequestPasswordReset(c *fiber.Ctx) error {
 	var req dto.ResetPasswordRequest
 	if err := c.BodyParser(&req); err != nil {
-		return ac.logHandler.LogError(c, fmt.Errorf("invalid request payload: %w", err), fiber.StatusBadRequest)
+		return ac.logHandler.LogError(c, errors.New("invalid request payload"), fiber.StatusBadRequest)
 	}
 
 	err := ac.userService.RequestPasswordReset(c.Context(), c, req.UsernameOrEmail)
@@ -51,7 +51,7 @@ func (ac *AuthController) RequestPasswordReset(c *fiber.Ctx) error {
 func (ac *AuthController) SetNewPassword(c *fiber.Ctx) error {
 	var req dto.SetNewPasswordRequest
 	if err := c.BodyParser(&req); err != nil {
-		return ac.logHandler.LogError(c, fmt.Errorf("invalid request payload: %w", err), fiber.StatusBadRequest)
+		return ac.logHandler.LogError(c, errors.New("invalid request payload"), fiber.StatusBadRequest)
 	}
 
 	err := ac.userService.SetNewPassword(c.Context(), c, req.ResetToken, req.NewPassword)

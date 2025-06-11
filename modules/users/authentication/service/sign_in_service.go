@@ -6,7 +6,6 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -30,6 +29,9 @@ type LogHandler interface {
 }
 
 func (s *userService) Authenticate(ctx context.Context, c *fiber.Ctx, usernameOrEmail, password string, rememberMe bool, ipAddress, userAgent string) (*members.User, *members.UserSession, error) {
+	// Normalize input for consistent querying
+	usernameOrEmail = strings.TrimSpace(strings.ToLower(usernameOrEmail))
+
 	user, securityAttrs, err := s.findUserAndSecurity(usernameOrEmail)
 	if err != nil {
 		return nil, nil, err
@@ -39,7 +41,7 @@ func (s *userService) Authenticate(ctx context.Context, c *fiber.Ctx, usernameOr
 	if !securityAttrs.EmailVerified {
 		_, err := s.emailService.GenerateAndSendVerificationCode(c, user.Email, user.Username, user.ID)
 		if err != nil {
-			s.logHandler.LogError(c, fmt.Errorf("failed to resend verification email: %v", err), fiber.StatusInternalServerError)
+			s.logHandler.LogError(c, errors.New("failed to resend verification email"), fiber.StatusInternalServerError)
 		}
 		return nil, nil, errors.New("email not verified, verification email resent")
 	}
@@ -48,7 +50,7 @@ func (s *userService) Authenticate(ctx context.Context, c *fiber.Ctx, usernameOr
 	if securityAttrs.IsLocked() {
 		err := s.emailService.SendLoginWarning(c, user.Email, user.Username, userAgent, ipAddress, time.Now(), "account_locked")
 		if err != nil {
-			s.logHandler.LogError(c, fmt.Errorf("failed to send lockout warning email: %v", err), fiber.StatusInternalServerError)
+			s.logHandler.LogError(c, errors.New("failed to send lockout warning email"), fiber.StatusInternalServerError)
 		}
 		return nil, nil, errors.New("account temporarily locked")
 	}
@@ -82,7 +84,7 @@ func (s *userService) findUserAndSecurity(usernameOrEmail string) (*members.User
 		Table("user_profiles").
 		Select("user_profiles.*, user_security_attributes.*").
 		Joins("JOIN user_security_attributes ON user_security_attributes.user_id = user_profiles.id").
-		Where("user_profiles.username = ? OR user_profiles.email = ?", usernameOrEmail, usernameOrEmail).
+		Where("LOWER(user_profiles.username) = ? OR LOWER(user_profiles.email) = ?", usernameOrEmail, usernameOrEmail).
 		First(&result).Error
 
 	if err != nil {
@@ -126,7 +128,7 @@ func (s *userService) handleFailedLogin(c *fiber.Ctx, securityAttrs *members.Use
 	if remainingAttempts <= 0 {
 		err := s.emailService.SendLoginWarning(c, user.Email, user.Username, c.Get("User-Agent"), c.IP(), time.Now(), "lockout_failed_attempts")
 		if err != nil {
-			s.logHandler.LogError(c, fmt.Errorf("failed to send lockout warning email: %v", err), fiber.StatusInternalServerError)
+			s.logHandler.LogError(c, errors.New("failed to send lockout warning email"), fiber.StatusInternalServerError)
 		}
 		return errors.New("account locked due to too many failed attempts")
 	}
@@ -138,8 +140,7 @@ func (s *userService) handleSuccessfulLogin(c *fiber.Ctx, user *members.User, se
 	// Send login warning email for new login
 	err := s.emailService.SendLoginWarning(c, user.Email, user.Username, userAgent, ipAddress, time.Now(), "new_login")
 	if err != nil {
-		s.logHandler.LogError(c, fmt.Errorf("failed to send login warning email: %v", err), fiber.StatusInternalServerError)
-		// Continue login despite email failure
+		s.logHandler.LogError(c, errors.New("failed to send login warning email"), fiber.StatusInternalServerError)
 	}
 
 	tx := s.db.Begin()
@@ -165,9 +166,9 @@ func (s *userService) handleSuccessfulLogin(c *fiber.Ctx, user *members.User, se
 	}
 
 	// Create session
-	sessionDuration := time.Hour * 24 // Match SessionDuration
+	sessionDuration := time.Hour * 24
 	if rememberMe {
-		sessionDuration = time.Hour * 24 * 7 // Match LongSessionDuration
+		sessionDuration = time.Hour * 24 * 7
 	}
 
 	sessionToken, err := s.generateSecureToken(32)

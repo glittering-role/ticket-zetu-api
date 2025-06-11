@@ -17,7 +17,7 @@ func SetupAuthRoutes(api fiber.Router, db *gorm.DB, logHandler *handler.LogHandl
 	if err != nil {
 		panic(err)
 	}
-	userNameCheck := auth_utils.CheckUsernameAvailability(db, logHandler)
+	userNameCheck := auth_utils.NewUsernameCheck(db, logHandler)
 
 	auth := api.Group("/auth")
 	{

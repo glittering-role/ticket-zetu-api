@@ -2,9 +2,12 @@ package service
 
 import (
 	"errors"
+	"ticket-zetu-api/modules/users/authentication/mail"
+	auth_utils "ticket-zetu-api/modules/users/authentication/utils"
 	"ticket-zetu-api/modules/users/members/dto"
 	"ticket-zetu-api/modules/users/models/artist"
 	"ticket-zetu-api/modules/users/models/members"
+
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -18,17 +21,23 @@ type UserService interface {
 	UpdateUserLocation(id string, locationDto *dto.UserLocationUpdateDto, updaterID string) (*dto.UserProfileResponseDto, error)
 	UpdatePhone(id string, phoneDto *dto.UpdatePhoneDto, updaterID string) (*dto.UserProfileResponseDto, error)
 	UpdateUserEmail(id string, emailDto *dto.UpdateEmailDto, updaterID string) (*dto.UserProfileResponseDto, error)
+	UpdateUsername(id string, usernameDto *dto.UpdateUsernameDto, updaterID string) (*dto.UserProfileResponseDto, error)
+	SetNewPassword(userID string, userDto *dto.NewPasswordDto, updaterID string) (*dto.UserProfileResponseDto, error)
 }
 
 type userService struct {
-	db        *gorm.DB
-	validator *validator.Validate
+	db            *gorm.DB
+	validator     *validator.Validate
+	emailService  mail_service.EmailService
+	usernameCheck *auth_utils.UsernameCheck
 }
 
-func NewUserService(db *gorm.DB) UserService {
+func NewUserService(db *gorm.DB, emailService mail_service.EmailService, usernameCheck *auth_utils.UsernameCheck) UserService {
 	return &userService{
-		db:        db,
-		validator: validator.New(),
+		db:            db,
+		validator:     validator.New(),
+		emailService:  emailService,
+		usernameCheck: usernameCheck,
 	}
 }
 

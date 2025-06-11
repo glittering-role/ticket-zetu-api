@@ -4,13 +4,11 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
-	"fmt"
 	"time"
 
 	"ticket-zetu-api/modules/users/models/members"
 
 	"github.com/gofiber/fiber/v2"
-
 	"gorm.io/gorm"
 )
 
@@ -28,7 +26,7 @@ func (s *userService) RequestPasswordReset(ctx context.Context, c *fiber.Ctx, us
 	// Generate reset token
 	resetToken, err := s.generateSecureToken(32)
 	if err != nil {
-		return fmt.Errorf("failed to generate reset token: %w", err)
+		return errors.New("failed to generate reset token")
 	}
 
 	// Set token and expiry (24 hours)
@@ -61,8 +59,7 @@ func (s *userService) RequestPasswordReset(ctx context.Context, c *fiber.Ctx, us
 	// Send password reset email
 	err = s.emailService.SendPasswordResetEmail(c, user.Email, user.Username, resetToken)
 	if err != nil {
-		s.logHandler.LogError(c, fmt.Errorf("failed to send password reset email: %v", err), fiber.StatusInternalServerError)
-		// Continue despite email failure to avoid blocking the user
+		s.logHandler.LogError(c, errors.New("failed to send password reset email"), fiber.StatusInternalServerError)
 	}
 
 	return nil
@@ -89,7 +86,7 @@ func (s *userService) SetNewPassword(ctx context.Context, c *fiber.Ctx, resetTok
 	// Hash new password with user ID as salt
 	hashedPassword, err := s.HashPassword(newPassword, securityAttrs.UserID.String())
 	if err != nil {
-		return fmt.Errorf("failed to hash password: %w", err)
+		return errors.New("failed to hash password")
 	}
 
 	// Prevent reusing the same password

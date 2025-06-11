@@ -1,10 +1,10 @@
 package authentication
 
 import (
-	"fmt"
+	"errors"
+	"ticket-zetu-api/modules/users/authentication/dto"
 
 	"github.com/gofiber/fiber/v2"
-	"ticket-zetu-api/modules/users/authentication/dto"
 )
 
 // SignIn godoc
@@ -25,7 +25,7 @@ import (
 func (ac *AuthController) SignIn(c *fiber.Ctx) error {
 	var req dto.LoginRequest
 	if err := c.BodyParser(&req); err != nil {
-		return ac.logHandler.LogError(c, fmt.Errorf("invalid request payload: %w", err), fiber.StatusBadRequest)
+		return ac.logHandler.LogError(c, errors.New("invalid request payload"), fiber.StatusBadRequest)
 	}
 
 	// Pass raw password to Authenticate

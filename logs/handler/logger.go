@@ -31,6 +31,12 @@ func (lh *LogHandler) LogError(c *fiber.Ctx, err error, statusCode int, data ...
 	return response.Error(c, statusCode, err.Error(), responseData)
 }
 
+// LogInfo logs a general informational message without sending a response
+func (lh *LogHandler) LogInfo(c *fiber.Ctx, message string) {
+	log := lh.createBaseLog(c, "info", message, fiber.StatusOK)
+	go lh.Service.Log(log)
+}
+
 // LogSuccess logs a success message if logInfo is true and returns a response
 func (lh *LogHandler) LogSuccess(c *fiber.Ctx, data interface{}, message string, logInfo ...bool) error {
 	if len(logInfo) == 0 || !logInfo[0] {

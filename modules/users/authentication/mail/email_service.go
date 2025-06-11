@@ -83,8 +83,8 @@ func (s *emailService) generateVerificationCode() (string, error) {
 	}
 	code := fmt.Sprintf("%08d", n.Int64())
 	if len(code) != 8 {
-		log.Printf("Generated code %s is not 8 digits, regenerating", code)
-		return s.generateVerificationCode() // Recursive retry on invalid length
+		// log.Printf("Generated code %s is not 8 digits, regenerating", code)
+		return s.generateVerificationCode()
 	}
 	log.Printf("Generated verification code: %s", code)
 	return code, nil
