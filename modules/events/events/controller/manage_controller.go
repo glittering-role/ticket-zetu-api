@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"strings"
 	"ticket-zetu-api/modules/events/events/dto"
 
 	"github.com/gofiber/fiber/v2"
@@ -30,18 +29,6 @@ func (c *EventController) UpdateEvent(ctx *fiber.Ctx) error {
 	var input dto.UpdateEvent
 	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
-	}
-
-	// Parse and validate tags from form data
-	tags := ctx.FormValue("tags")
-	if tags != "" {
-		*input.Tags = strings.Split(strings.TrimSpace(tags), ",")
-		for i, tag := range *input.Tags {
-			(*input.Tags)[i] = strings.TrimSpace(tag)
-			if (*input.Tags)[i] == "" {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid tag format: empty tags are not allowed"), fiber.StatusBadRequest)
-			}
-		}
 	}
 
 	// Validate input

@@ -49,7 +49,6 @@ type Event struct {
 	HasTickets bool        `gorm:"default:true" json:"has_tickets"`
 	IsFeatured bool        `gorm:"default:false;index" json:"is_featured"`
 	Status     EventStatus `gorm:"size:20;not null;default:'active';index" json:"status"`
-	Tags       []string    `gorm:"type:json" json:"tags,omitempty"`
 
 	PublishedAt *time.Time `gorm:"index" json:"published_at,omitempty"`
 

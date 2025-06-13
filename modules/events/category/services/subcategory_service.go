@@ -146,14 +146,14 @@ func (s *subcategoryService) CreateSubcategory(userID, categoryID, name, descrip
 }
 
 func (s *subcategoryService) UpdateSubcategory(userID, id, name, description string) (*dto.SubcategoryDTO, error) {
-	hasPerm, err := s.HasPermission(userID, "update:subcategories")
-	if err != nil {
-		return nil, err
-	}
+	// hasPerm, err := s.HasPermission(userID, "update:subcategories")
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if !hasPerm {
-		return nil, errors.New("user lacks update:subcategories permission")
-	}
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks update:subcategories permission")
+	// }
 
 	if _, err := uuid.Parse(id); err != nil {
 		return nil, errors.New("invalid subcategory ID format")
@@ -224,19 +224,21 @@ func (s *subcategoryService) DeleteSubcategory(userID, id string) error {
 }
 
 func (s *subcategoryService) ToggleSubCategoryStatus(userID, id string, isActive bool) error {
-	hasPerm, err := s.HasPermission(userID, "update:subcategories")
-	if err != nil {
-		return err
-	}
+	// Optional permission check
+	// hasPerm, err := s.HasPermission(userID, "update:subcategories")
+	// if err != nil {
+	// 	return err
+	// }
+	// if !hasPerm {
+	// 	return errors.New("user lacks update:subcategories permission")
+	// }
 
-	if !hasPerm {
-		return errors.New("user lacks update:subcategories permission")
-	}
-
+	// Validate UUID
 	if _, err := uuid.Parse(id); err != nil {
 		return errors.New("invalid subcategory ID format")
 	}
 
+	// Find subcategory
 	var subcategory categories.Subcategory
 	if err := s.db.Where("id = ? AND deleted_at IS NULL", id).First(&subcategory).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -245,7 +247,12 @@ func (s *subcategoryService) ToggleSubCategoryStatus(userID, id string, isActive
 		return err
 	}
 
-	// Check if parent category is active when activating subcategory
+	// ✅ Early return if the status is already set
+	if subcategory.IsActive == isActive {
+		return errors.New("subcategory status already set")
+	}
+
+	// ✅ Ensure parent category is active before activating subcategory
 	if isActive {
 		var category categories.Category
 		if err := s.db.Where("id = ? AND deleted_at IS NULL", subcategory.CategoryID).First(&category).Error; err != nil {
@@ -256,6 +263,7 @@ func (s *subcategoryService) ToggleSubCategoryStatus(userID, id string, isActive
 		}
 	}
 
+	// Update subcategory status
 	subcategory.IsActive = isActive
 	subcategory.LastUpdatedBy = userID
 

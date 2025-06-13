@@ -32,7 +32,7 @@ func (c *PriceTierController) CreatePriceTier(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 	}
 
-	priceTier, err := c.service.CreatePriceTier(userID, input)
+	_, err := c.service.CreatePriceTier(userID, input)
 	if err != nil {
 		switch err.Error() {
 		case "user lacks create:price_tiers permission":
@@ -46,5 +46,5 @@ func (c *PriceTierController) CreatePriceTier(ctx *fiber.Ctx) error {
 		}
 	}
 
-	return c.logHandler.LogSuccess(ctx, priceTier, "Price tier created successfully", true)
+	return c.logHandler.LogSuccess(ctx, nil, "Price tier created successfully", true)
 }

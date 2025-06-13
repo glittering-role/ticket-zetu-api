@@ -22,6 +22,4 @@ type CreateEventInput struct {
 	HasTickets bool   `json:"has_tickets" example:"true"`
 	IsFeatured bool   `json:"is_featured" example:"true"`
 	Status     string `json:"status,omitempty" example:"active"`
-
-	Tags []string `json:"tags,omitempty" example:"[\"music\", \"festival\", \"live\"]"`
 }

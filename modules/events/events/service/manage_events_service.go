@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"ticket-zetu-api/modules/events/events/dto"
 	"ticket-zetu-api/modules/events/models/categories"
 	"ticket-zetu-api/modules/events/models/events"
@@ -117,22 +116,6 @@ func (s *eventService) UpdateEvent(updateDto dto.UpdateEvent, userID, id string)
 		if updateDto.Status != nil {
 			event.Status = events.EventStatus(*updateDto.Status)
 		}
-		if updateDto.Tags != nil {
-			// Validate and clean tags
-			seen := make(map[string]bool)
-			var cleanTags []string
-			for _, tag := range *updateDto.Tags {
-				tag = strings.TrimSpace(tag)
-				if tag != "" && !seen[tag] {
-					seen[tag] = true
-					cleanTags = append(cleanTags, tag)
-				}
-			}
-			if len(cleanTags) > 10 {
-				return errors.New("too many tags (maximum 10 allowed)")
-			}
-			event.Tags = cleanTags
-		}
 
 		event.Version++
 		event.UpdatedAt = time.Now()
@@ -148,7 +131,12 @@ func (s *eventService) UpdateEvent(updateDto dto.UpdateEvent, userID, id string)
 		return nil, err
 	}
 
-	return s.toDto(&event)
+	dtoResult, err := s.toDto(&event, true)
+	if err != nil {
+		return nil, err
+	}
+	return &dtoResult.Full, nil
+
 }
 
 func (s *eventService) DeleteEvent(userID, id string) error {

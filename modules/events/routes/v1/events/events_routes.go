@@ -5,7 +5,7 @@ import (
 	"ticket-zetu-api/logs/handler"
 	events_controller "ticket-zetu-api/modules/events/events/controller"
 	service "ticket-zetu-api/modules/events/events/service"
-	"ticket-zetu-api/modules/users/authorization/service"
+	authorization_service "ticket-zetu-api/modules/users/authorization/service"
 	"ticket-zetu-api/modules/users/middleware"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,7 +26,7 @@ func SetupEventsRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.Log
 		eventGroup.Post("/", eventController.CreateEvent)
 		eventGroup.Put("/:id", eventController.UpdateEvent)
 		eventGroup.Delete("/:id", eventController.DeleteEvent)
-		eventGroup.Post("/:id/images", eventController.AddEventImage)
+		eventGroup.Post("/:event_id/images", eventController.AddEventImage)
 		eventGroup.Delete("/:event_id/images/:image_id", eventController.DeleteEventImage)
 	}
 }

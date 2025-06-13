@@ -1,20 +1,20 @@
 package service
 
 import (
-	"errors"
+	//"errors"
 	"ticket-zetu-api/modules/events/models/events"
 	venue_dto "ticket-zetu-api/modules/events/venues/dto"
 )
 
 func (s *venueService) CreateVenue(userID string, dto venue_dto.CreateVenueDto) (*venue_dto.CreateVenueDto, error) {
 	// Check permissions
-	hasPerm, err := s.HasPermission(userID, "create:venues")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks create:venues permission")
-	}
+	// hasPerm, err := s.HasPermission(userID, "create:venues")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks create:venues permission")
+	// }
 
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {

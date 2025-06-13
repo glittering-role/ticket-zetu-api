@@ -1,34 +1,33 @@
 package category
 
 import (
+	"ticket-zetu-api/modules/events/category/dto"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
-// UpdateSubcategory godoc
+// CreateSubcategory godoc
 // @Summary Update an existing subcategory
-// @Description Updates the details of a specific subcategory
+// @Description Creates a new subcategory under a specific category
 // @Tags Subcategories
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
 // @Param id path string true "Subcategory ID"
-// @Param name body string true "Subcategory name"
-// @Param description body string false "Subcategory description"
-// @Success 200 {object} map[string]interface{} "Subcategory updated successfully"
+// @Param input body dto.UpdateSubSubcategoryDto true "Category details"
+// @Success 201 {object} map[string]interface{} "Subcategory updated successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body"
-// @Failure 403 {object} map[string]interface{} "User lacks update permission"
-// @Failure 404 {object} map[string]interface{} "Subcategory or parent category not found"
+// @Failure 403 {object} map[string]interface{} "User lacks create permission"
+// @Failure 404 {object} map[string]interface{} "SubCategory not found"
 // @Failure 409 {object} map[string]interface{} "Subcategory name already exists in this category"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Router /subcategories/{id} [put]
 func (c *SubcategoryController) UpdateSubcategory(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
-	var input struct {
-		Name        string `json:"name" validate:"required,min=2,max=50"`
-		Description string `json:"description,omitempty"`
-	}
+
+	var input dto.CreateCategoryDto
 
 	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
@@ -108,6 +107,7 @@ func (c *SubcategoryController) DeleteSubcategory(ctx *fiber.Ctx) error {
 // @Produce json
 // @Security ApiKeyAuth
 // @Param id path string true "Subcategory ID"
+// @Param input body dto.ToggleCategoryStatus true "Toggle subcategory status"
 // @Success 200 {object} map[string]interface{} "Subcategory status toggled successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid subcategory ID format"
 // @Failure 403 {object} map[string]interface{} "User lacks update permission"
@@ -118,12 +118,13 @@ func (c *SubcategoryController) ToggleSubcategoryStatus(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
 
-	var input struct {
-		IsActive bool `json:"is_active" validate:"required"`
-	}
-
 	if _, err := uuid.Parse(id); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid subcategory ID format"), fiber.StatusBadRequest)
+	}
+
+	var input dto.ToggleCategoryStatus
+	if err := ctx.BodyParser(&input); err != nil {
+		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
 	}
 
 	err := c.service.ToggleSubCategoryStatus(userID, id, input.IsActive)
@@ -139,5 +140,6 @@ func (c *SubcategoryController) ToggleSubcategoryStatus(ctx *fiber.Ctx) error {
 			return c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
 		}
 	}
+
 	return c.logHandler.LogSuccess(ctx, nil, "Subcategory status toggled successfully", true)
 }

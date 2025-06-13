@@ -86,7 +86,6 @@ func (s *eventService) CreateEvent(createDto dto.CreateEvent, userID string) (*d
 			IsFeatured:     createDto.IsFeatured,
 			Status:         "draft",
 			OrganizerID:    organizer.ID,
-			Tags:           createDto.Tags,
 			CreatedAt:      time.Now(),
 			UpdatedAt:      time.Now(),
 		}
@@ -103,5 +102,9 @@ func (s *eventService) CreateEvent(createDto dto.CreateEvent, userID string) (*d
 		return nil, err
 	}
 
-	return s.toDto(event)
+	dtoResult, err := s.toDto(event, true)
+	if err != nil {
+		return nil, err
+	}
+	return &dtoResult.Full, nil
 }

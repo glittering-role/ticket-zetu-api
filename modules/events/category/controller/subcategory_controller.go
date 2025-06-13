@@ -28,9 +28,7 @@ func NewSubcategoryController(service services.SubcategoryService, logHandler *h
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param category_id body string true "Category ID"
-// @Param name body string true "Subcategory name"
-// @Param description body string false "Subcategory description"
+// @Param input body dto.CreateSubcategoryDto true "Category details"
 // @Success 201 {object} map[string]interface{} "Subcategory created successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body"
 // @Failure 403 {object} map[string]interface{} "User lacks create permission"
@@ -83,7 +81,7 @@ func (c *SubcategoryController) CreateSubcategory(ctx *fiber.Ctx) error {
 // @Failure 403 {object} map[string]interface{} "User lacks view permission"
 // @Failure 404 {object} map[string]interface{} "Subcategories not found"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /categories/{id}/subcategories [get]
+// @Router /subcategories/{id}/subcategories [get]
 func (c *SubcategoryController) GetSubcategories(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	categoryID := ctx.Params("id")

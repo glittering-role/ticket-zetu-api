@@ -1,27 +1,28 @@
 package dto
 
 import (
-	"ticket-zetu-api/modules/events/models/events"
+	//"ticket-zetu-api/modules/events/models/events"
 	"time"
 )
 
 type TicketTypeResponse struct {
-	ID                string       `json:"id"`
-	EventID           string       `json:"event_id"`
-	Name              string       `json:"name"`
-	Description       string       `json:"description"`
-	PriceModifier     float64      `json:"price_modifier"`
-	Benefits          string       `json:"benefits"`
-	MaxTicketsPerUser int          `json:"max_tickets_per_user"`
-	Status            string       `json:"status"`
-	IsDefault         bool         `json:"is_default"`
-	SalesStart        time.Time    `json:"sales_start"`
-	SalesEnd          *time.Time   `json:"sales_end"`
-	QuantityAvailable *int         `json:"quantity_available"`
-	MinTicketsPerUser int          `json:"min_tickets_per_user"`
-	CreatedAt         time.Time    `json:"created_at"`
-	UpdatedAt         time.Time    `json:"updated_at"`
-	Event             events.Event `json:"event,omitempty"`
+	ID                string              `json:"id"`
+	EventID           string              `json:"event_id"`
+	Name              string              `json:"name"`
+	Description       string              `json:"description"`
+	PriceModifier     float64             `json:"price_modifier"`
+	Benefits          string              `json:"benefits"`
+	MaxTicketsPerUser int                 `json:"max_tickets_per_user"`
+	Status            string              `json:"status"`
+	IsDefault         bool                `json:"is_default"`
+	SalesStart        time.Time           `json:"sales_start"`
+	SalesEnd          *time.Time          `json:"sales_end"`
+	QuantityAvailable *int                `json:"quantity_available"`
+	MinTicketsPerUser int                 `json:"min_tickets_per_user"`
+	CreatedAt         time.Time           `json:"created_at"`
+	UpdatedAt         time.Time           `json:"updated_at"`
+	PriceTiers        []PriceTierResponse `json:"price_tiers,omitempty"`
+	//Event             events.Event `json:"event,omitempty"`
 }
 
 type CreateTicketTypeInput struct {
@@ -68,4 +69,25 @@ type CreateTicketTypeInputData struct {
 	SalesEnd          *time.Time `json:"sales_end,omitempty" example:"2025-08-01T23:59:59Z"`
 	QuantityAvailable *int       `json:"quantity_available,omitempty" example:"100"`
 	MinTicketsPerUser int        `json:"min_tickets_per_user" example:"1" validate:"required,gte=1"`
+}
+
+type AssociatePriceTierInput struct {
+	PriceTierID string `json:"price_tier_id" validate:"required,uuid"`
+}
+
+// PriceTierResponse defines the response structure for a PriceTier
+type PriceTierResponse struct {
+	ID            string     `json:"id"`
+	OrganizerID   string     `json:"organizer_id"`
+	Name          string     `json:"name"`
+	Description   string     `json:"description,omitempty"`
+	BasePrice     float64    `json:"base_price"`
+	Status        string     `json:"status"`
+	IsDefault     bool       `json:"is_default"`
+	EffectiveFrom time.Time  `json:"effective_from"`
+	EffectiveTo   *time.Time `json:"effective_to,omitempty"`
+	MinTickets    int        `json:"min_tickets"`
+	MaxTickets    *int       `json:"max_tickets,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }

@@ -79,7 +79,7 @@ func (c *TicketTypeController) CreateTicketType(ctx *fiber.Ctx) error {
 // @Failure 400 {object} map[string]interface{} "Invalid request body"
 // @Failure 403 {object} map[string]interface{} "User lacks update permission"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /categories/{id} [put]
+// @Router /ticket-types/{id} [put]
 func (c *TicketTypeController) UpdateTicketType(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")

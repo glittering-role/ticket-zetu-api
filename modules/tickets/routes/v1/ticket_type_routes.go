@@ -28,5 +28,8 @@ func SetupTicketTypeRoutes(router fiber.Router, db *gorm.DB, logHandler *handler
 		ticketTypeGroup.Post("/", ticketTypeController.CreateTicketType)
 		ticketTypeGroup.Put("/:id", ticketTypeController.UpdateTicketType)
 		ticketTypeGroup.Delete("/:id", ticketTypeController.DeleteTicketType)
+		ticketTypeGroup.Post("/:ticket_type_id/price-tiers", ticketTypeController.AssociatePriceTier)
+		ticketTypeGroup.Delete("/:ticket_type_id/price-tiers/:price_tier_id", ticketTypeController.DisassociatePriceTier)
 	}
+
 }

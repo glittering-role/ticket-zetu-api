@@ -28,22 +28,33 @@ type UpdatePriceTierRequest struct {
 	Status             *string    `json:"status,omitempty" binding:"omitempty,oneof=active inactive archived"`
 }
 
+type OrganizerSummary struct {
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	ContactPerson string `json:"contact_person"`
+	Email         string `json:"email"`
+	ImageURL      string `json:"image_url,omitempty"`
+	Status        string `json:"status"`
+	IsFlagged     bool   `json:"is_flagged"`
+	IsBanned      bool   `json:"is_banned"`
+}
+
 type GetPriceTierResponse struct {
-	ID                 string     `json:"id"`
-	OrganizerID        string     `json:"organizer_id"`
-	Name               string     `json:"name"`
-	Description        string     `json:"description,omitempty"`
-	BasePrice          float64    `json:"base_price"`
-	PercentageIncrease float64    `json:"percentage_increase"`
-	Status             string     `json:"status"`
-	IsDefault          bool       `json:"is_default"`
-	EffectiveFrom      time.Time  `json:"effective_from"`
-	EffectiveTo        *time.Time `json:"effective_to,omitempty"`
-	MinTickets         int        `json:"min_tickets"`
-	MaxTickets         *int       `json:"max_tickets,omitempty"`
-	Version            int        `json:"version"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	ID            string            `json:"id"`
+	OrganizerID   string            `json:"organizer_id"`
+	Organizer     *OrganizerSummary `json:"organizer,omitempty"`
+	Name          string            `json:"name"`
+	Description   string            `json:"description,omitempty"`
+	BasePrice     float64           `json:"base_price"`
+	Status        string            `json:"status"`
+	IsDefault     bool              `json:"is_default"`
+	EffectiveFrom time.Time         `json:"effective_from"`
+	EffectiveTo   *time.Time        `json:"effective_to,omitempty"`
+	MinTickets    int               `json:"min_tickets"`
+	MaxTickets    *int              `json:"max_tickets,omitempty"`
+	Version       int               `json:"version"`
+	CreatedAt     time.Time         `json:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at"`
 }
 
 type CreatePriceTierData struct {

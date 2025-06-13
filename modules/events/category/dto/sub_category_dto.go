@@ -21,3 +21,12 @@ type CreateSubcategoryDto struct {
 	Name        string `json:"name" example:"Live Concerts" validate:"required,min=2,max=50"`
 	Description string `json:"description,omitempty" example:"Events involving live musical performances" validate:"omitempty,max=255"`
 }
+
+type UpdateSubSubcategoryDto struct {
+	Name        string `json:"name" example:"Live Concerts" validate:"required,min=2,max=50"`
+	Description string `json:"description,omitempty" example:"Events involving live musical performances" validate:"omitempty,max=255"`
+}
+
+type ToggleCategoryStatus struct {
+	IsActive bool `json:"is_active" validate:"required"`
+}

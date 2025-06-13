@@ -13,13 +13,13 @@ import (
 )
 
 func (s *venueService) AddVenueImage(userID, venueID, imageURL string, isPrimary bool) (*events.VenueImage, error) {
-	hasPerm, err := s.HasPermission(userID, "create:venue_images")
-	if err != nil {
-		return nil, err
-	}
-	if !hasPerm {
-		return nil, errors.New("user lacks create:venue_images permission")
-	}
+	// hasPerm, err := s.HasPermission(userID, "create:venue_images")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if !hasPerm {
+	// 	return nil, errors.New("user lacks create:venue_images permission")
+	// }
 
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {

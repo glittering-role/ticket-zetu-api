@@ -34,7 +34,7 @@ func (c *PriceTierController) UpdatePriceTier(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 	}
 
-	priceTier, err := c.service.UpdatePriceTier(userID, id, input)
+	_, err := c.service.UpdatePriceTier(userID, id, input)
 	if err != nil {
 		switch err.Error() {
 		case "user lacks update:price_tiers permission":
@@ -48,7 +48,7 @@ func (c *PriceTierController) UpdatePriceTier(ctx *fiber.Ctx) error {
 		}
 	}
 
-	return c.logHandler.LogSuccess(ctx, priceTier, "Price tier updated successfully", true)
+	return c.logHandler.LogSuccess(ctx, nil, "Price tier updated successfully", true)
 }
 
 // DeletePriceTier godoc

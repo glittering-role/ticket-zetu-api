@@ -31,7 +31,6 @@ func NewPriceTierController(service price_tier_service.PriceTierService, logHand
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param fields query string false "Comma-separated list of fields to include in response" default(id,name,percentage_increase,status,is_default)
 // @Success 200 {array} dto.GetPriceTierResponse "List of price tiers"
 // @Failure 403 {object} map[string]interface{} "User lacks read permission"
 // @Failure 404 {object} map[string]interface{} "Organizer not found"
@@ -39,9 +38,8 @@ func NewPriceTierController(service price_tier_service.PriceTierService, logHand
 // @Router /price-tiers/organization [get]
 func (c *PriceTierController) GetPriceTiersForOrganizer(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	fields := ctx.Query("fields", "id,name,percentage_increase,status,is_default")
 
-	priceTiers, err := c.service.GetPriceTiers(userID, fields)
+	priceTiers, err := c.service.GetPriceTiers(userID)
 	if err != nil {
 		switch err.Error() {
 		case "user lacks read:price_tiers permission":
@@ -63,7 +61,6 @@ func (c *PriceTierController) GetPriceTiersForOrganizer(ctx *fiber.Ctx) error {
 // @Produce json
 // @Security ApiKeyAuth
 // @Param id path string true "Price Tier ID"
-// @Param fields query string false "Comma-separated list of fields to include in response" default(id,name,description,percentage_increase,status,is_default,effective_from,effective_to,min_tickets,max_tickets)
 // @Success 200 {object} map[string]interface{} "Price tier details"
 // @Failure 400 {object} map[string]interface{} "Invalid price tier ID"
 // @Failure 403 {object} map[string]interface{} "User lacks read permission"
@@ -73,9 +70,8 @@ func (c *PriceTierController) GetPriceTiersForOrganizer(ctx *fiber.Ctx) error {
 func (c *PriceTierController) GetSinglePriceTier(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
-	fields := ctx.Query("fields", "id,name,description,percentage_increase,status,is_default,effective_from,effective_to,min_tickets,max_tickets")
 
-	priceTier, err := c.service.GetPriceTier(userID, id, fields)
+	priceTier, err := c.service.GetPriceTier(userID, id)
 	if err != nil {
 		switch err.Error() {
 		case "user lacks read:price_tiers permission":
@@ -98,7 +94,6 @@ func (c *PriceTierController) GetSinglePriceTier(ctx *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Security ApiKeyAuth
-// @Param fields query string false "Comma-separated list of fields to include in response" default(id,name,percentage_increase,status,is_default)
 // @Param page query int false "Page number" default(1)
 // @Param limit query int false "Items per page" default(10)
 // @Success 200 {object} map[string]interface{} "Paginated list of price tiers"
@@ -108,7 +103,6 @@ func (c *PriceTierController) GetSinglePriceTier(ctx *fiber.Ctx) error {
 // @Router /price-tiers [get]
 func (c *PriceTierController) GetAllPriceTiers(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
-	fields := ctx.Query("fields", "id,name,percentage_increase,status,is_default")
 	page := ctx.Query("page", "1")
 	limit := ctx.Query("limit", "10")
 
@@ -123,7 +117,7 @@ func (c *PriceTierController) GetAllPriceTiers(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid limit parameter"), fiber.StatusBadRequest)
 	}
 
-	priceTiers, err := c.service.GetAllPriceTiers(userID, fields, pageInt, limitInt)
+	priceTiers, err := c.service.GetAllPriceTiers(userID, pageInt, limitInt)
 	if err != nil {
 		switch err.Error() {
 		case "user lacks read:price_tiers permission":
