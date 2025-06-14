@@ -16,16 +16,16 @@ type CreatePriceTierRequest struct {
 }
 
 type UpdatePriceTierRequest struct {
-	Name               *string    `json:"name,omitempty" binding:"omitempty,min=2,max=50"`
-	Description        *string    `json:"description,omitempty" binding:"omitempty,max=1000"`
-	BasePrice          *float64   `json:"base_price,omitempty" binding:"omitempty,gte=0"`
-	PercentageIncrease *float64   `json:"percentage_increase,omitempty" binding:"omitempty,gte=0"`
-	IsDefault          *bool      `json:"is_default,omitempty"`
-	EffectiveFrom      *time.Time `json:"effective_from,omitempty"`
-	EffectiveTo        *time.Time `json:"effective_to,omitempty" binding:"omitempty,gtfield=EffectiveFrom"`
-	MinTickets         *int       `json:"min_tickets,omitempty" binding:"omitempty,gte=0"`
-	MaxTickets         *int       `json:"max_tickets,omitempty" binding:"omitempty,gte=0"`
-	Status             *string    `json:"status,omitempty" binding:"omitempty,oneof=active inactive archived"`
+	Name               *string    `json:"name,omitempty" binding:"omitempty,min=2,max=50" example:"VIP Early Bird"`
+	Description        *string    `json:"description,omitempty" binding:"omitempty,max=1000" example:"Special pricing for early VIP access."`
+	BasePrice          *float64   `json:"base_price,omitempty" binding:"omitempty,gte=0" example:"150.00"`
+	PercentageIncrease *float64   `json:"percentage_increase,omitempty" binding:"omitempty,gte=0" example:"10.5"`
+	IsDefault          *bool      `json:"is_default,omitempty" example:"true"`
+	EffectiveFrom      *time.Time `json:"effective_from,omitempty" example:"2025-06-01T00:00:00Z"`
+	EffectiveTo        *time.Time `json:"effective_to,omitempty" binding:"omitempty,gtfield=EffectiveFrom" example:"2025-08-01T00:00:00Z"`
+	MinTickets         *int       `json:"min_tickets,omitempty" binding:"omitempty,gte=0" example:"1"`
+	MaxTickets         *int       `json:"max_tickets,omitempty" binding:"omitempty,gte=0" example:"10"`
+	Status             *string    `json:"status,omitempty" binding:"omitempty,oneof=active inactive archived" example:"active"`
 }
 
 type OrganizerSummary struct {

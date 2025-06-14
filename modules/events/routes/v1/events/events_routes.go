@@ -22,6 +22,7 @@ func SetupEventsRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.Log
 	eventGroup := router.Group("/events", authMiddleware)
 	{
 		eventGroup.Get("/", eventController.GetEventsForOrganizer)
+		eventGroup.Get("/search", eventController.SearchEvents)
 		eventGroup.Get("/:id", eventController.GetSingleEventForOrganizer)
 		eventGroup.Post("/", eventController.CreateEvent)
 		eventGroup.Put("/:id", eventController.UpdateEvent)

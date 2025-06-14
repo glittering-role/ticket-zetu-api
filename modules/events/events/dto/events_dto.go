@@ -1,11 +1,46 @@
 package dto
 
 import (
-	"time"
-
 	"ticket-zetu-api/modules/events/models/categories"
 	"ticket-zetu-api/modules/events/models/events"
+	"ticket-zetu-api/modules/tickets/models/tickets"
+	"time"
 )
+
+// TicketTypeResponse contains essential fields for a ticket type
+type TicketTypeResponse struct {
+	ID                string                   `json:"id"`
+	Name              string                   `json:"name"`
+	Description       string                   `json:"description,omitempty"`
+	PriceModifier     float64                  `json:"price_modifier"`
+	Benefits          string                   `json:"benefits,omitempty"`
+	MinTicketsPerUser int                      `json:"min_tickets_per_user"`
+	MaxTicketsPerUser int                      `json:"max_tickets_per_user"`
+	QuantityAvailable *int                     `json:"quantity_available,omitempty"`
+	Status            tickets.TicketTypeStatus `json:"status"`
+	IsDefault         bool                     `json:"is_default"`
+	SalesStart        time.Time                `json:"sales_start"`
+	SalesEnd          *time.Time               `json:"sales_end,omitempty"`
+	PriceTiers        []PriceTierResponse      `json:"price_tiers,omitempty"`
+	CreatedAt         time.Time                `json:"created_at"`
+	UpdatedAt         time.Time                `json:"updated_at"`
+}
+
+// PriceTierResponse contains essential fields for a price tier
+type PriceTierResponse struct {
+	ID            string                  `json:"id"`
+	Name          string                  `json:"name"`
+	Description   string                  `json:"description,omitempty"`
+	BasePrice     float64                 `json:"base_price"`
+	Status        tickets.PriceTierStatus `json:"status"`
+	IsDefault     bool                    `json:"is_default"`
+	EffectiveFrom time.Time               `json:"effective_from"`
+	EffectiveTo   *time.Time              `json:"effective_to,omitempty"`
+	MinTickets    int                     `json:"min_tickets"`
+	MaxTickets    *int                    `json:"max_tickets,omitempty"`
+	CreatedAt     time.Time               `json:"created_at"`
+	UpdatedAt     time.Time               `json:"updated_at"`
+}
 
 type CreateEvent struct {
 	Title         string                 `json:"title" validate:"required"`
@@ -29,6 +64,8 @@ type CreateEvent struct {
 	HasTickets bool   `json:"has_tickets"`
 	IsFeatured bool   `json:"is_featured"`
 	Status     string `json:"status,omitempty"`
+
+	TicketTypes []TicketTypeResponse `json:"ticket_types,omitempty" validate:"dive"`
 }
 
 type UpdateEvent struct {
@@ -51,6 +88,8 @@ type UpdateEvent struct {
 	HasTickets *bool   `json:"has_tickets,omitempty"`
 	IsFeatured *bool   `json:"is_featured,omitempty"`
 	Status     *string `json:"status,omitempty"`
+
+	TicketTypes *[]TicketTypeResponse `json:"ticket_types,omitempty" validate:"dive"`
 }
 
 // SubcategoryResponse contains essential fields for a subcategory
@@ -72,6 +111,7 @@ type VenueImage struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `gorm:"index" json:"deleted_at,omitempty"`
 }
+
 type VenueResponse struct {
 	ID          string              `json:"id"`
 	Name        string              `json:"name"`
@@ -85,46 +125,48 @@ type VenueResponse struct {
 
 // EventResponse for single event retrieval with full details
 type EventResponse struct {
-	ID             string              `json:"id"`
-	Title          string              `json:"title"`
-	Slug           string              `json:"slug"`
-	Description    string              `json:"description,omitempty"`
-	SubcategoryID  string              `json:"subcategory_id"`
-	Subcategory    SubcategoryResponse `json:"subcategory"`
-	VenueID        string              `json:"venue_id"`
-	Venue          VenueResponse       `json:"venue"`
-	StartTime      time.Time           `json:"start_time"`
-	EndTime        time.Time           `json:"end_time"`
-	Timezone       string              `json:"timezone"`
-	Language       string              `json:"language"`
-	EventType      string              `json:"event_type"`
-	MinAge         int                 `json:"min_age"`
-	TotalSeats     int                 `json:"total_seats"`
-	AvailableSeats int                 `json:"available_seats"`
-	IsFree         bool                `json:"is_free"`
-	HasTickets     bool                `json:"has_tickets"`
-	IsFeatured     bool                `json:"is_featured"`
-	Status         string              `json:"status"`
-	EventImages    []events.EventImage `json:"event_images,omitempty"`
-	PublishedAt    *time.Time          `json:"published_at,omitempty"`
-	CreatedAt      time.Time           `json:"created_at"`
-	UpdatedAt      time.Time           `json:"updated_at"`
+	ID             string               `json:"id"`
+	Title          string               `json:"title"`
+	Slug           string               `json:"slug"`
+	Description    string               `json:"description,omitempty"`
+	SubcategoryID  string               `json:"subcategory_id"`
+	Subcategory    SubcategoryResponse  `json:"subcategory"`
+	VenueID        string               `json:"venue_id"`
+	Venue          VenueResponse        `json:"venue"`
+	StartTime      time.Time            `json:"start_time"`
+	EndTime        time.Time            `json:"end_time"`
+	Timezone       string               `json:"timezone"`
+	Language       string               `json:"language"`
+	EventType      string               `json:"event_type"`
+	MinAge         int                  `json:"min_age"`
+	TotalSeats     int                  `json:"total_seats"`
+	AvailableSeats int                  `json:"available_seats"`
+	IsFree         bool                 `json:"is_free"`
+	HasTickets     bool                 `json:"has_tickets"`
+	IsFeatured     bool                 `json:"is_featured"`
+	Status         string               `json:"status"`
+	EventImages    []events.EventImage  `json:"event_images,omitempty"`
+	PublishedAt    *time.Time           `json:"published_at,omitempty"`
+	CreatedAt      time.Time            `json:"created_at"`
+	UpdatedAt      time.Time            `json:"updated_at"`
+	TicketTypes    []TicketTypeResponse `json:"ticket_types,omitempty"`
 }
 
 // MinimalEventResponse for listing multiple events
 type MinimalEventResponse struct {
-	ID          string              `json:"id"`
-	Title       string              `json:"title"`
-	Slug        string              `json:"slug"`
-	StartTime   time.Time           `json:"start_time"`
-	EndTime     time.Time           `json:"end_time"`
-	Timezone    string              `json:"timezone"`
-	EventType   string              `json:"event_type"`
-	IsFree      bool                `json:"is_free"`
-	HasTickets  bool                `json:"has_tickets"`
-	IsFeatured  bool                `json:"is_featured"`
-	Status      string              `json:"status"`
-	CreatedAt   time.Time           `json:"created_at"`
-	UpdatedAt   time.Time           `json:"updated_at"`
-	EventImages []events.EventImage `json:"event_images,omitempty"`
+	ID          string               `json:"id"`
+	Title       string               `json:"title"`
+	Slug        string               `json:"slug"`
+	StartTime   time.Time            `json:"start_time"`
+	EndTime     time.Time            `json:"end_time"`
+	Timezone    string               `json:"timezone"`
+	EventType   string               `json:"event_type"`
+	IsFree      bool                 `json:"is_free"`
+	HasTickets  bool                 `json:"has_tickets"`
+	IsFeatured  bool                 `json:"is_featured"`
+	Status      string               `json:"status"`
+	CreatedAt   time.Time            `json:"created_at"`
+	UpdatedAt   time.Time            `json:"updated_at"`
+	EventImages []events.EventImage  `json:"event_images,omitempty"`
+	TicketTypes []TicketTypeResponse `json:"ticket_types,omitempty"` // Optional: minimal ticket type details
 }
