@@ -107,7 +107,7 @@ func (c *UserController) GetMyProfile(ctx *fiber.Ctx) error {
 // @Failure 400 {object} object
 // @Failure 404 {object} object
 // @Failure 500 {object} object
-// @Router /users/me/details [post]
+// @Router /users/me/details [patch]
 func (c *UserController) UpdateDetails(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("user_id").(string)
 	if !ok || userID == "" {

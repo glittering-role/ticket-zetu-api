@@ -28,8 +28,16 @@ func (ac *AuthController) SignIn(c *fiber.Ctx) error {
 		return ac.logHandler.LogError(c, errors.New("invalid request payload"), fiber.StatusBadRequest)
 	}
 
+	// Get the real client IP when behind a proxy
+	clientIP := c.IP()
+	if forwardedFor := c.Get("X-Forwarded-For"); forwardedFor != "" {
+		clientIP = forwardedFor
+	} else if realIP := c.Get("X-Real-IP"); realIP != "" {
+		clientIP = realIP
+	}
+
 	// Pass raw password to Authenticate
-	_, session, err := ac.userService.Authenticate(c.Context(), c, req.UsernameOrEmail, req.Password, req.RememberMe, c.IP(), c.Get("User-Agent"))
+	_, session, err := ac.userService.Authenticate(c.Context(), c, req.UsernameOrEmail, req.Password, req.RememberMe, clientIP, c.Get("User-Agent"))
 	if err != nil {
 		return ac.logHandler.LogError(c, err, getStatusCodeFromError(err))
 	}

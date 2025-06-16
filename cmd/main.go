@@ -42,14 +42,13 @@ import (
 
 // @title Ticket Zetu API
 // @version 1.0
-// @description This is the API documentation for Ticket Zetu application
-// @termsOfService http://swagger.io/terms/
+// @description This is the API documentation for Ticket Zetu application. The API host is configurable via the API_URL environment variable (e.g., https://<your-ngrok-url>.ngrok-free.app).
+// @termsOfService https://ticketzetu.com/terms
 // @contact.name API Support
 // @contact.email support@ticketzetu.com
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-// @host localhost:8080/api/v1
-// @BasePath /
+// @BasePath /api/v1
 
 func main() {
 	// Load configuration
@@ -65,7 +64,7 @@ func main() {
 	database.InitDB()
 	defer database.CloseDB()
 
-	//Initiate jobs
+	// Initiate jobs
 	jobQueue := queue.NewJobQueue(5)
 	defer jobQueue.Close()
 
@@ -79,7 +78,7 @@ func main() {
 	defer logService.Shutdown()
 	logHandler := &handler.LogHandler{Service: logService}
 
-	//Mail
+	// Mail
 	emailConfig, err := mail.NewConfig(logHandler)
 	if err != nil {
 		log.Fatalf("Failed to initialize email config: %v", err)
@@ -93,7 +92,7 @@ func main() {
 
 	// Apply global CORS middleware
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
+		AllowOrigins: appConfig.ApiUrl + ",https://ticketzetu.com", // Allow ngrok URL and frontend
 		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
@@ -110,7 +109,11 @@ func main() {
 		},
 	}))
 
-	app.Get("/swagger/*", swagger.New())
+	// Configure Swagger with dynamic host
+	swaggerConfig := swagger.Config{
+		URL: appConfig.ApiUrl + "/swagger/doc.json", // Point to the Swagger JSON with the ngrok URL
+	}
+	app.Get("/swagger/*", swagger.New(swaggerConfig))
 
 	// Create API group
 	api := app.Group("/api/v1")
@@ -141,7 +144,7 @@ func main() {
 	}()
 
 	// Start server
-	log.Printf("Starting server on port %s...", appConfig.Port)
+	log.Printf("Starting server on port %s with API_URL %s...", appConfig.Port, appConfig.ApiUrl)
 	if err := app.Listen(":" + appConfig.Port); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}

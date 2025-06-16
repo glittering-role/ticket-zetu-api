@@ -31,11 +31,11 @@ func UserRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler
 	{
 		userGroup.Get("/me", userController.GetMyProfile)
 		userGroup.Get("/:identifier", userController.GetUserProfile)
-		userGroup.Post("/me/details", userController.UpdateDetails)
+		userGroup.Patch("/me/details", userController.UpdateDetails)
 		userGroup.Post("/me/location", userController.UpdateLocation)
-		userGroup.Post("/me/phone", userController.UpdatePhone)
-		userGroup.Post("/me/email", userController.UpdateEmail)
-		userGroup.Post("/me/username", userController.UpdateUsername)
+		userGroup.Patch("/me/phone", userController.UpdatePhone)
+		userGroup.Patch("/me/email", userController.UpdateEmail)
+		userGroup.Patch("/me/username", userController.UpdateUsername)
 		userGroup.Post("/me/password", userController.SetNewPassword)
 	}
 

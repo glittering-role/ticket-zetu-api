@@ -21,7 +21,7 @@ import (
 // @Failure 404 {object} object
 // @Failure 409 {object} object
 // @Failure 500 {object} object
-// @Router /users/me/username [post]
+// @Router /users/me/username [patch]
 func (c *UserController) UpdateUsername(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("user_id").(string)
 	if !ok || userID == "" {

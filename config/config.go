@@ -18,6 +18,7 @@ type AppConfig struct {
 	DBPass     string
 	DBHost     string
 	Dialect    string
+	ApiUrl     string
 	Cloudinary cloudinary.Config
 }
 
@@ -32,6 +33,7 @@ func LoadConfig() *AppConfig {
 	return &AppConfig{
 		Port:    getEnv("PORT", "8080"),
 		Env:     getEnv("GO_ENV", "development"),
+		ApiUrl:  getEnv("API_URL", ""),
 		AppName: getEnv("APP_NAME", "ticket-zetu-api"),
 		DBName:  getEnv("DB_NAME", ""),
 		DBUser:  getEnv("DB_USER", ""),
