@@ -3,6 +3,7 @@ package authentication
 import (
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"ticket-zetu-api/logs/handler"
 	"ticket-zetu-api/modules/users/authentication/mail"
 	auth_service "ticket-zetu-api/modules/users/authentication/service"
@@ -25,6 +26,7 @@ const (
 // AuthController holds dependencies
 type AuthController struct {
 	db           *gorm.DB
+	redisClient  *redis.Client
 	logHandler   *handler.LogHandler
 	userService  auth_service.UserService
 	emailService mail_service.EmailService

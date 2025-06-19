@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"context"
 	"errors"
 	"ticket-zetu-api/modules/users/models/members"
 	"time"
@@ -26,11 +27,34 @@ func (c *AuthController) Logout(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, errors.New("no session token found"), fiber.StatusBadRequest)
 	}
 
-	err := c.db.
+	// Start a transaction
+	tx := c.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Delete session from database
+	err := tx.
 		Where("session_token = ?", sessionToken).
 		Delete(&members.UserSession{}).Error
 	if err != nil {
+		tx.Rollback()
 		return c.logHandler.LogError(ctx, errors.New("failed to invalidate session"), fiber.StatusInternalServerError)
+	}
+
+	// Delete session from Redis
+	redisKey := "session:" + sessionToken
+	_, err = c.redisClient.Del(context.Background(), redisKey).Result()
+	if err != nil {
+		tx.Rollback()
+		return c.logHandler.LogError(ctx, errors.New("failed to invalidate redis session"), fiber.StatusInternalServerError)
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		return c.logHandler.LogError(ctx, errors.New("failed to commit transaction"), fiber.StatusInternalServerError)
 	}
 
 	// Clear cookies

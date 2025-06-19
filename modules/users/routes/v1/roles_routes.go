@@ -11,7 +11,7 @@ import (
 )
 
 func AuthorizationRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
-	authMiddleware := middleware.IsAuthenticated(db)
+	authMiddleware := middleware.IsAuthenticated(db, logHandler)
 
 	roleService := authorization_service.NewRoleService(db)
 	roleController := authorization.NewRoleController(roleService, logHandler)

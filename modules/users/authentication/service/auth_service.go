@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"ticket-zetu-api/logs/handler"
 	"ticket-zetu-api/modules/users/authentication/dto"
 	"ticket-zetu-api/modules/users/authentication/mail"
@@ -28,14 +29,16 @@ type UserService interface {
 
 type userService struct {
 	db           *gorm.DB
+	redisClient  *redis.Client
 	logHandler   *handler.LogHandler
 	emailService mail_service.EmailService
 }
 
-func NewUserService(db *gorm.DB, logHandler *handler.LogHandler, emailService mail_service.EmailService) UserService {
+func NewUserService(db *gorm.DB, redisClient *redis.Client, logHandler *handler.LogHandler, emailService mail_service.EmailService) UserService {
 	return &userService{
 		db:           db,
 		logHandler:   logHandler,
+		redisClient:  redisClient,
 		emailService: emailService,
 	}
 }

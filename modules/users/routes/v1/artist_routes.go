@@ -12,7 +12,7 @@ import (
 
 // ArtistRoutes registers routes for artist profile operations
 func ArtistRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
-	authMiddleware := middleware.IsAuthenticated(db)
+	authMiddleware := middleware.IsAuthenticated(db, logHandler)
 
 	artistService := service.NewArtistService(db)
 	artistController := artist.NewArtistController(artistService, logHandler)

@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"ticket-zetu-api/logs/model"
 	"time"
@@ -20,29 +23,51 @@ type LogService struct {
 	ctx         context.Context
 	cancel      context.CancelFunc
 	Env         string
+
+	// Retry configuration
+	maxRetries int
+	retryDelay time.Duration
+
+	// Dead-letter queue configuration
+	dlqEnabled     bool
+	dlqFile        string
+	dlqMutex       sync.Mutex
+	dlqBatchSize   int
+	dlqFlushPeriod time.Duration
+	dlqBuffer      []model.Log
 }
 
 func NewLogService(db *gorm.DB, bufferSize int, flushPeriod time.Duration, env string) *LogService {
 	ctx, cancel := context.WithCancel(context.Background())
 	service := &LogService{
-		db:          db,
-		logChan:     make(chan model.Log, bufferSize),
-		bufferSize:  bufferSize,
-		flushPeriod: flushPeriod,
-		ctx:         ctx,
-		cancel:      cancel,
-		Env:         env,
+		db:             db,
+		logChan:        make(chan model.Log, bufferSize),
+		bufferSize:     bufferSize,
+		flushPeriod:    flushPeriod,
+		ctx:            ctx,
+		cancel:         cancel,
+		Env:            env,
+		maxRetries:     3,
+		retryDelay:     1 * time.Second,
+		dlqEnabled:     true,
+		dlqFile:        "logs_dlq.json",
+		dlqBatchSize:   100,
+		dlqFlushPeriod: 5 * time.Minute,
+		dlqBuffer:      make([]model.Log, 0, 100),
 	}
 
 	service.wg.Add(1)
 	go service.processLogs()
 
+	if service.dlqEnabled {
+		service.wg.Add(1)
+		go service.processDLQ()
+	}
+
 	return service
 }
 
-// Log queues a log entry
 func (s *LogService) Log(logEntry model.Log) {
-	// Only set environment if not set
 	if logEntry.Environment == nil {
 		logEntry.Environment = &s.Env
 	}
@@ -54,7 +79,6 @@ func (s *LogService) Log(logEntry model.Log) {
 	}
 }
 
-// processLogs processes log entries from the channel
 func (s *LogService) processLogs() {
 	defer s.wg.Done()
 
@@ -66,188 +90,191 @@ func (s *LogService) processLogs() {
 		select {
 		case <-s.ctx.Done():
 			if len(batch) > 0 {
-				s.flushLogs(batch)
+				s.flushLogsWithRetry(batch)
 			}
 			return
 
 		case entry := <-s.logChan:
-			// Try to find existing log to increment occurrences
-			existing, err := s.findExistingLog(entry)
-			if err == nil && existing != nil {
-				// Successfully found an existing log, increment its occurrences
-				s.incrementOccurrence(existing, entry)
-			} else {
-				// No existing log found or error occurred, add to batch for insertion
-				batch = append(batch, entry)
-				if len(batch) >= s.bufferSize {
-					s.flushLogs(batch)
-					batch = make([]model.Log, 0, s.bufferSize) // Reset with capacity
-				}
+			batch = append(batch, entry)
+			if len(batch) >= s.bufferSize {
+				s.flushLogsWithRetry(batch)
+				batch = make([]model.Log, 0, s.bufferSize)
 			}
 
 		case <-ticker.C:
 			if len(batch) > 0 {
-				s.flushLogs(batch)
-				batch = make([]model.Log, 0, s.bufferSize) // Reset with capacity
+				s.flushLogsWithRetry(batch)
+				batch = make([]model.Log, 0, s.bufferSize)
 			}
 		}
 	}
 }
 
-// findExistingLog checks for an existing log entry with the same IP, route, and message
-func (s *LogService) findExistingLog(entry model.Log) (*model.Log, error) {
-	if entry.IPAddress == nil || entry.Route == nil {
-		log.Printf("Skipping deduplication: missing IPAddress or Route")
-		return nil, nil
-	}
-
-	var existing model.Log
-	oneHourAgo := time.Now().Add(-1 * time.Hour)
-
-	// Use a transaction for consistency
-	err := s.db.Transaction(func(tx *gorm.DB) error {
-		// Add level to the query for more specific matching
-		result := tx.Where(
-			"ip_address = ? AND route = ? AND message = ? AND level = ? AND created_at >= ?",
-			*entry.IPAddress, *entry.Route, entry.Message, entry.Level, oneHourAgo,
-		).Order("created_at DESC").First(&existing)
-
-		if result.Error != nil {
-			if result.Error == gorm.ErrRecordNotFound {
-				return gorm.ErrRecordNotFound
-			}
-			return fmt.Errorf("database error: %w", result.Error)
+func (s *LogService) flushLogsWithRetry(logs []model.Log) {
+	for attempt := 1; attempt <= s.maxRetries; attempt++ {
+		err := s.flushLogs(logs)
+		if err == nil {
+			return // Success
 		}
 
+		if attempt < s.maxRetries {
+			log.Printf("Failed to flush logs (attempt %d/%d), retrying in %v: %v",
+				attempt, s.maxRetries, s.retryDelay, err)
+			time.Sleep(s.retryDelay)
+			continue
+		}
+
+		log.Printf("Failed to flush logs after %d attempts: %v", s.maxRetries, err)
+		s.handleFailedLogs(logs, err)
+	}
+}
+
+func (s *LogService) flushLogs(logs []model.Log) error {
+	if len(logs) == 0 {
 		return nil
-	})
-
-	if err == gorm.ErrRecordNotFound {
-		log.Printf("No existing log found for IP: %s, Route: %s, Message: %s",
-			*entry.IPAddress, *entry.Route, entry.Message)
-		return nil, nil
 	}
 
-	if err != nil {
-		log.Printf("Error finding existing log: %v", err)
-		return nil, fmt.Errorf("failed to find existing log: %w", err)
-	}
-
-	log.Printf("Found existing log ID: %d for IP: %s, Route: %s, Message: %s",
-		existing.ID, *entry.IPAddress, *entry.Route, entry.Message)
-	return &existing, nil
-}
-
-// incrementOccurrence updates the occurrence count for an existing log
-func (s *LogService) incrementOccurrence(existing *model.Log, newEntry model.Log) {
-	// Prepare update data
-	update := map[string]interface{}{
-		"occurrences": gorm.Expr("occurrences + 1"),
-		"updated_at":  time.Now(),
-	}
-
-	// Update context, stack, and other fields if provided
-	if newEntry.Context != nil {
-		update["context"] = newEntry.Context
-	}
-	if newEntry.Stack != nil {
-		update["stack"] = newEntry.Stack
-	}
-	if newEntry.StatusCode != nil {
-		update["status_code"] = newEntry.StatusCode
-	}
-	if newEntry.Method != nil {
-		update["method"] = newEntry.Method
-	}
-	if newEntry.UserAgent != nil {
-		update["user_agent"] = newEntry.UserAgent
-	}
-	if newEntry.File != nil {
-		update["file"] = newEntry.File
-	}
-	if newEntry.Line != nil {
-		update["line"] = newEntry.Line
-	}
-	if newEntry.Level != "" {
-		update["level"] = newEntry.Level
-	}
-
-	// Execute the update with a transaction
-	err := s.db.Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&model.Log{}).
-			Where("id = ?", existing.ID).
-			Updates(update)
-
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Create(&logs)
 		if result.Error != nil {
 			return result.Error
 		}
 
-		// Check if the update was actually applied
-		if result.RowsAffected == 0 {
-			return fmt.Errorf("no rows affected when updating log ID: %d", existing.ID)
+		if int(result.RowsAffected) != len(logs) {
+			return fmt.Errorf("only %d of %d logs were inserted",
+				result.RowsAffected, len(logs))
 		}
-
 		return nil
 	})
-
-	if err != nil {
-		log.Printf("Failed to increment occurrence for log ID: %d, Error: %v", existing.ID, err)
-	} else {
-		log.Printf("Incremented occurrences for log ID: %d, New count: %d",
-			existing.ID, existing.Occurrences+1)
-	}
 }
 
-// flushLogs saves a batch of logs to the database
-func (s *LogService) flushLogs(logs []model.Log) {
-	if len(logs) == 0 {
+func (s *LogService) handleFailedLogs(logs []model.Log, err error) {
+	if !s.dlqEnabled {
+		log.Printf("DLQ disabled, dropping %d failed logs", len(logs))
 		return
 	}
 
-	err := s.db.Transaction(func(tx *gorm.DB) error {
-		return tx.Create(&logs).Error
-	})
-	if err != nil {
-		log.Printf("Failed to save logs: %v", err)
+	s.dlqMutex.Lock()
+	defer s.dlqMutex.Unlock()
+
+	// Append failed logs to DLQ buffer
+	s.dlqBuffer = append(s.dlqBuffer, logs...)
+
+	// If buffer exceeds batch size, flush to file
+	if len(s.dlqBuffer) >= s.dlqBatchSize {
+		if err := s.flushDLQ(); err != nil {
+			log.Printf("Failed to flush DLQ: %v", err)
+		}
 	}
 }
 
-// GetLogs retrieves logs based on conditions
-func (s *LogService) GetLogs(conditions map[string]interface{}, args []interface{}, limit, offset int) ([]model.Log, error) {
+func (s *LogService) processDLQ() {
+	defer s.wg.Done()
+
+	ticker := time.NewTicker(s.dlqFlushPeriod)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.ctx.Done():
+			s.dlqMutex.Lock()
+			if len(s.dlqBuffer) > 0 {
+				if err := s.flushDLQ(); err != nil {
+					log.Printf("Failed to flush DLQ on shutdown: %v", err)
+				}
+			}
+			s.dlqMutex.Unlock()
+			return
+
+		case <-ticker.C:
+			s.dlqMutex.Lock()
+			if len(s.dlqBuffer) > 0 {
+				if err := s.flushDLQ(); err != nil {
+					log.Printf("Failed to flush DLQ: %v", err)
+				}
+			}
+			s.dlqMutex.Unlock()
+		}
+	}
+}
+
+func (s *LogService) flushDLQ() error {
+	if len(s.dlqBuffer) == 0 {
+		return nil
+	}
+
+	file, err := os.OpenFile(s.dlqFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open DLQ file: %w", err)
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	for _, logEntry := range s.dlqBuffer {
+		if err := encoder.Encode(logEntry); err != nil {
+			return fmt.Errorf("failed to write log to DLQ: %w", err)
+		}
+	}
+
+	log.Printf("Successfully wrote %d logs to DLQ file", len(s.dlqBuffer))
+	s.dlqBuffer = s.dlqBuffer[:0] // Clear buffer
+	return nil
+}
+
+func (s *LogService) RecoverFromDLQ() (int, error) {
+	if !s.dlqEnabled {
+		return 0, errors.New("DLQ is not enabled")
+	}
+
+	s.dlqMutex.Lock()
+	defer s.dlqMutex.Unlock()
+
+	file, err := os.Open(s.dlqFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil // No DLQ file exists
+		}
+		return 0, fmt.Errorf("failed to open DLQ file: %w", err)
+	}
+	defer file.Close()
+
 	var logs []model.Log
-	query := s.db.Model(&model.Log{}).Unscoped() // Include soft-deleted logs
-	for condition, value := range conditions {
-		log.Printf("Applying condition: %s with value: %v", condition, value)
-		query = query.Where(condition, value)
+	decoder := json.NewDecoder(file)
+	for decoder.More() {
+		var logEntry model.Log
+		if err := decoder.Decode(&logEntry); err != nil {
+			return len(logs), fmt.Errorf("failed to decode log entry: %w", err)
+		}
+		logs = append(logs, logEntry)
 	}
-	err := query.Limit(limit).Offset(offset).Order("created_at DESC").Find(&logs).Error
-	if err != nil {
-		log.Printf("Failed to retrieve logs: %v", err)
-		return nil, fmt.Errorf("failed to retrieve logs: %w", err)
-	}
-	log.Printf("Retrieved %d logs with limit=%d, offset=%d, conditions=%v", len(logs), limit, offset, conditions)
-	return logs, nil
-}
 
-// DeleteLogs deletes logs based on conditions
-func (s *LogService) DeleteLogs(conditions map[string]interface{}, args []interface{}) (int64, error) {
-	query := s.db.Model(&model.Log{}).Unscoped() // Include soft-deleted logs
-	for condition, value := range conditions {
-		log.Printf("Applying condition: %s with value: %v", condition, value)
-		query = query.Where(condition, value)
+	if len(logs) == 0 {
+		return 0, nil
 	}
-	result := query.Delete(&model.Log{})
-	if result.Error != nil {
-		log.Printf("Failed to delete logs: %v", result.Error)
-		return 0, fmt.Errorf("failed to delete logs: %w", result.Error)
-	}
-	log.Printf("Deleted %d logs", result.RowsAffected)
-	return result.RowsAffected, nil
-}
 
-// Shutdown gracefully stops the log service
-func (s *LogService) Shutdown() {
-	s.cancel()
-	s.wg.Wait()
-	close(s.logChan)
+	// Attempt to re-insert logs
+	successCount := 0
+	for i := 0; i < len(logs); i += s.bufferSize {
+		end := i + s.bufferSize
+		if end > len(logs) {
+			end = len(logs)
+		}
+		batch := logs[i:end]
+
+		if err := s.flushLogs(batch); err != nil {
+			// Put remaining logs back in DLQ
+			s.dlqBuffer = append(logs[i:], s.dlqBuffer...)
+			return successCount, fmt.Errorf("failed to recover logs from DLQ: %w", err)
+		}
+		successCount += len(batch)
+	}
+
+	// If all logs were recovered, delete the DLQ file
+	if successCount == len(logs) {
+		if err := os.Remove(s.dlqFile); err != nil {
+			return successCount, fmt.Errorf("failed to remove DLQ file: %w", err)
+		}
+	}
+
+	return successCount, nil
 }

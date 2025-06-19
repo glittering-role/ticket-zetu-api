@@ -1,20 +1,33 @@
 package discount_controller
 
 import (
-	"ticket-zetu-api/modules/tickets/models/tickets"
+	"ticket-zetu-api/modules/tickets/discount/dto"
 
 	"github.com/gofiber/fiber/v2"
 )
 
+// CreateDiscount godoc
+// @Summary Create a new discount
+// @Description Create a new discount code for the organizer
+// @Tags Discounts
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param input body dto.CreateDiscountCodeInput true "Discount data"
+// @Success 200 {object} map[string]interface{} "Discount created successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request body or organizer/event not found"
+// @Failure 403 {object} map[string]interface{} "User lacks permission"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /discounts [post]
 func (c *DiscountController) CreateDiscount(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 
-	var discount tickets.DiscountCode
-	if err := ctx.BodyParser(&discount); err != nil {
+	var input dto.CreateDiscountCodeInput
+	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
 	}
 
-	createdDiscount, err := c.service.CreateDiscount(userID, &discount)
+	createdDiscount, err := c.service.CreateDiscount(userID, &input)
 	if err != nil {
 		switch err.Error() {
 		case "user lacks create:discounts permission":

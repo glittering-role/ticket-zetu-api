@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/redis/go-redis/v9"
 	"ticket-zetu-api/logs/handler"
 	authentication "ticket-zetu-api/modules/users/authentication/controllers"
 	mail_service "ticket-zetu-api/modules/users/authentication/mail"
@@ -11,8 +12,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupAuthRoutes(api fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, emailService mail_service.EmailService) {
-	userService := auth_service.NewUserService(db, logHandler, emailService)
+func SetupAuthRoutes(api fiber.Router, db *gorm.DB, redisClient *redis.Client, logHandler *handler.LogHandler, emailService mail_service.EmailService) {
+	userService := auth_service.NewUserService(db, redisClient, logHandler, emailService)
 	authController, err := authentication.NewAuthController(db, emailService, userService, logHandler)
 	if err != nil {
 		panic(err)

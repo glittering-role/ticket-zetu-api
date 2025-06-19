@@ -1,10 +1,6 @@
 package mail_service
 
 import (
-	"crypto/rand"
-	"fmt"
-	"log"
-	"math/big"
 	"sync"
 	"time"
 
@@ -72,26 +68,4 @@ func (s *emailService) worker() {
 func (s *emailService) Shutdown() {
 	close(s.shutdown)
 	s.workerGroup.Wait()
-}
-
-func (s *emailService) generateVerificationCode() (string, error) {
-	// Generate a random number between 0 and 99999999 (8 digits)
-	max := big.NewInt(100000000)
-	n, err := rand.Int(rand.Reader, max)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate random number: %w", err)
-	}
-	code := fmt.Sprintf("%08d", n.Int64())
-	if len(code) != 8 {
-		// log.Printf("Generated code %s is not 8 digits, regenerating", code)
-		return s.generateVerificationCode()
-	}
-	log.Printf("Generated verification code: %s", code)
-	return code, nil
-}
-
-// randInt generates a random integer between min and max
-func randInt(min, max int) int {
-	n, _ := rand.Int(rand.Reader, big.NewInt(int64(max-min+1)))
-	return min + int(n.Int64())
 }

@@ -4,6 +4,7 @@ import (
 	"ticket-zetu-api/logs/handler"
 	"ticket-zetu-api/modules/notifications/service"
 	authorization_service "ticket-zetu-api/modules/users/authorization/service"
+	"ticket-zetu-api/modules/users/middleware"
 
 	"ticket-zetu-api/modules/notifications/controllers"
 
@@ -12,12 +13,13 @@ import (
 )
 
 func SetupNotificationRoutes(api fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
+	authMiddleware := middleware.IsAuthenticated(db, logHandler)
 	authService := authorization_service.NewPermissionService(db)
 	notificationService := notification_service.NewNotificationService(db, authService)
 	notificationController := notification_controllers.NewNotificationController(notificationService, logHandler)
 
 	// Group routes under /users
-	users := api.Group("/users")
+	users := api.Group("/users", authMiddleware)
 	{
 		users.Get("/:user_id/notifications", notificationController.GetUserNotifications)
 		users.Delete("/:user_id/notifications", notificationController.DeleteUserNotifications)

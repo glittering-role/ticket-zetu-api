@@ -2,9 +2,8 @@ package mail_service
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"html/template"
-	"log"
 	"os"
 	"time"
 
@@ -39,11 +38,9 @@ func (s *emailService) SendLoginWarning(c *fiber.Ctx, email, username, deviceInf
 
 	select {
 	case s.jobQueue <- job:
-		log.Printf("Enqueued login warning email job for %s", email)
 		return nil
 	case <-time.After(100 * time.Millisecond):
-		log.Printf("Email queue overloaded for %s", email)
-		return fmt.Errorf("email queue overloaded")
+		return errors.New("email queue overloaded")
 	}
 }
 
@@ -68,11 +65,8 @@ func (s *emailService) sendLoginWarningEmail(
 		warningMessage = "A security event was detected on your account."
 	}
 
-	ticketNumber := fmt.Sprintf("ALRT-%d-%d", time.Now().Unix()%10000, randInt(100, 999))
-
 	data := struct {
 		Username       string
-		TicketNumber   string
 		DeviceInfo     string
 		IPAddress      string
 		LoginTime      string
@@ -83,7 +77,6 @@ func (s *emailService) sendLoginWarningEmail(
 		TermsURL       string
 	}{
 		Username:       username,
-		TicketNumber:   ticketNumber,
 		DeviceInfo:     deviceInfo,
 		IPAddress:      ipAddress,
 		LoginTime:      loginTime.Format("2006-01-02 15:04:05"),
@@ -94,26 +87,20 @@ func (s *emailService) sendLoginWarningEmail(
 		TermsURL:       appConfig.TermsURL,
 	}
 
-	log.Printf("Loading login warning template from: %s", templateConfig.LoginWarningTemplatePath)
 	templateContent, err := os.ReadFile(templateConfig.LoginWarningTemplatePath)
 	if err != nil {
-		log.Printf("Failed to read login warning template: %v", err)
-		return fmt.Errorf("failed to read template: %w", err)
+		return errors.New("failed to read template")
 	}
-	log.Printf("Login warning template content length: %d bytes", len(templateContent))
 
 	var buf bytes.Buffer
 	tmpl, err := template.New("loginWarningEmail").Parse(string(templateContent))
 	if err != nil {
-		log.Printf("Login warning template parsing failed: %v", err)
-		return fmt.Errorf("template parsing failed: %w", err)
+		return errors.New("template parsing failed")
 	}
 
 	if err := tmpl.Execute(&buf, data); err != nil {
-		log.Printf("Login warning template execution failed: %v", err)
-		return fmt.Errorf("template execution failed: %w", err)
+		return errors.New("template execution failed")
 	}
-	log.Printf("Rendered login warning email length: %d bytes", buf.Len())
 
 	m := gomail.NewMessage()
 	m.SetHeader("From", smtpConfig.FromEmail)
@@ -121,12 +108,9 @@ func (s *emailService) sendLoginWarningEmail(
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", buf.String())
 
-	log.Printf("Sending login warning email to %s from %s via %s:%d", email, smtpConfig.FromEmail, smtpConfig.SMTPHost, smtpConfig.SMTPPort)
 	d := gomail.NewDialer(smtpConfig.SMTPHost, smtpConfig.SMTPPort, smtpConfig.SMTPUsername, smtpConfig.SMTPPassword)
 	if err := d.DialAndSend(m); err != nil {
-		log.Printf("Failed to send login warning email to %s: %v", email, err)
-		return fmt.Errorf("failed to send email: %w", err)
+		return errors.New("failed to send email")
 	}
-	log.Printf("Login warning email sent successfully to %s", email)
 	return nil
 }

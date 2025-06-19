@@ -13,7 +13,7 @@ import (
 )
 
 func (s *userService) RequestPasswordReset(ctx context.Context, c *fiber.Ctx, usernameOrEmail string) error {
-	user, securityAttrs, err := s.findUserAndSecurity(usernameOrEmail)
+	user, securityAttrs, err := s.findUserAndSecurity(ctx, usernameOrEmail)
 	if err != nil {
 		return err
 	}

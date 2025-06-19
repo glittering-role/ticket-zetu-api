@@ -13,7 +13,7 @@ import (
 )
 
 func VenueRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, cloudinary *cloudinary.CloudinaryService) {
-	authMiddleware := middleware.IsAuthenticated(db)
+	authMiddleware := middleware.IsAuthenticated(db, logHandler)
 	authService := authorization_service.NewPermissionService(db)
 	venueService := service.NewVenueService(db, authService, cloudinary)
 	venueController := venues_controller.NewVenueController(venueService, logHandler, cloudinary)

@@ -2,9 +2,11 @@ package mail_service
 
 import (
 	"bytes"
+	"crypto/rand"
+	"errors"
 	"fmt"
 	"html/template"
-	"log"
+	"math/big"
 	"os"
 	"time"
 
@@ -14,18 +16,30 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
+func (s *emailService) generateVerificationCode() (string, error) {
+	// Generate a random number between 0 and 99999999 (8 digits)
+	max := big.NewInt(100000000)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", errors.New("failed to generate random number")
+	}
+	code := fmt.Sprintf("%08d", n.Int64())
+	if len(code) != 8 {
+		return s.generateVerificationCode()
+	}
+	return code, nil
+}
+
 // GenerateAndSendVerificationCode generates and queues an email verification code
 func (s *emailService) GenerateAndSendVerificationCode(c *fiber.Ctx, email, username, userID string) (string, error) {
 	code, err := s.generateVerificationCode()
 	if err != nil {
-		log.Printf("Verification code generation failed: %v", err)
-		return "", fmt.Errorf("verification code generation failed: %w", err)
+		return "", errors.New("verification code generation failed")
 	}
 
 	// Validate code length
 	if len(code) != 8 {
-		log.Printf("Invalid code length: %d for code %s", len(code), code)
-		return "", fmt.Errorf("generated code is not 8 digits")
+		return "", errors.New("generated code is not 8 digits")
 	}
 
 	// Prepare all data needed for the email job
@@ -50,11 +64,9 @@ func (s *emailService) GenerateAndSendVerificationCode(c *fiber.Ctx, email, user
 	// Non-blocking enqueue with timeout
 	select {
 	case s.jobQueue <- job:
-		log.Printf("Enqueued email job for %s with code %s, queue length: %d", email, code, len(s.jobQueue))
 		return code, nil
 	case <-time.After(100 * time.Millisecond):
-		log.Printf("Email queue overloaded for %s", email)
-		return "", fmt.Errorf("email queue overloaded")
+		return "", errors.New("email queue overloaded")
 	}
 }
 
@@ -64,9 +76,6 @@ func (s *emailService) sendVerificationEmail(
 	templateConfig mail.EmailTemplateConfig,
 	appConfig mail.AppConfig,
 ) error {
-	ticketNumber := fmt.Sprintf("CNF-%d-%d", time.Now().Unix()%10000, randInt(100, 999))
-	log.Printf("Preparing email for %s with code %s and ticket %s", email, code, ticketNumber)
-
 	data := struct {
 		Username         string
 		VerificationCode string
@@ -84,26 +93,20 @@ func (s *emailService) sendVerificationEmail(
 	}
 
 	// Template processing
-	log.Printf("Loading template from: %s", templateConfig.VerificationTemplatePath)
 	templateContent, err := os.ReadFile(templateConfig.VerificationTemplatePath)
 	if err != nil {
-		log.Printf("Failed to read template: %v", err)
-		return fmt.Errorf("failed to read template: %w", err)
+		return errors.New("failed to read template")
 	}
-	log.Printf("Template content length: %d bytes", len(templateContent))
 
 	var buf bytes.Buffer
 	tmpl, err := template.New("verificationEmail").Parse(string(templateContent))
 	if err != nil {
-		log.Printf("Template parsing failed: %v", err)
-		return fmt.Errorf("template parsing failed: %w", err)
+		return errors.New("template parsing failed")
 	}
 
 	if err := tmpl.Execute(&buf, data); err != nil {
-		log.Printf("Template execution failed: %v", err)
-		return fmt.Errorf("template execution failed: %w", err)
+		return errors.New("template execution failed")
 	}
-	log.Printf("Rendered email length: %d bytes", buf.Len())
 
 	// Email sending
 	m := gomail.NewMessage()
@@ -112,12 +115,9 @@ func (s *emailService) sendVerificationEmail(
 	m.SetHeader("Subject", "Confirm Your Ticket Zetu Account")
 	m.SetBody("text/html", buf.String())
 
-	log.Printf("Sending email to %s from %s via %s:%d", email, smtpConfig.FromEmail, smtpConfig.SMTPHost, smtpConfig.SMTPPort)
 	d := gomail.NewDialer(smtpConfig.SMTPHost, smtpConfig.SMTPPort, smtpConfig.SMTPUsername, smtpConfig.SMTPPassword)
 	if err := d.DialAndSend(m); err != nil {
-		log.Printf("Failed to send email to %s: %v", email, err)
-		return fmt.Errorf("failed to send email: %w", err)
+		return errors.New("failed to send email")
 	}
-	log.Printf("Email sent successfully to %s", email)
 	return nil
 }

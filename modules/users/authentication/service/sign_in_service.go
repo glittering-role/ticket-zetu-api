@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -24,15 +26,27 @@ const (
 	Argon2KeyLength = 32
 )
 
+// UserSessionData matches middleware's cached user data
+type UserSessionData struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
 type LogHandler interface {
 	LogError(c *fiber.Ctx, err error, statusCode int) error
+}
+
+type EmailService interface {
+	GenerateAndSendVerificationCode(c *fiber.Ctx, email, username, userID string) (string, error)
+	SendLoginWarning(c *fiber.Ctx, email, username, userAgent, ipAddress string, loginTime time.Time, warningType string) error
 }
 
 func (s *userService) Authenticate(ctx context.Context, c *fiber.Ctx, usernameOrEmail, password string, rememberMe bool, ipAddress, userAgent string) (*members.User, *members.UserSession, error) {
 	// Normalize input for consistent querying
 	usernameOrEmail = strings.TrimSpace(strings.ToLower(usernameOrEmail))
 
-	user, securityAttrs, err := s.findUserAndSecurity(usernameOrEmail)
+	user, securityAttrs, err := s.findUserAndSecurity(ctx, usernameOrEmail)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -61,10 +75,10 @@ func (s *userService) Authenticate(ctx context.Context, c *fiber.Ctx, usernameOr
 
 	// Constant-time compare
 	if subtle.ConstantTimeCompare([]byte(encoded), []byte(securityAttrs.Password)) != 1 {
-		return nil, nil, s.handleFailedLogin(c, securityAttrs, user)
+		return nil, nil, s.handleFailedLogin(ctx, c, securityAttrs, user)
 	}
 
-	return s.handleSuccessfulLogin(c, user, securityAttrs, rememberMe, ipAddress, userAgent)
+	return s.handleSuccessfulLogin(ctx, c, user, securityAttrs, rememberMe, ipAddress, userAgent)
 }
 
 func (s *userService) HashPassword(password, userID string) (string, error) {
@@ -72,7 +86,7 @@ func (s *userService) HashPassword(password, userID string) (string, error) {
 	return base64.RawStdEncoding.EncodeToString(hashed), nil
 }
 
-func (s *userService) findUserAndSecurity(usernameOrEmail string) (*members.User, *members.UserSecurityAttributes, error) {
+func (s *userService) findUserAndSecurity(ctx context.Context, usernameOrEmail string) (*members.User, *members.UserSecurityAttributes, error) {
 	type userWithSecurity struct {
 		members.User
 		UserSecurityAttributes members.UserSecurityAttributes `gorm:"embedded"`
@@ -80,7 +94,8 @@ func (s *userService) findUserAndSecurity(usernameOrEmail string) (*members.User
 
 	var result userWithSecurity
 
-	err := s.db.
+	// Ensure index on user_profiles(username, email) and user_security_attributes(user_id)
+	err := s.db.WithContext(ctx).
 		Table("user_profiles").
 		Select("user_profiles.*, user_security_attributes.*").
 		Joins("JOIN user_security_attributes ON user_security_attributes.user_id = user_profiles.id").
@@ -97,31 +112,18 @@ func (s *userService) findUserAndSecurity(usernameOrEmail string) (*members.User
 	return &result.User, &result.UserSecurityAttributes, nil
 }
 
-func (s *userService) handleFailedLogin(c *fiber.Ctx, securityAttrs *members.UserSecurityAttributes, user *members.User) error {
-	tx := s.db.Begin()
-	if tx.Error != nil {
-		return errors.New("failed to start transaction")
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
+func (s *userService) handleFailedLogin(ctx context.Context, c *fiber.Ctx, securityAttrs *members.UserSecurityAttributes, user *members.User) error {
+	// Single update to reduce locking
 	securityAttrs.IncrementFailedAttempts(5)
-	if err := tx.Model(&members.UserSecurityAttributes{}).
+	err := s.db.WithContext(ctx).Model(&members.UserSecurityAttributes{}).
 		Where("user_id = ?", securityAttrs.UserID).
 		Updates(map[string]interface{}{
 			"failed_login_attempts": securityAttrs.FailedLoginAttempts,
 			"lock_until":            securityAttrs.LockUntil,
 			"updated_at":            time.Now(),
-		}).Error; err != nil {
-		tx.Rollback()
+		}).Error
+	if err != nil {
 		return err
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return errors.New("failed to commit transaction")
 	}
 
 	remainingAttempts := 5 - securityAttrs.FailedLoginAttempts
@@ -136,32 +138,22 @@ func (s *userService) handleFailedLogin(c *fiber.Ctx, securityAttrs *members.Use
 	return errors.New("invalid credentials")
 }
 
-func (s *userService) handleSuccessfulLogin(c *fiber.Ctx, user *members.User, securityAttrs *members.UserSecurityAttributes, rememberMe bool, ipAddress, userAgent string) (*members.User, *members.UserSession, error) {
+func (s *userService) handleSuccessfulLogin(ctx context.Context, c *fiber.Ctx, user *members.User, securityAttrs *members.UserSecurityAttributes, rememberMe bool, ipAddress, userAgent string) (*members.User, *members.UserSession, error) {
 	// Send login warning email for new login
 	err := s.emailService.SendLoginWarning(c, user.Email, user.Username, userAgent, ipAddress, time.Now(), "new_login")
 	if err != nil {
 		s.logHandler.LogError(c, errors.New("failed to send login warning email"), fiber.StatusInternalServerError)
 	}
 
-	tx := s.db.Begin()
-	if tx.Error != nil {
-		return nil, nil, errors.New("failed to start transaction")
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
 	// Reset failed login attempts
-	if err := tx.Model(&members.UserSecurityAttributes{}).
+	err = s.db.WithContext(ctx).Model(&members.UserSecurityAttributes{}).
 		Where("user_id = ?", securityAttrs.UserID).
 		Updates(map[string]interface{}{
 			"failed_login_attempts": 0,
 			"lock_until":            nil,
 			"updated_at":            time.Now(),
-		}).Error; err != nil {
-		tx.Rollback()
+		}).Error
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -173,36 +165,53 @@ func (s *userService) handleSuccessfulLogin(c *fiber.Ctx, user *members.User, se
 
 	sessionToken, err := s.generateSecureToken(32)
 	if err != nil {
-		tx.Rollback()
 		return nil, nil, err
 	}
 	refreshToken, err := s.generateSecureToken(32)
 	if err != nil {
-		tx.Rollback()
 		return nil, nil, err
 	}
 
 	session := &members.UserSession{
+		ID:            uuid.New(),
 		UserID:        uuid.MustParse(user.ID),
 		SessionToken:  sessionToken,
 		RefreshToken:  refreshToken,
 		IPAddress:     ipAddress,
 		UserAgent:     userAgent,
 		DeviceType:    s.detectDeviceType(userAgent),
+		DeviceName:    "",
+		IsActive:      true,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 		ExpiresAt:     time.Now().Add(sessionDuration),
 		RefreshExpiry: time.Now().Add(sessionDuration * 2),
 	}
 
-	if err := s.CreateSession(tx, session); err != nil {
-		tx.Rollback()
+	// Store session in database
+	err = s.CreateSession(s.db.WithContext(ctx), session)
+	if err != nil {
 		return nil, nil, err
 	}
 
-	if err := tx.Commit().Error; err != nil {
-		return nil, nil, errors.New("failed to commit transaction")
+	// Cache session in Redis (same format as middleware)
+	cacheKey := fmt.Sprintf("session:%s", session.SessionToken)
+	userData := UserSessionData{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+	}
+	userDataJSON, err := json.Marshal(userData)
+	if err != nil {
+		s.logHandler.LogError(c, err, fiber.StatusInternalServerError)
+	} else {
+		err = s.redisClient.Set(ctx, cacheKey, userDataJSON, sessionDuration).Err()
+		if err != nil {
+			s.logHandler.LogError(c, err, fiber.StatusInternalServerError)
+		}
 	}
 
-	return nil, session, nil
+	return user, session, nil
 }
 
 func (s *userService) generateSecureToken(length int) (string, error) {

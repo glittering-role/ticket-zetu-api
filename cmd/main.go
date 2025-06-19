@@ -1,43 +1,14 @@
 package main
 
 import (
+	"github.com/gofiber/fiber/v2"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"ticket-zetu-api/cloudinary"
 	"ticket-zetu-api/config"
-	"ticket-zetu-api/database"
-	"ticket-zetu-api/logs/handler"
-	logs "ticket-zetu-api/logs/routes/v1"
-	"ticket-zetu-api/logs/service"
-	"ticket-zetu-api/mail"
-	mail_service "ticket-zetu-api/modules/users/authentication/mail"
-	"ticket-zetu-api/queue"
-
-	categories "ticket-zetu-api/modules/events/routes/v1/category"
-	events "ticket-zetu-api/modules/events/routes/v1/events"
-	venue "ticket-zetu-api/modules/events/routes/v1/venues"
-
-	organization "ticket-zetu-api/modules/organizers/routes/v1"
-	price_tier "ticket-zetu-api/modules/tickets/routes/v1"
-	ticket_type "ticket-zetu-api/modules/tickets/routes/v1"
-
-	artist "ticket-zetu-api/modules/users/routes/v1"
-	auth "ticket-zetu-api/modules/users/routes/v1"
-	roles "ticket-zetu-api/modules/users/routes/v1"
-	users "ticket-zetu-api/modules/users/routes/v1"
-
-	notifications "ticket-zetu-api/modules/notifications/routes/v1"
-
-	_ "ticket-zetu-api/docs"
-
-	swagger "github.com/arsmn/fiber-swagger/v2"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"ticket-zetu-api/internal/middleware"
+	"ticket-zetu-api/internal/services"
 )
 
 // @title Ticket Zetu API
@@ -54,83 +25,21 @@ func main() {
 	// Load configuration
 	appConfig := config.LoadConfig()
 
-	// Initialize Cloudinary
-	cloudinaryService, err := cloudinary.NewCloudinaryService(appConfig.Cloudinary)
-	if err != nil {
-		log.Fatalf("Failed to initialize Cloudinary: %v", err)
-	}
-
-	// Initialize database
-	database.InitDB()
-	defer database.CloseDB()
-
-	// Initiate jobs
-	jobQueue := queue.NewJobQueue(5)
-	defer jobQueue.Close()
-
-	// Run migrations
-	if err := database.Migrate(database.DB); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	// Initialize log service and handler
-	logService := service.NewLogService(database.DB, 100, 5*time.Second, appConfig.Env)
-	defer logService.Shutdown()
-	logHandler := &handler.LogHandler{Service: logService}
-
-	// Mail
-	emailConfig, err := mail.NewConfig(logHandler)
-	if err != nil {
-		log.Fatalf("Failed to initialize email config: %v", err)
-	}
-
-	emailService := mail_service.NewEmailService(emailConfig, logHandler, 5)
-	defer emailService.Shutdown()
-
 	// Initialize Fiber app
 	app := fiber.New()
 
-	// Apply global CORS middleware
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: appConfig.ApiUrl + ",https://ticketzetu.com", // Allow ngrok URL and frontend
-		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-	}))
-
-	// Apply global rate limiter middleware
-	app.Use(limiter.New(limiter.Config{
-		Max:        100,
-		Expiration: 1 * time.Minute,
-		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"success": false,
-				"message": "Rate limit exceeded. Please try again later.",
-			})
-		},
-	}))
-
-	// Configure Swagger with dynamic host
-	swaggerConfig := swagger.Config{
-		URL: appConfig.ApiUrl + "/swagger/doc.json", // Point to the Swagger JSON with the ngrok URL
+	// Setup services
+	cloudinaryService, db, logService, emailService, jobQueue, err := services.SetupServices(appConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize services: %v", err)
 	}
-	app.Get("/swagger/*", swagger.New(swaggerConfig))
+	defer services.ShutdownServices(db, logService, emailService, jobQueue)
 
-	// Create API group
-	api := app.Group("/api/v1")
+	// Setup middleware
+	middleware.SetupMiddleware(app, appConfig)
 
-	// Register all module routes
-	logs.SetupRoutes(api, logService, logHandler)
-	roles.AuthorizationRoutes(api, database.DB, logHandler)
-	auth.SetupAuthRoutes(api, database.DB, logHandler, emailService)
-	users.UserRoutes(api, database.DB, logHandler, cloudinaryService, emailService)
-	categories.CategoryRoutes(api, database.DB, logHandler, cloudinaryService)
-	organization.OrganizerRoutes(api, database.DB, logHandler, cloudinaryService)
-	venue.VenueRoutes(api, database.DB, logHandler, cloudinaryService)
-	events.SetupEventsRoutes(api, database.DB, logHandler, cloudinaryService)
-	price_tier.SetupPriceTierRoutes(api, database.DB, logHandler)
-	ticket_type.SetupTicketTypeRoutes(api, database.DB, logHandler)
-	notifications.SetupNotificationRoutes(api, database.DB, logHandler)
-	artist.ArtistRoutes(api, database.DB, logHandler)
+	// Setup routes
+	services.SetupRoutes(app, db, logService, cloudinaryService, emailService)
 
 	// Graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)

@@ -15,7 +15,7 @@ import (
 )
 
 func UserRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, cloudinary *cloudinary.CloudinaryService, emailService mail_service.EmailService) {
-	authMiddleware := middleware.IsAuthenticated(db)
+	authMiddleware := middleware.IsAuthenticated(db, logHandler)
 	userNameCheck := auth_utils.NewUsernameCheck(db, logHandler)
 
 	userService := members_service.NewUserService(db, emailService, userNameCheck)

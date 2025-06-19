@@ -12,7 +12,7 @@ import (
 )
 
 func SetupPriceTierRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler) {
-	authMiddleware := middleware.IsAuthenticated(db)
+	authMiddleware := middleware.IsAuthenticated(db, logHandler)
 	authService := authorization_service.NewPermissionService(db)
 
 	priceTierService := price_tier_service.NewPriceTierService(db, authService)

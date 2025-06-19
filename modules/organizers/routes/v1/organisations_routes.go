@@ -14,7 +14,7 @@ import (
 )
 
 func OrganizerRoutes(router fiber.Router, db *gorm.DB, logHandler *handler.LogHandler, cloudinaryService *cloudinary.CloudinaryService) {
-	authMiddleware := middleware.IsAuthenticated(db)
+	authMiddleware := middleware.IsAuthenticated(db, logHandler)
 	authService := authorization_service.NewPermissionService(db)
 
 	// Organizer Service and Controller
