@@ -133,6 +133,8 @@ type EventResponse struct {
 	Subcategory    SubcategoryResponse  `json:"subcategory"`
 	VenueID        string               `json:"venue_id"`
 	Venue          VenueResponse        `json:"venue"`
+	Upvotes        int                  `json:"upvotes"`
+	Downvotes      int                  `json:"downvotes"`
 	StartTime      time.Time            `json:"start_time"`
 	EndTime        time.Time            `json:"end_time"`
 	Timezone       string               `json:"timezone"`
@@ -163,6 +165,8 @@ type MinimalEventResponse struct {
 	EventType   string               `json:"event_type"`
 	IsFree      bool                 `json:"is_free"`
 	HasTickets  bool                 `json:"has_tickets"`
+	Upvotes     int                  `json:"upvotes"`
+	Downvotes   int                  `json:"downvotes"`
 	IsFeatured  bool                 `json:"is_featured"`
 	Status      string               `json:"status"`
 	CreatedAt   time.Time            `json:"created_at"`

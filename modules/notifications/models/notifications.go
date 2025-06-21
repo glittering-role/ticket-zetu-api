@@ -1,6 +1,8 @@
 package notifications
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"ticket-zetu-api/modules/users/models/members"
 	"time"
@@ -13,9 +15,9 @@ import (
 type NotificationType string
 
 const (
-	NotificationTypeAction  NotificationType = "action"  // User actions (e.g., payment, follow)
-	NotificationTypeSystem  NotificationType = "system"  // System-wide (e.g., maintenance)
-	NotificationTypeWarning NotificationType = "warning" // Alerts (e.g., payment failure)
+	NotificationTypeAction  NotificationType = "action"
+	NotificationTypeSystem  NotificationType = "system"
+	NotificationTypeWarning NotificationType = "warning"
 )
 
 // NotificationStatus defines the status of a user notification
@@ -26,21 +28,45 @@ const (
 	NotificationStatusRead   NotificationStatus = "read"
 )
 
+// JSONMap handles JSON serialization for map[string]interface{}
+type JSONMap map[string]interface{}
+
+// Value implements the driver.Valuer interface
+func (j JSONMap) Value() (driver.Value, error) {
+	if j == nil {
+		return nil, nil
+	}
+	return json.Marshal(j)
+}
+
+// Scan implements the sql.Scanner interface
+func (j *JSONMap) Scan(value interface{}) error {
+	if value == nil {
+		*j = nil
+		return nil
+	}
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(b, j)
+}
+
 // Notification represents a notification event
 type Notification struct {
-	ID        string                 `gorm:"type:char(36);primaryKey" json:"id"`
-	Type      NotificationType       `gorm:"type:varchar(50);not null;index" json:"type"`
-	Title     string                 `gorm:"type:varchar(100);not null" json:"title"`
-	Content   string                 `gorm:"type:text;not null" json:"content"`
-	SenderID  string                 `gorm:"type:char(36);index" json:"sender_id,omitempty"`
-	Sender    members.User           `gorm:"foreignKey:SenderID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"sender,omitempty"`
-	RelatedID string                 `gorm:"type:char(36);index" json:"related_id,omitempty"`
-	Module    string                 `gorm:"type:varchar(50);index" json:"module,omitempty"`
-	Metadata  map[string]interface{} `gorm:"type:json" json:"metadata,omitempty"`
-	IsSystem  bool                   `gorm:"default:false;index" json:"is_system"`
-	CreatedAt time.Time              `gorm:"autoCreateTime;index" json:"created_at"`
-	UpdatedAt time.Time              `gorm:"autoUpdateTime" json:"updated_at"`
-	DeletedAt gorm.DeletedAt         `gorm:"index" json:"deleted_at,omitempty"`
+	ID        string           `gorm:"type:char(36);primaryKey" json:"id"`
+	Type      NotificationType `gorm:"type:varchar(50);not null;index" json:"type"`
+	Title     string           `gorm:"type:varchar(100);not null" json:"title"`
+	Content   string           `gorm:"type:text;not null" json:"content"`
+	SenderID  string           `gorm:"type:char(36);index" json:"sender_id,omitempty"`
+	Sender    members.User     `gorm:"foreignKey:SenderID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL" json:"sender,omitempty"`
+	RelatedID string           `gorm:"type:char(36);index" json:"related_id,omitempty"`
+	Module    string           `gorm:"type:varchar(50);index" json:"module,omitempty"`
+	Metadata  JSONMap          `gorm:"type:json" json:"metadata,omitempty"`
+	IsSystem  bool             `gorm:"default:false;index" json:"is_system"`
+	CreatedAt time.Time        `gorm:"autoCreateTime;index" json:"created_at"`
+	UpdatedAt time.Time        `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt gorm.DeletedAt   `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (n *Notification) BeforeCreate(tx *gorm.DB) (err error) {

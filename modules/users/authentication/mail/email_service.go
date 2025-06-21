@@ -13,7 +13,7 @@ import (
 // EmailService defines the interface for email operations
 type EmailService interface {
 	GenerateAndSendVerificationCode(c *fiber.Ctx, email, username, userID string) (string, error)
-	SendLoginWarning(c *fiber.Ctx, email, username, userAgent, ipAddress string, loginTime time.Time, warningType string) error
+	SendLoginWarning(c *fiber.Ctx, email, username, userAgent, ipAddress, country, state string, loginTime time.Time, warningType string) error
 	SendPasswordResetEmail(c *fiber.Ctx, email, username, resetToken string) error
 	Shutdown()
 }

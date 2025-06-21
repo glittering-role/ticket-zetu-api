@@ -9,7 +9,8 @@
         margin: 0;
         padding: 0;
         background-color: #d1d5db;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
         -webkit-font-smoothing: antialiased;
       }
       .container {
@@ -25,7 +26,8 @@
         background-color: #ffffff;
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
         transition: transform 0.3s ease;
       }
       .card:hover {
@@ -155,7 +157,7 @@
           <h1>Login Alert</h1>
           <p>New Account Access Detected</p>
         </div>
-        
+
         <!-- Content -->
         <div class="content">
           <p class="greeting">Hello {{.Username}},</p>
@@ -163,6 +165,7 @@
           <div class="info-box">
             <p><span>Device:</span> {{.DeviceInfo}}</p>
             <p><span>IP Address:</span> {{.IPAddress}}</p>
+            <p><span>Location:</span> {{.Country}} / {{.State}}</p>
             <p><span>Time:</span> {{.LoginTime}}</p>
           </div>
           <p class="text-sm italic">
@@ -170,7 +173,7 @@
           </p>
           <a href="{{.SecurityURL}}" class="button">Secure Account</a>
         </div>
-        
+
         <!-- Footer -->
         <div class="footer">
           <p>© 2025 Ticket Zetu. All rights reserved.</p>

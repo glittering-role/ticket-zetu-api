@@ -9,6 +9,7 @@ import (
 	"ticket-zetu-api/modules/events/events/dto"
 	"ticket-zetu-api/modules/events/models/categories"
 	"ticket-zetu-api/modules/events/models/events"
+	notification_service "ticket-zetu-api/modules/notifications/service"
 	organizers "ticket-zetu-api/modules/organizers/models"
 	"ticket-zetu-api/modules/tickets/models/tickets"
 	authorization_service "ticket-zetu-api/modules/users/authorization/service"
@@ -21,16 +22,16 @@ import (
 
 // SearchFilter defines the parameters for searching and filtering events
 type SearchFilter struct {
-	Query     string     // Search term for title or description
-	StartDate *time.Time // Filter by events starting on or after this date
-	EndDate   *time.Time // Filter by events ending on or before this date
-	EventType string     // Filter by event type (online, offline, hybrid)
-	IsFree    *bool      // Filter by free or paid events
-	Status    string     // Filter by event status
-	MinPrice  *float64   // Filter by minimum ticket price
-	MaxPrice  *float64   // Filter by maximum ticket price
-	Page      int        // Page number (1-based)
-	PageSize  int        // Number of items per page (default: 20)
+	Query     string
+	StartDate *time.Time
+	EndDate   *time.Time
+	EventType string
+	IsFree    *bool
+	Status    string
+	MinPrice  *float64
+	MaxPrice  *float64
+	Page      int
+	PageSize  int
 }
 
 // PaginatedResponse wraps the paginated event results with metadata
@@ -41,30 +42,62 @@ type PaginatedResponse struct {
 	TotalPages  int                        `json:"total_pages"`
 }
 
+type eventService struct {
+	db                   *gorm.DB
+	authorizationService authorization_service.PermissionService
+	cloudinary           *cloudinary.CloudinaryService
+	notificationService  notification_service.NotificationService
+	contentFilter        *ContentFilter
+}
+
 type EventService interface {
 	CreateEvent(createDto dto.CreateEvent, userID string) (*dto.EventResponse, error)
 	UpdateEvent(updateDto dto.UpdateEvent, userID, id string) (*dto.EventResponse, error)
 	DeleteEvent(userID, id string) error
 	GetEvent(userID, id string) (*dto.EventResponse, error)
-	GetEvents(userID string, filter SearchFilter) (*PaginatedResponse, error) // Updated signature
+	GetEvents(userID string, filter SearchFilter) (*PaginatedResponse, error)
 	SearchEvents(userID string, filter SearchFilter) (*PaginatedResponse, error)
 	AddEventImage(userID, eventID, imageURL string, isPrimary bool) (*events.EventImage, error)
 	DeleteEventImage(userID, eventID, imageID string) error
 	HasPermission(userID, permission string) (bool, error)
+
+	ToggleFavorite(userID, eventID string) error
+	ToggleUpvote(userID, eventID string) (string, error)
+	ToggleDownvote(userID, eventID string) (string, error)
+	AddComment(userID, eventID, content string) (*events.Comment, error)
+	AddReply(userID, eventID, commentID, content string) (*events.Comment, error)
+	EditComment(userID, commentID, newContent string) (*events.Comment, error)
+	DeleteComment(userID, commentID string) error
+	GetUserFavorites(userID string) ([]events.Favorite, error)
+	GetUserComments(userID string) ([]events.Comment, error)
 }
 
-type eventService struct {
-	db                   *gorm.DB
-	authorizationService authorization_service.PermissionService
-	cloudinary           *cloudinary.CloudinaryService
-}
-
-func NewEventService(db *gorm.DB, authService authorization_service.PermissionService, cloudinary *cloudinary.CloudinaryService) EventService {
+func NewEventService(db *gorm.DB, authService authorization_service.PermissionService, cloudinary *cloudinary.CloudinaryService, notificationService notification_service.NotificationService) EventService {
 	return &eventService{
 		db:                   db,
 		authorizationService: authService,
 		cloudinary:           cloudinary,
+		notificationService:  notificationService,
+		contentFilter:        NewContentFilter(),
 	}
+}
+
+// sendNotification sends a notification with the provided details
+func (s *eventService) sendNotification(notificationType, title, message, senderID, eventID string, recipientIDs []string, metadata map[string]interface{}) error {
+	notificationErr := s.notificationService.TriggerNotification(
+		"events",
+		notificationType,
+		title,
+		message,
+		senderID,
+		eventID,
+		recipientIDs,
+		metadata,
+	)
+	if notificationErr != nil {
+		fmt.Printf("Failed to send %s notification: %v\n", notificationType, notificationErr)
+	}
+	return notificationErr
 }
 
 func (s *eventService) HasPermission(userID, permission string) (bool, error) {
@@ -137,6 +170,19 @@ func (s *eventService) toDto(event *events.Event, fullDetails bool) (*struct {
 		return nil, fmt.Errorf("failed to fetch event images: %v", err)
 	}
 
+	// Load vote counts
+	var upvotes, downvotes int64
+	if err := s.db.Model(&events.Vote{}).
+		Where("event_id = ? AND type = ?", event.ID, events.VoteTypeUp).
+		Count(&upvotes).Error; err != nil {
+		return nil, fmt.Errorf("failed to count upvotes: %v", err)
+	}
+	if err := s.db.Model(&events.Vote{}).
+		Where("event_id = ? AND type = ?", event.ID, events.VoteTypeDown).
+		Count(&downvotes).Error; err != nil {
+		return nil, fmt.Errorf("failed to count downvotes: %v", err)
+	}
+
 	// Common fields for both responses
 	minimal := dto.MinimalEventResponse{
 		ID:          event.ID,
@@ -150,10 +196,11 @@ func (s *eventService) toDto(event *events.Event, fullDetails bool) (*struct {
 		HasTickets:  event.HasTickets,
 		IsFeatured:  event.IsFeatured,
 		Status:      string(event.Status),
+		Upvotes:     int(upvotes),
+		Downvotes:   int(downvotes),
 		CreatedAt:   event.CreatedAt,
 		UpdatedAt:   event.UpdatedAt,
 		EventImages: eventImages,
-		// TicketTypes omitted from MinimalEventResponse to improve performance
 	}
 
 	if !fullDetails {
@@ -256,6 +303,8 @@ func (s *eventService) toDto(event *events.Event, fullDetails bool) (*struct {
 		HasTickets:     event.HasTickets,
 		IsFeatured:     event.IsFeatured,
 		Status:         string(event.Status),
+		Upvotes:        int(upvotes),
+		Downvotes:      int(downvotes),
 		EventImages:    eventImages,
 		PublishedAt:    event.PublishedAt,
 		CreatedAt:      event.CreatedAt,

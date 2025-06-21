@@ -18,7 +18,7 @@ import (
 
 type UserService interface {
 	SignUp(ctx context.Context, req dto.SignUpRequest, userID, encodedHash string) (*members.User, error)
-	Authenticate(ctx context.Context, c *fiber.Ctx, usernameOrEmail, encodedHash string, rememberMe bool, ipAddress, userAgent string) (*members.User, *members.UserSession, error)
+	Authenticate(ctx context.Context, c *fiber.Ctx, usernameOrEmail, encodedHash string, rememberMe bool) (*members.User, *members.UserSession, error)
 	ValidateUserExists(username, email string) error
 	CreateSession(tx *gorm.DB, session *members.UserSession) error
 	VerifyEmailCode(tx *gorm.DB, userID, code string) error

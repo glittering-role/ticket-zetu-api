@@ -140,18 +140,6 @@ func (s *userService) UpdateUserLocation(id string, locationDto *dto.UserLocatio
 			updates["timezone"] = *locationDto.Timezone
 			location.Timezone = *locationDto.Timezone
 		}
-		if locationDto.LastActive != nil {
-			var lastActive *time.Time
-			if *locationDto.LastActive != "" {
-				parsedTime, err := time.Parse(time.RFC3339, *locationDto.LastActive)
-				if err != nil {
-					return errors.New("invalid last_active format")
-				}
-				lastActive = &parsedTime
-				location.LastActive = lastActive
-			}
-			updates["last_active"] = lastActive
-		}
 
 		if len(updates) == 0 {
 			return errors.New("no location updates provided")

@@ -14,7 +14,9 @@ import (
 )
 
 // SendLoginWarning queues a login warning email
-func (s *emailService) SendLoginWarning(c *fiber.Ctx, email, username, deviceInfo, ipAddress string, loginTime time.Time, warningType string) error {
+func (s *emailService) SendLoginWarning(c *fiber.Ctx,
+	email, username, userAgent, ipAddress, country, state string,
+	loginTime time.Time, warningType string) error {
 	smtpConfig := s.config.GetSMTPConfig()
 	templateConfig := s.config.GetTemplateConfig()
 	appConfig := s.config.GetAppConfig()
@@ -25,8 +27,10 @@ func (s *emailService) SendLoginWarning(c *fiber.Ctx, email, username, deviceInf
 			return s.sendLoginWarningEmail(
 				email,
 				username,
-				deviceInfo,
+				userAgent,
 				ipAddress,
+				country,
+				state,
 				loginTime,
 				warningType,
 				smtpConfig,
@@ -45,7 +49,7 @@ func (s *emailService) SendLoginWarning(c *fiber.Ctx, email, username, deviceInf
 }
 
 func (s *emailService) sendLoginWarningEmail(
-	email, username, deviceInfo, ipAddress string,
+	email, username, userAgent, ipAddress, country, state string,
 	loginTime time.Time,
 	warningType string,
 	smtpConfig mail.EmailConfig,
@@ -65,10 +69,18 @@ func (s *emailService) sendLoginWarningEmail(
 		warningMessage = "A security event was detected on your account."
 	}
 
+	// Map country code to name if needed
+	countryName := country
+	if country == "KE" {
+		countryName = "Kenya"
+	}
+
 	data := struct {
 		Username       string
 		DeviceInfo     string
 		IPAddress      string
+		Country        string
+		State          string
 		LoginTime      string
 		WarningMessage string
 		SecurityURL    string
@@ -77,8 +89,10 @@ func (s *emailService) sendLoginWarningEmail(
 		TermsURL       string
 	}{
 		Username:       username,
-		DeviceInfo:     deviceInfo,
+		DeviceInfo:     userAgent,
 		IPAddress:      ipAddress,
+		Country:        countryName,
+		State:          state,
 		LoginTime:      loginTime.Format("2006-01-02 15:04:05"),
 		WarningMessage: warningMessage,
 		SecurityURL:    appConfig.SecurityURL,

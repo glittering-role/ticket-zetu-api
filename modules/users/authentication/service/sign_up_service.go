@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"ticket-zetu-api/modules/users/authentication/dto"
+	"ticket-zetu-api/modules/users/helpers"
 	authorization "ticket-zetu-api/modules/users/models/authorization"
 	"ticket-zetu-api/modules/users/models/members"
 
@@ -31,6 +32,25 @@ type EmailExistsError struct {
 
 func (e *EmailExistsError) Error() string {
 	return e.Message
+}
+
+// UserProfileResponse holds user profile data for API responses
+type UserProfileResponse struct {
+	ID          string                `json:"id"`
+	Username    string                `json:"username"`
+	FirstName   string                `json:"first_name,omitempty"`
+	LastName    string                `json:"last_name,omitempty"`
+	Email       string                `json:"email"`
+	Phone       string                `json:"phone,omitempty"`
+	DateOfBirth *time.Time            `json:"date_of_birth,omitempty"`
+	Location    *UserLocationEditable `json:"location,omitempty"`
+}
+
+// UserLocationEditable holds editable location fields for users
+type UserLocationEditable struct {
+	City  string `json:"city,omitempty"`
+	State string `json:"state,omitempty"`
+	Zip   string `json:"zip,omitempty"`
 }
 
 func normalizeEmail(e string) string {
@@ -116,6 +136,22 @@ func (s *userService) SignUp(ctx context.Context, req dto.SignUpRequest, userID,
 		RoleID:      role.ID,
 	}
 
+	// Get location from context and map to UserLocation
+	var userLocation *members.UserLocation
+	if loc, ok := ctx.Value("user_location").(*helpers.Location); ok && loc != nil {
+		userLocation = &members.UserLocation{
+			UserID: uuid.MustParse(userID),
+			//City:      loc.City,
+			//State:     loc.State,
+			Country:   loc.Country,
+			Continent: loc.Continent,
+			Timezone:  loc.Timezone,
+			//Zip:       loc.Zip,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+	}
+
 	// Prepare user preferences
 	prefs := &members.UserPreferences{
 		UserID:   uuid.MustParse(user.ID),
@@ -166,10 +202,53 @@ func (s *userService) SignUp(ctx context.Context, req dto.SignUpRequest, userID,
 		return nil, fmt.Errorf("failed to create user preferences: %w", err)
 	}
 
+	// Create user location if available
+	if userLocation != nil {
+		if err := tx.Create(userLocation).Error; err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to create user location: %w", err)
+		}
+	}
+
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		return nil, errors.New("failed to commit transaction")
 	}
 
 	return user, nil
+}
+
+// GetUserProfile retrieves user profile with editable location fields
+func (s *userService) GetUserProfile(ctx context.Context, userID string) (*UserProfileResponse, error) {
+	var user members.User
+	if err := s.db.Where("id = ?", userID).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("user not found")
+		}
+		return nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	var userLocation members.UserLocation
+	var location *UserLocationEditable
+	if err := s.db.Where("user_id = ?", userID).First(&userLocation).Error; err == nil {
+		// Only expose editable fields
+		location = &UserLocationEditable{
+			City:  userLocation.City,
+			State: userLocation.State,
+			Zip:   userLocation.Zip,
+		}
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("failed to fetch user location: %w", err)
+	}
+
+	return &UserProfileResponse{
+		ID:          user.ID,
+		Username:    user.Username,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Email:       user.Email,
+		Phone:       user.Phone,
+		DateOfBirth: user.DateOfBirth,
+		Location:    location,
+	}, nil
 }
