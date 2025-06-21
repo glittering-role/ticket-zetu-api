@@ -23,6 +23,10 @@ type AppConfig struct {
 	RedisAddr     string
 	RedisPassword string
 	RedisDB       int
+	ClientId      string
+	ClientSecret  string
+	RedirectUrl   string
+	ApiToken      string
 }
 
 // LoadConfig loads the configuration from environment variables
@@ -46,6 +50,10 @@ func LoadConfig() *AppConfig {
 		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisDB:       getEnvAsInt("REDIS_DB", 0),
+		ClientId:      getEnv("CLIENT_ID", ""),
+		ClientSecret:  getEnv("CLIENT_SECRET", ""),
+		RedirectUrl:   getEnv("REDIRECT_URL", ""),
+		ApiToken:      getEnv("API_TOKEN", ""),
 		Cloudinary: cloudinary.Config{
 			CloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
 			APIKey:    getEnv("CLOUDINARY_API_KEY", ""),

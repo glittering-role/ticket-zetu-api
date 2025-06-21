@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"ticket-zetu-api/modules/users/helpers"
 	"ticket-zetu-api/modules/users/models/members"
 
 	"github.com/gofiber/fiber/v2"
@@ -39,12 +40,28 @@ type LogHandler interface {
 
 type EmailService interface {
 	GenerateAndSendVerificationCode(c *fiber.Ctx, email, username, userID string) (string, error)
-	SendLoginWarning(c *fiber.Ctx, email, username, userAgent, ipAddress string, loginTime time.Time, warningType string) error
+	SendLoginWarning(c *fiber.Ctx, email, username, deviceDescription, ipAddress, country, state string, loginTime time.Time, warningType string) error
 }
 
-func (s *userService) Authenticate(ctx context.Context, c *fiber.Ctx, usernameOrEmail, password string, rememberMe bool, ipAddress, userAgent string) (*members.User, *members.UserSession, error) {
+func (s *userService) Authenticate(ctx context.Context, c *fiber.Ctx, usernameOrEmail, password string, rememberMe bool) (*members.User, *members.UserSession, error) {
 	// Normalize input for consistent querying
 	usernameOrEmail = strings.TrimSpace(strings.ToLower(usernameOrEmail))
+
+	// Get IP and location from GeolocationMiddleware
+	var location *helpers.Location
+	if loc, ok := c.Locals("user_location").(*helpers.Location); ok && loc != nil {
+		location = loc
+	} else {
+		return nil, nil, errors.New("location data not available")
+	}
+
+	// Get device info from DeviceDetectionMiddleware
+	var deviceInfo *helpers.DeviceInfo
+	if dev, ok := c.Locals("device_info").(*helpers.DeviceInfo); ok && dev != nil {
+		deviceInfo = dev
+	} else {
+		return nil, nil, errors.New("device info not available")
+	}
 
 	user, securityAttrs, err := s.findUserAndSecurity(ctx, usernameOrEmail)
 	if err != nil {
@@ -62,7 +79,7 @@ func (s *userService) Authenticate(ctx context.Context, c *fiber.Ctx, usernameOr
 
 	// Check if account is locked
 	if securityAttrs.IsLocked() {
-		err := s.emailService.SendLoginWarning(c, user.Email, user.Username, userAgent, ipAddress, time.Now(), "account_locked")
+		err := s.emailService.SendLoginWarning(c, user.Email, user.Username, deviceInfo.Description, location.IPAddress, location.Country, location.State, time.Now(), "account_locked")
 		if err != nil {
 			s.logHandler.LogError(c, errors.New("failed to send lockout warning email"), fiber.StatusInternalServerError)
 		}
@@ -75,10 +92,10 @@ func (s *userService) Authenticate(ctx context.Context, c *fiber.Ctx, usernameOr
 
 	// Constant-time compare
 	if subtle.ConstantTimeCompare([]byte(encoded), []byte(securityAttrs.Password)) != 1 {
-		return nil, nil, s.handleFailedLogin(ctx, c, securityAttrs, user)
+		return nil, nil, s.handleFailedLogin(ctx, c, securityAttrs, user, location, deviceInfo)
 	}
 
-	return s.handleSuccessfulLogin(ctx, c, user, securityAttrs, rememberMe, ipAddress, userAgent)
+	return s.handleSuccessfulLogin(ctx, c, user, securityAttrs, rememberMe, location, deviceInfo)
 }
 
 func (s *userService) HashPassword(password, userID string) (string, error) {
@@ -112,7 +129,7 @@ func (s *userService) findUserAndSecurity(ctx context.Context, usernameOrEmail s
 	return &result.User, &result.UserSecurityAttributes, nil
 }
 
-func (s *userService) handleFailedLogin(ctx context.Context, c *fiber.Ctx, securityAttrs *members.UserSecurityAttributes, user *members.User) error {
+func (s *userService) handleFailedLogin(ctx context.Context, c *fiber.Ctx, securityAttrs *members.UserSecurityAttributes, user *members.User, location *helpers.Location, deviceInfo *helpers.DeviceInfo) error {
 	// Single update to reduce locking
 	securityAttrs.IncrementFailedAttempts(5)
 	err := s.db.WithContext(ctx).Model(&members.UserSecurityAttributes{}).
@@ -128,7 +145,7 @@ func (s *userService) handleFailedLogin(ctx context.Context, c *fiber.Ctx, secur
 
 	remainingAttempts := 5 - securityAttrs.FailedLoginAttempts
 	if remainingAttempts <= 0 {
-		err := s.emailService.SendLoginWarning(c, user.Email, user.Username, c.Get("User-Agent"), c.IP(), time.Now(), "lockout_failed_attempts")
+		err := s.emailService.SendLoginWarning(c, user.Email, user.Username, deviceInfo.Description, location.IPAddress, location.Country, location.State, time.Now(), "lockout_failed_attempts")
 		if err != nil {
 			s.logHandler.LogError(c, errors.New("failed to send lockout warning email"), fiber.StatusInternalServerError)
 		}
@@ -138,14 +155,14 @@ func (s *userService) handleFailedLogin(ctx context.Context, c *fiber.Ctx, secur
 	return errors.New("invalid credentials")
 }
 
-func (s *userService) handleSuccessfulLogin(ctx context.Context, c *fiber.Ctx, user *members.User, securityAttrs *members.UserSecurityAttributes, rememberMe bool, ipAddress, userAgent string) (*members.User, *members.UserSession, error) {
+func (s *userService) handleSuccessfulLogin(ctx context.Context, c *fiber.Ctx, user *members.User, securityAttrs *members.UserSecurityAttributes, rememberMe bool, location *helpers.Location, deviceInfo *helpers.DeviceInfo) (*members.User, *members.UserSession, error) {
 	// Send login warning email for new login
-	err := s.emailService.SendLoginWarning(c, user.Email, user.Username, userAgent, ipAddress, time.Now(), "new_login")
+	err := s.emailService.SendLoginWarning(c, user.Email, user.Username, deviceInfo.Description, location.IPAddress, location.Country, location.State, time.Now(), "new_login")
 	if err != nil {
 		s.logHandler.LogError(c, errors.New("failed to send login warning email"), fiber.StatusInternalServerError)
 	}
 
-	// Reset failed login attempts
+	// Reset failed login attempts and store IP
 	err = s.db.WithContext(ctx).Model(&members.UserSecurityAttributes{}).
 		Where("user_id = ?", securityAttrs.UserID).
 		Updates(map[string]interface{}{
@@ -173,14 +190,13 @@ func (s *userService) handleSuccessfulLogin(ctx context.Context, c *fiber.Ctx, u
 	}
 
 	session := &members.UserSession{
-		ID:            uuid.New(),
 		UserID:        uuid.MustParse(user.ID),
 		SessionToken:  sessionToken,
 		RefreshToken:  refreshToken,
-		IPAddress:     ipAddress,
-		UserAgent:     userAgent,
-		DeviceType:    s.detectDeviceType(userAgent),
-		DeviceName:    "",
+		IPAddress:     location.IPAddress,
+		UserAgent:     c.Get("User-Agent"),
+		DeviceType:    deviceInfo.DeviceType,
+		DeviceName:    deviceInfo.Description,
 		IsActive:      true,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
@@ -220,20 +236,6 @@ func (s *userService) generateSecureToken(length int) (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(bytes)[:length], nil
-}
-
-func (s *userService) detectDeviceType(userAgent string) members.SessionDeviceType {
-	userAgent = strings.ToLower(userAgent)
-	switch {
-	case strings.Contains(userAgent, "mobile"):
-		return members.DeviceMobile
-	case strings.Contains(userAgent, "tablet"):
-		return members.DeviceTablet
-	case strings.Contains(userAgent, "windows") || strings.Contains(userAgent, "macintosh"):
-		return members.DeviceDesktop
-	default:
-		return members.DeviceUnknown
-	}
 }
 
 func (s *userService) CreateSession(tx *gorm.DB, session *members.UserSession) error {

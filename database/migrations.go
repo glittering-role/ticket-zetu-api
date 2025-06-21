@@ -18,9 +18,12 @@ import (
 	UserSecurityAttributes "ticket-zetu-api/modules/users/models/members"
 	UserSession "ticket-zetu-api/modules/users/models/members"
 
+	Comment "ticket-zetu-api/modules/events/models/events"
 	Event "ticket-zetu-api/modules/events/models/events"
 	EventImage "ticket-zetu-api/modules/events/models/events"
+	Favorite "ticket-zetu-api/modules/events/models/events"
 	Venue "ticket-zetu-api/modules/events/models/events"
+	Vote "ticket-zetu-api/modules/events/models/events"
 
 	DiscountCode "ticket-zetu-api/modules/tickets/models/tickets"
 	PriceTier "ticket-zetu-api/modules/tickets/models/tickets"
@@ -68,6 +71,9 @@ func Migrate(db *gorm.DB) error {
 		&VenueImage.VenueImage{},
 		&Event.Event{},
 		&EventImage.EventImage{},
+		&Favorite.Favorite{},
+		&Vote.Vote{},
+		&Comment.Comment{},
 
 		// Ticket Models
 		&PriceTier.PriceTier{},

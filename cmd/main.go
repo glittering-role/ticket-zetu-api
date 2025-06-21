@@ -7,8 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 	"ticket-zetu-api/config"
+	"ticket-zetu-api/database"
 	"ticket-zetu-api/internal/middleware"
 	"ticket-zetu-api/internal/services"
+	"ticket-zetu-api/logs/handler"
+	"ticket-zetu-api/logs/service"
+	"time"
 )
 
 // @title Ticket Zetu API
@@ -28,15 +32,29 @@ func main() {
 	// Initialize Fiber app
 	app := fiber.New()
 
+	// Initialize database
+	database.InitDB()
+	db := database.DB
+	if db == nil {
+		log.Fatalf("Database initialization failed: DB is nil")
+	}
+	if err := database.Migrate(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	// Initialize LogService
+	logService := service.NewLogService(db, 100, 5*time.Second, appConfig.Env)
+	logHandler := &handler.LogHandler{Service: logService}
+
 	// Setup services
-	cloudinaryService, db, logService, emailService, jobQueue, err := services.SetupServices(appConfig)
+	cloudinaryService, emailService, jobQueue, err := services.SetupServices(appConfig, db, logService, logHandler)
 	if err != nil {
 		log.Fatalf("Failed to initialize services: %v", err)
 	}
 	defer services.ShutdownServices(db, logService, emailService, jobQueue)
 
 	// Setup middleware
-	middleware.SetupMiddleware(app, appConfig)
+	middleware.SetupMiddleware(app, appConfig, logHandler)
 
 	// Setup routes
 	services.SetupRoutes(app, db, logService, cloudinaryService, emailService)

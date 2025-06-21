@@ -211,11 +211,6 @@ func convertUserLocation(location members.UserLocation) *dto.UserLocationDto {
 		Timezone:  location.Timezone,
 	}
 
-	if location.LastActive != nil {
-		lastActive := location.LastActive.Format(time.RFC3339)
-		locDto.LastActive = &lastActive
-	}
-
 	return locDto
 }
 

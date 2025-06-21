@@ -20,14 +20,13 @@ type UserProfileResponseDto struct {
 }
 
 type UserLocationDto struct {
-	Country    string  `json:"country,omitempty" example:"US"`
-	State      string  `json:"state,omitempty" example:"NY"`
-	StateName  string  `json:"state_name,omitempty" example:"New York"`
-	Continent  string  `json:"continent,omitempty" example:"North America"`
-	City       string  `json:"city,omitempty" example:"New York"`
-	Zip        string  `json:"zip,omitempty" example:"10001"`
-	Timezone   string  `json:"timezone" example:"America/New_York"`
-	LastActive *string `json:"last_active,omitempty" example:"2025-06-05T08:00:00Z"`
+	Country   string `json:"country,omitempty" example:"US"`
+	State     string `json:"state,omitempty" example:"NY"`
+	StateName string `json:"state_name,omitempty" example:"New York"`
+	Continent string `json:"continent,omitempty" example:"North America"`
+	City      string `json:"city,omitempty" example:"New York"`
+	Zip       string `json:"zip,omitempty" example:"10001"`
+	Timezone  string `json:"timezone" example:"America/New_York"`
 }
 
 type UpdateUserDto struct {
