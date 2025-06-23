@@ -44,12 +44,18 @@ func (s *venueService) UpdateVenue(userID, id string, dto venue_dto.UpdateVenueD
 	venue.Address = dto.Address
 	venue.City = dto.City
 	venue.State = dto.State
+	venue.PostalCode = dto.PostalCode
 	venue.Country = dto.Country
 	venue.Capacity = dto.Capacity
+	venue.VenueType = events.VenueType(dto.VenueType)
+	venue.Layout = dto.Layout
+	venue.AccessibilityFeatures = dto.AccessibilityFeatures
+	venue.Facilities = dto.Facilities
 	venue.ContactInfo = dto.ContactInfo
+	venue.Timezone = dto.Timezone
 	venue.Latitude = dto.Latitude
 	venue.Longitude = dto.Longitude
-	venue.Status = dto.Status
+	venue.Status = events.VenueStatus(dto.Status)
 	venue.Version++
 	venue.UpdatedAt = time.Now()
 
@@ -87,7 +93,7 @@ func (s *venueService) DeleteVenue(userID, id string) error {
 		return err
 	}
 
-	if venue.Status == "active" {
+	if venue.Status == events.VenueStatusActive {
 		return errors.New("cannot delete an active venue")
 	}
 

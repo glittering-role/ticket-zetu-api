@@ -20,7 +20,7 @@ func InitDB() {
 	// Open the database connection using gorm.io/gorm and the mysql driver
 	var err error
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info), // Enable SQL logging
+		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		log.Fatalf("Could not connect to the database: %v", err)

@@ -83,9 +83,6 @@ func (s *eventService) UpdateEvent(updateDto dto.UpdateEvent, userID, id string)
 			}
 			event.VenueID = *updateDto.VenueID
 		}
-		if updateDto.TotalSeats != nil {
-			event.TotalSeats = *updateDto.TotalSeats
-		}
 		if updateDto.StartTime != nil {
 			event.StartTime = *updateDto.StartTime
 		}

@@ -39,11 +39,9 @@ type Event struct {
 	Timezone  string    `gorm:"size:100" json:"timezone,omitempty"`
 	Language  string    `gorm:"size:50" json:"language,omitempty"`
 
-	OrganizerID    string    `gorm:"type:char(36);not null;index" json:"-"`
-	EventType      EventType `gorm:"size:20;default:'offline'" json:"event_type"`
-	MinAge         int       `gorm:"not null;default:0" json:"min_age"`
-	TotalSeats     int       `gorm:"not null" json:"total_seats"`
-	AvailableSeats int       `gorm:"not null" json:"available_seats"`
+	OrganizerID string    `gorm:"type:char(36);not null;index" json:"-"`
+	EventType   EventType `gorm:"size:20;default:'offline'" json:"event_type"`
+	MinAge      int       `gorm:"not null;default:0" json:"min_age"`
 
 	IsFree     bool        `gorm:"default:false" json:"is_free"`
 	HasTickets bool        `gorm:"default:true" json:"has_tickets"`
@@ -64,12 +62,7 @@ func (e *Event) BeforeCreate(tx *gorm.DB) (err error) {
 	if e.ID == "" {
 		e.ID = uuid.New().String()
 	}
-	if e.TotalSeats <= 0 {
-		return errors.New("total_seats must be positive")
-	}
-	if e.AvailableSeats < 0 || e.AvailableSeats > e.TotalSeats {
-		return errors.New("available_seats must be non-negative and not exceed total_seats")
-	}
+
 	if _, err := uuid.Parse(e.OrganizerID); err != nil {
 		return errors.New("invalid organizer_id format")
 	}
@@ -77,12 +70,6 @@ func (e *Event) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 func (e *Event) BeforeUpdate(tx *gorm.DB) (err error) {
-	if e.TotalSeats <= 0 {
-		return errors.New("total_seats must be positive")
-	}
-	if e.AvailableSeats < 0 || e.AvailableSeats > e.TotalSeats {
-		return errors.New("available_seats must be non-negative and not exceed total_seats")
-	}
 	if _, err := uuid.Parse(e.OrganizerID); err != nil {
 		return errors.New("invalid organizer_id format")
 	}
