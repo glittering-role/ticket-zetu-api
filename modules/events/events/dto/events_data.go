@@ -13,10 +13,8 @@ type CreateEventInput struct {
 	Timezone  string    `json:"timezone,omitempty" example:"Africa/Nairobi"` // No need to validate oneof if internal doesn't enforce it
 	Language  string    `json:"language,omitempty" example:"en"`
 
-	EventType      string `json:"event_type" example:"offline" validate:"required,oneof=online offline hybrid"`
-	MinAge         int    `json:"min_age,omitempty" example:"18"`
-	TotalSeats     int    `json:"total_seats" example:"500" validate:"required,gte=1"`
-	AvailableSeats int    `json:"available_seats,omitempty" example:"480" validate:"gte=0,ltefield=TotalSeats"`
+	EventType string `json:"event_type" example:"offline" validate:"required,oneof=online offline hybrid"`
+	MinAge    int    `json:"min_age,omitempty" example:"18"`
 
 	IsFree     bool   `json:"is_free" example:"false"`
 	HasTickets bool   `json:"has_tickets" example:"true"`

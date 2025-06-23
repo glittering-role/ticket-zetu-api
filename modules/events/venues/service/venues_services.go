@@ -62,40 +62,64 @@ func (s *venueService) getUserOrganizer(userID string) (*organizers.Organizer, e
 }
 
 func (s *venueService) mapVenueToResponse(venue *events.Venue) *venue_dto.VenueResponse {
+	var seats []venue_dto.Seat
+	if venue == nil {
+		return nil
+	}
+	if err := s.db.Where("venue_id = ? AND deleted_at IS NULL", venue.ID).Find(&seats).Error; err != nil {
+		seats = []venue_dto.Seat{}
+	}
+
 	return &venue_dto.VenueResponse{
-		ID:          venue.ID,
-		Name:        venue.Name,
-		Description: venue.Description,
-		Address:     venue.Address,
-		City:        venue.City,
-		State:       venue.State,
-		Country:     venue.Country,
-		Capacity:    venue.Capacity,
-		ContactInfo: venue.ContactInfo,
-		Latitude:    venue.Latitude,
-		Longitude:   venue.Longitude,
-		Status:      venue.Status,
-		CreatedAt:   venue.CreatedAt,
-		VenueImages: venue.VenueImages,
+		ID:                    venue.ID,
+		Name:                  venue.Name,
+		Description:           venue.Description,
+		Address:               venue.Address,
+		City:                  venue.City,
+		State:                 venue.State,
+		PostalCode:            venue.PostalCode,
+		Country:               venue.Country,
+		Capacity:              venue.Capacity,
+		VenueType:             string(venue.VenueType),
+		Layout:                venue.Layout,
+		AccessibilityFeatures: venue.AccessibilityFeatures,
+		Facilities:            venue.Facilities,
+		ContactInfo:           venue.ContactInfo,
+		Timezone:              venue.Timezone,
+		Latitude:              venue.Latitude,
+		Longitude:             venue.Longitude,
+		Status:                string(venue.Status),
+		OrganizerID:           venue.OrganizerID,
+		CreatedAt:             venue.CreatedAt,
+		VenueImages:           venue.VenueImages,
+		Seats:                 seats,
 	}
 }
 
 // Valid fields for the venues table
 var validVenueFields = map[string]bool{
-	"id":           true,
-	"name":         true,
-	"description":  true,
-	"address":      true,
-	"city":         true,
-	"state":        true,
-	"country":      true,
-	"capacity":     true,
-	"contact_info": true,
-	"latitude":     true,
-	"longitude":    true,
-	"status":       true,
-	"created_at":   true,
-	"updated_at":   true,
-	"deleted_at":   true,
-	"version":      true,
+	"id":                     true,
+	"name":                   true,
+	"description":            true,
+	"address":                true,
+	"city":                   true,
+	"state":                  true,
+	"postal_code":            true,
+	"country":                true,
+	"capacity":               true,
+	"venue_type":             true,
+	"layout":                 true,
+	"accessibility_features": true,
+	"facilities":             true,
+	"contact_info":           true,
+	"timezone":               true,
+	"latitude":               true,
+	"longitude":              true,
+	"status":                 true,
+	"organizer_id":           true,
+	"created_at":             true,
+	"updated_at":             true,
+	"deleted_at":             true,
+	"version":                true,
+	"seats":                  true,
 }

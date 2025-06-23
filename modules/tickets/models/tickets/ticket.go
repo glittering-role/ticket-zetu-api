@@ -2,9 +2,10 @@ package tickets
 
 import (
 	"errors"
+	"time"
+
 	"ticket-zetu-api/modules/events/models/events"
 	"ticket-zetu-api/modules/users/models/members"
-	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -26,6 +27,7 @@ type Ticket struct {
 	EventID          string         `gorm:"type:char(36);not null;index" json:"event_id"`
 	UserID           string         `gorm:"type:char(36);not null;index" json:"user_id"`
 	TicketTypeID     string         `gorm:"type:char(36);not null;index" json:"ticket_type_id"`
+	SeatID           string         `gorm:"type:char(36);index" json:"seat_id,omitempty"`
 	SeatNumber       string         `gorm:"size:10" json:"seat_number"`
 	SeatSection      string         `gorm:"size:50" json:"seat_section"`
 	PurchaseTime     time.Time      `gorm:"autoCreateTime" json:"purchase_time"`
@@ -79,6 +81,7 @@ func (t *Ticket) BeforeCreate(tx *gorm.DB) (err error) {
 	if t.Status != TicketValid && t.Status != TicketUsed && t.Status != TicketCanceled && t.Status != TicketRefunded && t.Status != TicketPending {
 		return errors.New("status must be one of 'valid', 'used', 'canceled', 'refunded', 'pending'")
 	}
+
 	return nil
 }
 
@@ -104,6 +107,7 @@ func (t *Ticket) BeforeUpdate(tx *gorm.DB) (err error) {
 	if t.Status != TicketValid && t.Status != TicketUsed && t.Status != TicketCanceled && t.Status != TicketRefunded && t.Status != TicketPending {
 		return errors.New("status must be one of 'valid', 'used', 'canceled', 'refunded', 'pending'")
 	}
+
 	return nil
 }
 

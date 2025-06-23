@@ -23,18 +23,24 @@ func (s *venueService) CreateVenue(userID string, dto venue_dto.CreateVenueDto) 
 
 	// Create the venue
 	venue := events.Venue{
-		OrganizerID: organizer.ID,
-		Name:        dto.Name,
-		Description: dto.Description,
-		Address:     dto.Address,
-		City:        dto.City,
-		State:       dto.State,
-		Country:     dto.Country,
-		Capacity:    dto.Capacity,
-		ContactInfo: dto.ContactInfo,
-		Latitude:    dto.Latitude,
-		Longitude:   dto.Longitude,
-		Status:      dto.Status,
+		OrganizerID:           organizer.ID,
+		Name:                  dto.Name,
+		Description:           dto.Description,
+		Address:               dto.Address,
+		City:                  dto.City,
+		State:                 dto.State,
+		PostalCode:            dto.PostalCode,
+		Country:               dto.Country,
+		Capacity:              dto.Capacity,
+		VenueType:             events.VenueType(dto.VenueType),
+		Layout:                dto.Layout,
+		AccessibilityFeatures: dto.AccessibilityFeatures,
+		Facilities:            dto.Facilities,
+		ContactInfo:           dto.ContactInfo,
+		Timezone:              dto.Timezone,
+		Latitude:              dto.Latitude,
+		Longitude:             dto.Longitude,
+		Status:                events.VenueStatus(dto.Status),
 	}
 
 	if err := s.db.Create(&venue).Error; err != nil {

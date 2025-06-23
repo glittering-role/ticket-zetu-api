@@ -164,7 +164,7 @@ func (s *eventService) toDto(event *events.Event, fullDetails bool) (*struct {
 	Full    dto.EventResponse
 	Minimal dto.MinimalEventResponse
 }, error) {
-	// Load event images only
+	// Load event images
 	var eventImages []events.EventImage
 	if err := s.db.Where("event_id = ? AND deleted_at IS NULL", event.ID).Find(&eventImages).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch event images: %v", err)
@@ -219,6 +219,18 @@ func (s *eventService) toDto(event *events.Event, fullDetails bool) (*struct {
 	var venue events.Venue
 	if err := s.db.Preload("VenueImages").First(&venue, "id = ? AND deleted_at IS NULL", event.VenueID).Error; err != nil {
 		return nil, fmt.Errorf("venue not found: %v", err)
+	}
+
+	// Load seats for the venue
+	var seats []dto.Seat
+	if err := s.db.Where("venue_id = ? AND deleted_at IS NULL", venue.ID).Find(&seats).Error; err != nil {
+		seats = []dto.Seat{}
+	}
+
+	// Load reserved seats for the event
+	var reservedSeats []dto.ReservedSeat
+	if err := s.db.Where("event_id = ? AND deleted_at IS NULL", event.ID).Find(&reservedSeats).Error; err != nil {
+		reservedSeats = []dto.ReservedSeat{}
 	}
 
 	// Load ticket types and their price tiers for full response
@@ -282,34 +294,47 @@ func (s *eventService) toDto(event *events.Event, fullDetails bool) (*struct {
 		},
 		VenueID: event.VenueID,
 		Venue: dto.VenueResponse{
-			ID:          venue.ID,
-			Name:        venue.Name,
-			Address:     venue.Address,
-			City:        venue.City,
-			Country:     venue.Country,
-			Capacity:    venue.Capacity,
-			Status:      venue.Status,
-			VenueImages: venue.VenueImages,
+			ID:                    venue.ID,
+			Name:                  venue.Name,
+			Description:           venue.Description,
+			Address:               venue.Address,
+			City:                  venue.City,
+			State:                 venue.State,
+			PostalCode:            venue.PostalCode,
+			Country:               venue.Country,
+			Capacity:              venue.Capacity,
+			VenueType:             string(venue.VenueType),
+			Layout:                venue.Layout,
+			AccessibilityFeatures: venue.AccessibilityFeatures,
+			Facilities:            venue.Facilities,
+			ContactInfo:           venue.ContactInfo,
+			Timezone:              venue.Timezone,
+			Latitude:              venue.Latitude,
+			Longitude:             venue.Longitude,
+			Status:                string(venue.Status),
+			OrganizerID:           venue.OrganizerID,
+			CreatedAt:             venue.CreatedAt,
+			VenueImages:           venue.VenueImages,
+			Seats:                 seats,
 		},
-		StartTime:      event.StartTime,
-		EndTime:        event.EndTime,
-		Timezone:       event.Timezone,
-		Language:       event.Language,
-		EventType:      string(event.EventType),
-		MinAge:         event.MinAge,
-		TotalSeats:     event.TotalSeats,
-		AvailableSeats: event.AvailableSeats,
-		IsFree:         event.IsFree,
-		HasTickets:     event.HasTickets,
-		IsFeatured:     event.IsFeatured,
-		Status:         string(event.Status),
-		Upvotes:        int(upvotes),
-		Downvotes:      int(downvotes),
-		EventImages:    eventImages,
-		PublishedAt:    event.PublishedAt,
-		CreatedAt:      event.CreatedAt,
-		UpdatedAt:      event.UpdatedAt,
-		TicketTypes:    ticketTypeResponses,
+		Upvotes:       int(upvotes),
+		Downvotes:     int(downvotes),
+		StartTime:     event.StartTime,
+		EndTime:       event.EndTime,
+		Timezone:      event.Timezone,
+		Language:      event.Language,
+		EventType:     string(event.EventType),
+		MinAge:        event.MinAge,
+		IsFree:        event.IsFree,
+		HasTickets:    event.HasTickets,
+		IsFeatured:    event.IsFeatured,
+		Status:        string(event.Status),
+		EventImages:   eventImages,
+		PublishedAt:   event.PublishedAt,
+		CreatedAt:     event.CreatedAt,
+		UpdatedAt:     event.UpdatedAt,
+		TicketTypes:   ticketTypeResponses,
+		ReservedSeats: reservedSeats,
 	}
 
 	return &struct {

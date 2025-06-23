@@ -24,6 +24,8 @@ import (
 	Favorite "ticket-zetu-api/modules/events/models/events"
 	Venue "ticket-zetu-api/modules/events/models/events"
 	Vote "ticket-zetu-api/modules/events/models/events"
+	Seat "ticket-zetu-api/modules/events/models/seats"
+	SeatReservation "ticket-zetu-api/modules/events/models/seats"
 
 	DiscountCode "ticket-zetu-api/modules/tickets/models/tickets"
 	PriceTier "ticket-zetu-api/modules/tickets/models/tickets"
@@ -74,6 +76,8 @@ func Migrate(db *gorm.DB) error {
 		&Favorite.Favorite{},
 		&Vote.Vote{},
 		&Comment.Comment{},
+		&Seat.Seat{},
+		&SeatReservation.SeatReservation{},
 
 		// Ticket Models
 		&PriceTier.PriceTier{},
