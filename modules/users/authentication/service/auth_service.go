@@ -25,6 +25,7 @@ type UserService interface {
 	UpdateVerificationCode(ctx context.Context, userID, verificationCode string) error
 	RequestPasswordReset(ctx context.Context, c *fiber.Ctx, usernameOrEmail string) error
 	SetNewPassword(ctx context.Context, c *fiber.Ctx, resetToken, newPassword string) error
+	Logout(ctx context.Context, c *fiber.Ctx, sessionToken string) error
 }
 
 type userService struct {

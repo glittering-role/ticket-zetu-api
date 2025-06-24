@@ -3,8 +3,6 @@ package authentication
 import (
 	"context"
 	"errors"
-	"ticket-zetu-api/modules/users/models/members"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -18,7 +16,7 @@ import (
 // @Security ApiKeyAuth
 // @Success 200 {object} map[string]interface{} "Logout successful"
 // @Failure 400 {object} map[string]interface{} "No session found"
-// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Failure 500 {object} map[string]interface{} "Failed to process logout"
 // @Router /auth/logout [post]
 // Logout handles session termination
 func (c *AuthController) Logout(ctx *fiber.Ctx) error {
@@ -27,53 +25,15 @@ func (c *AuthController) Logout(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, errors.New("no session token found"), fiber.StatusBadRequest)
 	}
 
-	// Start a transaction
-	tx := c.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// Delete session from database
-	err := tx.
-		Where("session_token = ?", sessionToken).
-		Delete(&members.UserSession{}).Error
+	// Call the service to handle logout logic
+	err := c.userService.Logout(context.Background(), ctx, sessionToken)
 	if err != nil {
-		tx.Rollback()
-		return c.logHandler.LogError(ctx, errors.New("failed to invalidate session"), fiber.StatusInternalServerError)
+		// Log the detailed error internally but return a generic message to the client
+		c.logHandler.LogError(ctx, err, fiber.StatusInternalServerError)
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to process logout",
+		})
 	}
-
-	// Delete session from Redis
-	redisKey := "session:" + sessionToken
-	_, err = c.redisClient.Del(context.Background(), redisKey).Result()
-	if err != nil {
-		tx.Rollback()
-		return c.logHandler.LogError(ctx, errors.New("failed to invalidate redis session"), fiber.StatusInternalServerError)
-	}
-
-	// Commit transaction
-	if err := tx.Commit().Error; err != nil {
-		return c.logHandler.LogError(ctx, errors.New("failed to commit transaction"), fiber.StatusInternalServerError)
-	}
-
-	// Clear cookies
-	ctx.Cookie(&fiber.Cookie{
-		Name:     "session_token",
-		Value:    "",
-		Expires:  time.Now().Add(-time.Hour),
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "Strict",
-	})
-	ctx.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		Expires:  time.Now().Add(-time.Hour),
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "Strict",
-	})
 
 	return c.logHandler.LogSuccess(ctx, nil, "Logout successful", true)
 }
