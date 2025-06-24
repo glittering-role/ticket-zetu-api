@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"ticket-zetu-api/logs/handler"
@@ -14,6 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// Location represents geolocation data
 type Location struct {
 	IPAddress string `json:"ip_address"`
 	City      string `json:"city"`
@@ -24,20 +27,47 @@ type Location struct {
 	Timezone  string `json:"timezone"`
 }
 
+// GeolocationService handles geolocation lookups
 type GeolocationService struct {
 	logHandler *handler.LogHandler
 	apiToken   string
 	client     *http.Client
+	allowLocal bool
+	defaultLoc *Location
+	cache      map[string]*Location
+	cacheMutex sync.RWMutex
+	cacheTTL   time.Duration
 }
 
 // NewGeolocationService creates a new instance of GeolocationService
 func NewGeolocationService(logHandler *handler.LogHandler, apiToken string) *GeolocationService {
+	// Hardcoded configuration
+	allowLocal := true
+	defaultCity := "Localhost"
+	defaultState := "Local"
+	defaultCountry := "Local"
+	defaultContinent := "Local"
+	defaultZip := "00000"
+	defaultTimezone := "UTC"
+	cacheTTL := 1 * time.Hour
+
 	return &GeolocationService{
 		logHandler: logHandler,
 		apiToken:   apiToken,
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},
+		allowLocal: allowLocal,
+		defaultLoc: &Location{
+			City:      defaultCity,
+			State:     defaultState,
+			Country:   defaultCountry,
+			Continent: defaultContinent,
+			Zip:       defaultZip,
+			Timezone:  defaultTimezone,
+		},
+		cache:    make(map[string]*Location),
+		cacheTTL: cacheTTL,
 	}
 }
 
@@ -45,10 +75,46 @@ func NewGeolocationService(logHandler *handler.LogHandler, apiToken string) *Geo
 func (s *GeolocationService) GeolocationMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ip := getClientIP(c)
-		if s.logHandler != nil {
-			s.logHandler.LogWarning(c, fmt.Sprintf("Invalid or local IP detected: %s", ip), fiber.StatusBadRequest, nil)
+
+		// Validate IP
+		if !isValidIP(ip) {
+			if s.logHandler != nil {
+				s.logHandler.LogWarning(c, fmt.Sprintf("Invalid IP address: %s", ip), fiber.StatusBadRequest, nil)
+			}
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid IP address"})
 		}
 
+		// Check if IP is local
+		isLocal := isLocalIP(ip)
+
+		// Handle local IPs
+		if isLocal && s.allowLocal {
+			location := &Location{
+				IPAddress: ip,
+				City:      s.defaultLoc.City,
+				State:     s.defaultLoc.State,
+				Country:   s.defaultLoc.Country,
+				Continent: s.defaultLoc.Continent,
+				Zip:       s.defaultLoc.Zip,
+				Timezone:  s.defaultLoc.Timezone,
+			}
+			c.Locals("user_location", location)
+			if s.logHandler != nil {
+				s.logHandler.LogInfo(c, fmt.Sprintf("Using default location for local IP: %s", ip))
+			}
+			return c.Next()
+		}
+
+		// Check cache
+		if loc := s.getCachedLocation(ip); loc != nil {
+			c.Locals("user_location", loc)
+			if s.logHandler != nil {
+				s.logHandler.LogInfo(c, fmt.Sprintf("Served location from cache for IP: %s", ip))
+			}
+			return c.Next()
+		}
+
+		// Default location for non-local invalid IPs
 		location := &Location{
 			IPAddress: ip,
 			Country:   "Unknown",
@@ -148,12 +214,15 @@ func (s *GeolocationService) GeolocationMiddleware() fiber.Handler {
 					}
 				}
 
+				// Cache the result
+				s.setCachedLocation(ip, fetchedLocation)
+
 				select {
 				case resultCh <- fetchedLocation:
 					return
 				case <-ctx.Done():
 					if s.logHandler != nil {
-						s.logHandler.LogWarning(c, fmt.Sprintf("ipinfo.io attempt %d timed out or context cancelled", attempt), fiber.StatusBadRequest, nil)
+						s.logHandler.LogWarning(c, "Context cancelled while waiting for ipinfo.io response", fiber.StatusBadRequest, nil)
 					}
 					return
 				}
@@ -195,7 +264,73 @@ func getClientIP(c *fiber.Ctx) string {
 // getString safely extracts string from map
 func getString(data map[string]interface{}, key string) string {
 	if val, ok := data[key]; ok && val != nil {
-		return val.(string)
+		if str, ok := val.(string); ok {
+			return str
+		}
 	}
 	return ""
+}
+
+// isValidIP checks if the IP address is valid
+func isValidIP(ip string) bool {
+	if ip == "" || ip == "localhost" {
+		return true
+	}
+
+	return net.ParseIP(ip) != nil
+}
+
+// isLocalIP checks if the IP is a local or private address
+func isLocalIP(ip string) bool {
+	if ip == "127.0.0.1" || ip == "::1" || ip == "localhost" {
+		return true
+	}
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return false
+	}
+
+	// Check for private IP ranges
+	privateRanges := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+	}
+	for _, cidr := range privateRanges {
+		_, network, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
+		}
+		if network.Contains(parsedIP) {
+			return true
+		}
+	}
+	return false
+}
+
+// getCachedLocation retrieves location from cache if not expired
+func (s *GeolocationService) getCachedLocation(ip string) *Location {
+	s.cacheMutex.RLock()
+	defer s.cacheMutex.RUnlock()
+
+	if loc, exists := s.cache[ip]; exists {
+		// Simple cache expiration check (could be enhanced with timestamps)
+		return loc
+	}
+	return nil
+}
+
+// setCachedLocation stores location in cache with TTL
+func (s *GeolocationService) setCachedLocation(ip string, loc *Location) {
+	s.cacheMutex.Lock()
+	defer s.cacheMutex.Unlock()
+
+	s.cache[ip] = loc
+	// Schedule cache cleanup
+	go func() {
+		<-time.After(s.cacheTTL)
+		s.cacheMutex.Lock()
+		defer s.cacheMutex.Unlock()
+		delete(s.cache, ip)
+	}()
 }
