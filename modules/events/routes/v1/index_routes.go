@@ -13,4 +13,5 @@ func SetupEventsMainRoutes(router fiber.Router, db *gorm.DB, logHandler *handler
 	CategoryRoutes(router, db, logHandler, cloudinary)
 	SetupEventsRoutes(router, db, logHandler, cloudinary)
 	VenueRoutes(router, db, logHandler, cloudinary)
+	SeatRoutes(router, db, logHandler)
 }

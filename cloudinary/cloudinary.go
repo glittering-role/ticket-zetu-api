@@ -64,7 +64,7 @@ func (s *CloudinaryService) DeleteFile(ctx context.Context, url string) error {
 	publicID, resourceType := extractPublicID(url, s.CloudName)
 	if publicID == "" {
 		log.Printf("No valid public ID extracted from URL: %s", url)
-		return nil // No error, just nothing to delete
+		return nil
 	}
 
 	_, err := s.Client.Upload.Destroy(ctx, uploader.DestroyParams{
