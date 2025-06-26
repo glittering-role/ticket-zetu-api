@@ -35,22 +35,20 @@ func (c *EventController) CreateEvent(ctx *fiber.Ctx) error {
 	}
 
 	newCreateEvent := dto.CreateEvent{
-		Title:          input.Title,
-		Description:    input.Description,
-		SubcategoryID:  input.SubcategoryID,
-		VenueID:        input.VenueID,
-		StartTime:      input.StartTime,
-		EndTime:        input.EndTime,
-		Timezone:       input.Timezone,
-		Language:       input.Language,
-		EventType:      input.EventType,
-		MinAge:         input.MinAge,
-		TotalSeats:     input.TotalSeats,
-		AvailableSeats: input.AvailableSeats,
-		IsFree:         input.IsFree,
-		HasTickets:     input.HasTickets,
-		IsFeatured:     input.IsFeatured,
-		Status:         input.Status,
+		Title:         input.Title,
+		Description:   input.Description,
+		SubcategoryID: input.SubcategoryID,
+		VenueID:       input.VenueID,
+		StartTime:     input.StartTime,
+		EndTime:       input.EndTime,
+		Timezone:      input.Timezone,
+		Language:      input.Language,
+		EventType:     input.EventType,
+		MinAge:        input.MinAge,
+		IsFree:        input.IsFree,
+		HasTickets:    input.HasTickets,
+		IsFeatured:    input.IsFeatured,
+		Status:        input.Status,
 	}
 
 	event, err := c.service.CreateEvent(

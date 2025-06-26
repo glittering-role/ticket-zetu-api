@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -30,12 +31,57 @@ func (s *venueService) UpdateVenue(userID, id string, dto venue_dto.UpdateVenueD
 		return nil, errors.New("invalid venue ID format")
 	}
 
+	// Validate and normalize JSON fields
+	if dto.Layout != "" {
+		if !json.Valid([]byte(dto.Layout)) {
+			return nil, errors.New("layout must be valid JSON")
+		}
+	} else {
+		dto.Layout = "{}"
+	}
+
+	if dto.AccessibilityFeatures != "" {
+		if !json.Valid([]byte(dto.AccessibilityFeatures)) {
+			return nil, errors.New("accessibility_features must be valid JSON")
+		}
+	} else {
+		dto.AccessibilityFeatures = "[]"
+	}
+
+	if dto.Facilities != "" {
+		if !json.Valid([]byte(dto.Facilities)) {
+			return nil, errors.New("facilities must be valid JSON")
+		}
+	} else {
+		dto.Facilities = "[]"
+	}
+
 	var venue events.Venue
 	if err := s.db.Where("id = ? AND organizer_id = ? AND deleted_at IS NULL", id, organizer.ID).First(&venue).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("venue not found")
 		}
 		return nil, err
+	}
+
+	// Validate JSON fields
+	if dto.Layout != "" {
+		if !json.Valid([]byte(dto.Layout)) {
+			return nil, errors.New("layout must be valid JSON")
+		}
+		venue.Layout = dto.Layout
+	}
+	if dto.AccessibilityFeatures != "" {
+		if !json.Valid([]byte(dto.AccessibilityFeatures)) {
+			return nil, errors.New("accessibility_features must be valid JSON")
+		}
+		venue.AccessibilityFeatures = dto.AccessibilityFeatures
+	}
+	if dto.Facilities != "" {
+		if !json.Valid([]byte(dto.Facilities)) {
+			return nil, errors.New("facilities must be valid JSON")
+		}
+		venue.Facilities = dto.Facilities
 	}
 
 	// Update venue fields from DTO

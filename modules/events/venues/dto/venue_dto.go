@@ -47,9 +47,9 @@ type CreateVenueDto struct {
 	PostalCode            string  `form:"postal_code" validate:"max=20" example:"00100"`
 	Country               string  `form:"country" validate:"required,min=2,max=100" example:"Kenya"`
 	Capacity              int     `form:"capacity" validate:"gte=0" example:"5000"`
-	VenueType             string  `form:"venue_type" validate:"required,oneof=stadium hotel park theater other" example:"stadium"`
+	VenueType             string  `form:"venue_type" validate:"required" example:"stadium"`
 	Layout                string  `form:"layout" validate:"max=1000" example:"{\"seating\": \"tiered\", \"sections\": 4}"`
-	AccessibilityFeatures string  `form:"accessibility_features" validate:"max=1000" example:"[\"wheelchair_ramp\", \"elevator\"]"`
+	AccessibilityFeatures string  `form:"accessibility_features" validate:"max=1000" example:"[\"wheelchair_ramp\", \"elevators\", \"braille_signage\"]"`
 	Facilities            string  `form:"facilities" validate:"max=1000" example:"[\"restrooms\", \"parking\", \"concession_stands\"]"`
 	ContactInfo           string  `form:"contact_info" validate:"max=255" example:"+254712345678"`
 	Timezone              string  `form:"timezone" validate:"max=100" example:"Africa/Nairobi"`

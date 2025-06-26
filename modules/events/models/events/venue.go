@@ -91,13 +91,9 @@ func (v *Venue) validate(tx *gorm.DB) error {
 	if v.OrganizerID == "" {
 		return errors.New("organizer_id cannot be empty")
 	}
-	if v.VenueType != VenueTypeStadium && v.VenueType != VenueTypeHotel && v.VenueType != VenueTypePark && v.VenueType != VenueTypeTheater && v.VenueType != VenueTypeOther {
-		return errors.New("venue_type must be one of 'stadium', 'hotel', 'park', 'theater', 'other'")
-	}
 	if v.Status != VenueStatusActive && v.Status != VenueStatusInactive && v.Status != VenueStatusSuspended {
 		return errors.New("status must be one of 'active', 'inactive', 'suspended'")
 	}
-	// Validate JSON fields
 	if v.Layout != "" {
 		var layout map[string]interface{}
 		if err := json.Unmarshal([]byte(v.Layout), &layout); err != nil {

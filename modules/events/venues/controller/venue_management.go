@@ -1,29 +1,33 @@
 package venues_controller
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"strings"
 	venue_dto "ticket-zetu-api/modules/events/venues/dto"
+
+	"github.com/gofiber/fiber/v2"
 )
 
-// CreateVenue godoc
+// UpdateVenue godoc
 // @Summary Update Venue
-// @Description Update Venue.
+// @Description Update an existing venue.
 // @Tags Venue Group
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
 // @Security ApiKeyAuth
 // @Param id path string true "Venue ID"
-// @Param input body venue_dto.CreateVenueDto true "Venue details"
+// @Param input body venue_dto.UpdateVenueDto true "Venue details"
+// @Param images formData file false "Venue images (optional)"
 // @Success 200 {object} map[string]interface{} "Venue updated successfully"
 // @Failure 400 {object} map[string]interface{} "Invalid request body"
-// @Failure 403 {object} map[string]interface{} "User lacks create permission"
+// @Failure 403 {object} map[string]interface{} "User lacks update permission"
+// @Failure 404 {object} map[string]interface{} "Venue not found"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Router /venues/{id} [put]
 func (c *VenueController) UpdateVenue(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
 
-	var input venue_dto.CreateVenueDto
+	var input venue_dto.UpdateVenueDto
 
 	if err := ctx.BodyParser(&input); err != nil {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid request body"), fiber.StatusBadRequest)
@@ -33,44 +37,51 @@ func (c *VenueController) UpdateVenue(ctx *fiber.Ctx) error {
 		return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, err.Error()), fiber.StatusBadRequest)
 	}
 
-	var imageURLs []string
-	form, err := ctx.MultipartForm()
-	if err == nil {
-		files := form.File["images"]
-		for _, file := range files {
-			if file.Size > 10*1024*1024 {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "File size exceeds 10MB limit"), fiber.StatusBadRequest)
+	// Validate array fields (Layout, AccessibilityFeatures, Facilities)
+	if input.Layout != "" {
+		layouts := strings.Split(input.Layout, ",")
+		for _, l := range layouts {
+			if len(strings.TrimSpace(l)) > 100 {
+				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Each layout item must be 100 characters or less"), fiber.StatusBadRequest)
 			}
-			if !isValidFileType(file.Header.Get("Content-Type")) {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Invalid file type. Only images are allowed"), fiber.StatusBadRequest)
+		}
+	}
+	if input.AccessibilityFeatures != "" {
+		features := strings.Split(input.AccessibilityFeatures, ",")
+		for _, f := range features {
+			if len(strings.TrimSpace(f)) > 100 {
+				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Each accessibility feature must be 100 characters or less"), fiber.StatusBadRequest)
 			}
-
-			f, err := file.Open()
-			if err != nil {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, "Failed to open file"), fiber.StatusInternalServerError)
+		}
+	}
+	if input.Facilities != "" {
+		facilities := strings.Split(input.Facilities, ",")
+		for _, f := range facilities {
+			if len(strings.TrimSpace(f)) > 100 {
+				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusBadRequest, "Each facility must be 100 characters or less"), fiber.StatusBadRequest)
 			}
-			defer f.Close()
-
-			url, err := c.cloudinary.UploadFile(ctx.Context(), f, "venues")
-			if err != nil {
-				return c.logHandler.LogError(ctx, fiber.NewError(fiber.StatusInternalServerError, "Failed to upload file to Cloudinary"), fiber.StatusInternalServerError)
-			}
-			imageURLs = append(imageURLs, url)
 		}
 	}
 
+	// Map all fields to UpdateVenueDto
 	newUpdateVenue := venue_dto.UpdateVenueDto{
-		Name:        input.Name,
-		Description: input.Description,
-		Address:     input.Address,
-		City:        input.City,
-		State:       input.State,
-		Country:     input.Country,
-		Capacity:    input.Capacity,
-		ContactInfo: input.ContactInfo,
-		Latitude:    input.Latitude,
-		Longitude:   input.Longitude,
-		Status:      input.Status,
+		Name:                  input.Name,
+		Description:           input.Description,
+		Address:               input.Address,
+		City:                  input.City,
+		State:                 input.State,
+		PostalCode:            input.PostalCode,
+		Country:               input.Country,
+		Capacity:              input.Capacity,
+		VenueType:             input.VenueType,
+		Layout:                input.Layout,
+		AccessibilityFeatures: input.AccessibilityFeatures,
+		Facilities:            input.Facilities,
+		ContactInfo:           input.ContactInfo,
+		Timezone:              input.Timezone,
+		Latitude:              input.Latitude,
+		Longitude:             input.Longitude,
+		Status:                input.Status,
 	}
 
 	venue, err := c.service.UpdateVenue(

@@ -44,7 +44,7 @@ func (c *VenueController) GetSingleVenueForOrganizer(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 	id := ctx.Params("id")
 
-	fields := ctx.Query("fields", "id,name,description,address,city,state,country,capacity,contact_info,latitude,longitude,status,organizer_id")
+	fields := ctx.Query("fields")
 
 	venue, err := c.service.GetVenue(userID, id, fields)
 	if err != nil {
@@ -79,7 +79,7 @@ func (c *VenueController) GetSingleVenueForOrganizer(ctx *fiber.Ctx) error {
 func (c *VenueController) GetVenuesForOrganizer(ctx *fiber.Ctx) error {
 	userID := ctx.Locals("user_id").(string)
 
-	fields := ctx.Query("fields", "id,name,description,address,city,state,country,capacity,contact_info,latitude,longitude,status,organizer_id")
+	fields := ctx.Query("fields")
 
 	venues, err := c.service.GetVenues(userID, fields)
 	if err != nil {
@@ -111,7 +111,7 @@ func (c *VenueController) GetVenuesForOrganizer(ctx *fiber.Ctx) error {
 // @Router /venues/all [get]
 func (c *VenueController) GetAllVenue(ctx *fiber.Ctx) error {
 	// _ := ctx.Locals("user_id").(string)
-	fields := ctx.Query("fields", "id,name,description,address,city,state,country,capacity,contact_info,latitude,longitude,status,organizer_id,venue_images")
+	fields := ctx.Query("fields")
 
 	venue, err := c.service.GetAllVenues(fields)
 	if err != nil {
