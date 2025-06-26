@@ -2,6 +2,8 @@ package service
 
 import (
 	//"errors"
+	"encoding/json"
+	"errors"
 	"ticket-zetu-api/modules/events/models/events"
 	venue_dto "ticket-zetu-api/modules/events/venues/dto"
 )
@@ -19,6 +21,48 @@ func (s *venueService) CreateVenue(userID string, dto venue_dto.CreateVenueDto) 
 	organizer, err := s.getUserOrganizer(userID)
 	if err != nil {
 		return nil, err
+	}
+
+	// Validate JSON fields
+	if dto.Layout != "" {
+		if !json.Valid([]byte(dto.Layout)) {
+			return nil, errors.New("layout must be valid JSON")
+		}
+	}
+	if dto.AccessibilityFeatures != "" {
+		if !json.Valid([]byte(dto.AccessibilityFeatures)) {
+			return nil, errors.New("accessibility_features must be valid JSON")
+		}
+	}
+	if dto.Facilities != "" {
+		if !json.Valid([]byte(dto.Facilities)) {
+			return nil, errors.New("facilities must be valid JSON")
+		}
+	}
+
+	// Validate and normalize JSON fields
+	if dto.Layout != "" {
+		if !json.Valid([]byte(dto.Layout)) {
+			return nil, errors.New("layout must be valid JSON")
+		}
+	} else {
+		dto.Layout = "{}"
+	}
+
+	if dto.AccessibilityFeatures != "" {
+		if !json.Valid([]byte(dto.AccessibilityFeatures)) {
+			return nil, errors.New("accessibility_features must be valid JSON")
+		}
+	} else {
+		dto.AccessibilityFeatures = "[]"
+	}
+
+	if dto.Facilities != "" {
+		if !json.Valid([]byte(dto.Facilities)) {
+			return nil, errors.New("facilities must be valid JSON")
+		}
+	} else {
+		dto.Facilities = "[]"
 	}
 
 	// Create the venue

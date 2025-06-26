@@ -10,7 +10,7 @@ type CreateEventInput struct {
 
 	StartTime time.Time `json:"start_time" example:"2025-08-15T18:00:00Z" validate:"required"`
 	EndTime   time.Time `json:"end_time" example:"2025-08-15T23:00:00Z" validate:"required,gtfield=StartTime"`
-	Timezone  string    `json:"timezone,omitempty" example:"Africa/Nairobi"` // No need to validate oneof if internal doesn't enforce it
+	Timezone  string    `json:"timezone,omitempty" example:"Africa/Nairobi"`
 	Language  string    `json:"language,omitempty" example:"en"`
 
 	EventType string `json:"event_type" example:"offline" validate:"required,oneof=online offline hybrid"`
