@@ -267,7 +267,6 @@ func (s *eventService) toDto(event *events.Event, fullDetails bool) (*struct {
 			Benefits:          tt.Benefits,
 			MinTicketsPerUser: tt.MinTicketsPerUser,
 			MaxTicketsPerUser: tt.MaxTicketsPerUser,
-			QuantityAvailable: tt.QuantityAvailable,
 			Status:            tt.Status,
 			IsDefault:         tt.IsDefault,
 			SalesStart:        tt.SalesStart,
