@@ -314,7 +314,6 @@ func (s *GeolocationService) getCachedLocation(ip string) *Location {
 	defer s.cacheMutex.RUnlock()
 
 	if loc, exists := s.cache[ip]; exists {
-		// Simple cache expiration check (could be enhanced with timestamps)
 		return loc
 	}
 	return nil

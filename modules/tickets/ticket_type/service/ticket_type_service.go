@@ -72,7 +72,6 @@ func (s *ticketTypeService) toDTO(ticketType *tickets.TicketType) *dto.TicketTyp
 		IsDefault:         ticketType.IsDefault,
 		SalesStart:        ticketType.SalesStart,
 		SalesEnd:          ticketType.SalesEnd,
-		QuantityAvailable: ticketType.QuantityAvailable,
 		CreatedAt:         ticketType.CreatedAt,
 		UpdatedAt:         ticketType.UpdatedAt,
 		PriceTiers:        priceTierResponses,
@@ -176,7 +175,6 @@ func (s *ticketTypeService) CreateTicketType(userID string, input dto.CreateTick
 		IsDefault:         input.IsDefault,
 		SalesStart:        input.SalesStart,
 		SalesEnd:          input.SalesEnd,
-		QuantityAvailable: input.QuantityAvailable,
 		MinTicketsPerUser: input.MinTicketsPerUser,
 		CreatedAt:         time.Now(),
 		UpdatedAt:         time.Now(),
@@ -236,7 +234,6 @@ func (s *ticketTypeService) UpdateTicketType(userID string, id string, input dto
 	ticketType.IsDefault = input.IsDefault
 	ticketType.SalesStart = input.SalesStart
 	ticketType.SalesEnd = input.SalesEnd
-	ticketType.QuantityAvailable = input.QuantityAvailable
 	ticketType.MinTicketsPerUser = input.MinTicketsPerUser
 
 	ticketType.UpdatedAt = time.Now()
