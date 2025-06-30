@@ -47,17 +47,17 @@ func main() {
 	logHandler := &handler.LogHandler{Service: logService}
 
 	// Setup services
-	cloudinaryService, emailService, jobQueue, err := services.SetupServices(appConfig, db, logService, logHandler)
+	cloudinaryService, emailService, jobQueue, geoService, deviceService, err := services.SetupServices(appConfig, db, logService, logHandler)
 	if err != nil {
 		log.Fatalf("Failed to initialize services: %v", err)
 	}
 	defer services.ShutdownServices(db, logService, emailService, jobQueue)
 
-	// Setup middleware
+	// Setup middleware (without geolocation and device detection)
 	middleware.SetupMiddleware(app, appConfig, logHandler)
 
 	// Setup routes
-	services.SetupRoutes(app, db, logService, cloudinaryService, emailService)
+	services.SetupRoutes(app, db, logService, cloudinaryService, emailService, geoService, deviceService)
 
 	// Graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)
