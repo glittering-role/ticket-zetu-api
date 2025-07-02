@@ -81,9 +81,4 @@ Interactive documentation is available at:
 3. Rotate credentials regularly
 4. Restrict database permissions
 5. Enable HTTPS in production
-
-## Contributing
-Please see our [Contribution Guidelines](CONTRIBUTING.md) for details.
-
-## License
-[MIT License](LICENSE)
+6. Use strong passwords and hashing algorithms
